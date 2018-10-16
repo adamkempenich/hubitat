@@ -24,24 +24,26 @@ metadata {
         command "setColorTemperature", [ "number" ] // Kelvin ( Light Minimum Color Temperature - Light Maximum Color Temperature )
 
         command "sendPreset", ["number", "number"]       // 0 (off), 1-20 (other presets)
-        command "presetRedFade", 			[ "number" ] // 0 - 100 (speed)
-		command "presetGreenFade", 			[ "number" ] // 0 - 100 (speed)
-		command "presetBlueFade", 			[ "number" ] // 0 - 100 (speed)
-		command "presetYellowFade", 		[ "number" ] // 0 - 100 (speed)
-		command "presetCyanFade", 			[ "number" ] // 0 - 100 (speed)
-		command "presetPurpleFade", 		[ "number" ] // 0 - 100 (speed)
-		command "presetWhiteFade", 			[ "number" ] // 0 - 100 (speed)
-		command "presetRedGreenDissolve", 	[ "number" ] // 0 - 100 (speed)
-		command "presetRedBlueDissolve", 	[ "number" ] // 0 - 100 (speed)
-		command "presetGreenBlueDissolve", 	[ "number" ] // 0 - 100 (speed)
-		command "presetSevenColorStrobe", 	[ "number" ] // 0 - 100 (speed)
-		command "presetRedStrobe", 			[ "number" ] // 0 - 100 (speed)
-		command "presetGreenStrobe", 		[ "number" ] // 0 - 100 (speed)
-		command "presetBlueStrobe", 		[ "number" ] // 0 - 100 (speed)
-		command "presetYellowStrobe", 		[ "number" ] // 0 - 100 (speed)
-		command "presetCyanStrobe", 		[ "number" ] // 0 - 100 (speed)
-		command "presetPurpleStrobe", 		[ "number" ] // 0 - 100 (speed)
-		command "presetSevenColorJump",	 	[ "number" ] // 0 - 100 (speed)
+        command "presetSevenColorDissolve", [ "number" ] // 0 - 100 (speed)
+        command "presetRedFade",            [ "number" ] // 0 - 100 (speed)
+        command "presetGreenFade",          [ "number" ] // 0 - 100 (speed)
+        command "presetBlueFade",           [ "number" ] // 0 - 100 (speed)
+        command "presetYellowFade",         [ "number" ] // 0 - 100 (speed)
+        command "presetCyanFade",           [ "number" ] // 0 - 100 (speed)
+        command "presetPurpleFade",         [ "number" ] // 0 - 100 (speed)
+        command "presetWhiteFade",          [ "number" ] // 0 - 100 (speed)
+        command "presetRedGreenDissolve",   [ "number" ] // 0 - 100 (speed)
+        command "presetRedBlueDissolve",    [ "number" ] // 0 - 100 (speed)
+        command "presetGreenBlueDissolve",  [ "number" ] // 0 - 100 (speed)
+        command "presetSevenColorStrobe",   [ "number" ] // 0 - 100 (speed)
+        command "presetRedStrobe",          [ "number" ] // 0 - 100 (speed)
+        command "presetGreenStrobe",        [ "number" ] // 0 - 100 (speed)
+        command "presetBlueStrobe",         [ "number" ] // 0 - 100 (speed)
+        command "presetYellowStrobe",       [ "number" ] // 0 - 100 (speed)
+        command "presetCyanStrobe",         [ "number" ] // 0 - 100 (speed)
+        command "presetPurpleStrobe",       [ "number" ] // 0 - 100 (speed)
+        command "presetWhiteStrobe",        [ "number" ] // 0 - 100 (speed)
+        command "presetSevenColorJump",     [ "number" ] // 0 - 100 (speed)
         
     	attribute "currentPreset", "string" // 0 (off), 1-20 (other presets)
         attribute "presetSpeed", "string" 
@@ -283,19 +285,19 @@ def setColorTemperature(setTemp, transmit=true){
 
 // ------------------- Begin Preset Handling ------------------------- //
 def sendPreset( turnOn, preset = 1, speed = 100, transmit = true ){
-	// Turn on preset mode (true), turn off preset mode (false). Preset (1 - 20), Speed (1 (slow) - 100 (fast)).
+    // Turn on preset mode (true), turn off preset mode (false). Preset (1 - 20), Speed (1 (slow) - 100 (fast)).
 
-	// Presets:
-	// 1 Seven Color Dissolve, 2 Red Fade, 3 Green Fade, 4 Blue Fade, 5 Yellow Fade, 6 Cyan Fade, 7 Purple Fade, 8 White Fade, 9 Red Green Dissolve
-	// 10 Red Blue Dissolve, 11 Green Blue Dissolve, 12 Seven Color Strobe, 13 Red Strobe, 14 Green Strobe, 15 Blue Strobe, 16 Yellow Strobe
-	// 17 Cyan Strobe, 18 Purple Strobe, 19 White Strobe, 20 Seven Color Jump
-	
+    // Presets:
+    // 1 Seven Color Dissolve, 2 Red Fade, 3 Green Fade, 4 Blue Fade, 5 Yellow Fade, 6 Cyan Fade, 7 Purple Fade, 8 White Fade, 9 Red Green Dissolve
+    // 10 Red Blue Dissolve, 11 Green Blue Dissolve, 12 Seven Color Strobe, 13 Red Strobe, 14 Green Strobe, 15 Blue Strobe, 16 Yellow Strobe
+    // 17 Cyan Strobe, 18 Purple Strobe, 19 White Strobe, 20 Seven Color Jump
+
     byte[] msg
     byte[] data
-    
+
     if(turnOn){
-    	normalizePercent( preset, 1, 20 )
-    	normalizePercent( speed )
+        normalizePercent( preset, 1, 20 )
+        normalizePercent( speed )
         
         // Hex range of presets is (int) 37 - (int) 57. Add the preset number to get that range.
         preset += 36
@@ -304,78 +306,81 @@ def sendPreset( turnOn, preset = 1, speed = 100, transmit = true ){
         msg =  [ 0x61, preset, speed, 0x0F ]
         data = [ 0x61, preset, speed, 0x0F, calculateChecksum(msg) ]
         if(settings.powerOnBrightnessChange){
-    		device.currentValue("status") == "on" ? on() : (null)
-    	}
+            device.currentValue("status") == "on" ? on() : (null)
+        }
 
-    	sendEvent( name: "currentPreset", value: preset )
-    	sendEvent( name: "presetSpeed", value: speed )
+        sendEvent( name: "currentPreset", value: preset )
+        sendEvent( name: "presetSpeed", value: speed )
 
-    	sendCommand( data )
+        sendCommand( data )
     }
     else{
-    	// Return the color back to its normal state
+        // Return the color back to its normal state
 
-    	sendEvent( name: "currentPreset", value: 0 )
-    	setColor( null )
+        sendEvent( name: "currentPreset", value: 0 )
+        setColor( null )
     }
 }
 
 def presetSevenColorDissolve( speed = 100 ){
-	sendPreset( true, 1, speed )
+    sendPreset( true, 1, speed )
 }
 def presetRedFade( speed = 100 ){
-	sendPreset( true, 2, speed )
+    sendPreset( true, 2, speed )
 }
 def presetGreenFade( speed = 100 ){
-	sendPreset( true, 3, speed )
+    sendPreset( true, 3, speed )
 }
 def presetBlueFade( speed = 100 ){
-	sendPreset( true, 4, speed )
+    sendPreset( true, 4, speed )
 }
 def presetYellowFade( speed = 100 ){
-	sendPreset( true, 5, speed )
+    sendPreset( true, 5, speed )
 }
 def presetCyanFade( speed = 100 ){
-	sendPreset( true, 6, speed )
+    sendPreset( true, 6, speed )
 }
 def presetPurpleFade( speed = 100 ){
-	sendPreset( true, 7, speed )
+    sendPreset( true, 7, speed )
 }
 def presetWhiteFade( speed = 100 ){
-	sendPreset( true, 8, speed )
+    sendPreset( true, 8, speed )
 }
 def presetRedGreenDissolve( speed = 100 ){
-	sendPreset( true, 10, speed )
+    sendPreset( true, 9, speed )
 }
 def presetRedBlueDissolve( speed = 100 ){
-	sendPreset( true, 11, speed )
+    sendPreset( true, 10, speed )
 }
 def presetGreenBlueDissolve( speed = 100 ){
-	sendPreset( true, 12, speed )
+    sendPreset( true, 11, speed )
 }
 def presetSevenColorStrobe( speed = 100 ){
-	sendPreset( true, 13, speed )
+    sendPreset( true, 12, speed )
 }
 def presetRedStrobe( speed = 100 ){
-	sendPreset( true, 14, speed )
+    sendPreset( true, 19, speed )
 }
 def presetGreenStrobe( speed = 100 ){
-	sendPreset( true, 15, speed )
+    sendPreset( true, 14, speed )
 }
 def presetBlueStrobe( speed = 100 ){
-	sendPreset( true, 16, speed )
+    sendPreset( true, 15, speed )
 }
 def presetYellowStrobe( speed = 100 ){
-	sendPreset( true, 17, speed )
+    sendPreset( true, 16, speed )
 }
 def presetCyanStrobe( speed = 100 ){
-	sendPreset( true, 18, speed )
+    sendPreset( true, 17, speed )
 }
 def presetPurpleStrobe( speed = 100 ){
-	sendPreset( true, 19, speed )
+    sendPreset( true, 18, speed )
+}
+def presetWhiteStrobe( speed = 75 ){
+    sendPreset( true, 19, speed )
 }
 def presetSevenColorJump( speed = 100 ){
-	sendPreset( true, 20, speed )
+    sendPreset( true, 20, speed )
 }
 
 // ------------------- End Preset Handling ------------------------- //
