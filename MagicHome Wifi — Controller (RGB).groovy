@@ -20,7 +20,7 @@ metadata {
         command "setHue", [ "number" ] 			// 0 - 100
         command "setSaturation", [ "number" ] 	// 0 - 100
     	command "setAdjustedColor"
-		command "setColor", ["number", "number", "number"] // Hue (0-100), Saturation (0-100), Value (0-100)
+		command "setColor" // Hue (0-100), Saturation (0-100), Value (0-100)
         command "setColorTemperature", [ "number" ] // Kelvin ( Light Minimum Color Temperature - Light Maximum Color Temperature )
 
         command "sendPreset", ["number", "number"]       // 0 (off), 1-20 (other presets)
