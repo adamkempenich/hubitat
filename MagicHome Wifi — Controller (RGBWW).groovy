@@ -129,12 +129,8 @@ def poll() {
     parent.poll(this)
 }
 
-def parse(resp) {       
-    parseResponse(resp)    
-}
-
-private parseResponse(resp){
-  log.debug resp
+def parse( response ) {
+    log.debug "Device responded with " + response    
 }
 
 def on() {
@@ -277,6 +273,18 @@ def setColor(parameters){
         sendEvent( name: "level", value: normalizedLevel)
         parameters.level = normalizedLevel
     }
+    
+    // ------------ White Brightness Adjustments? -------- //
+    if(settings.whiteFollowsBrightness){
+        if( parameters.level != null && parameters.coldWhiteLevel == null || parameters.level != null && parameters.warmWhiteLevel == null ) {
+        	newWhiteValues = setColorTemperature( null, false )
+            log.debug "New white values are " + newWhiteValues
+        	parameters.warmWhiteLevel = newWhiteValues.warmWhiteLevel
+            parameters.coldWhiteLevel = newWhiteValues.coldWhiteLevel
+            
+        }
+    }
+    
     // ------------ Warm White Channel ------------ //
     if(parameters.warmWhiteLevel == null){
         if( device.currentValue( "warmWhiteLevel" ) == null ){
@@ -292,6 +300,9 @@ def setColor(parameters){
         sendEvent( name: "warmWhiteLevel", value: normalizedWarmWhite )
         parameters.warmWhiteLevel = normalizedWarmWhite
     }
+    
+    
+    
     // ------------ Cold White Channel ------------ //
     if(parameters.coldWhiteLevel == null){
         if( device.currentValue( "coldWhiteLevel" ) == null ){ 
@@ -431,6 +442,10 @@ def setColorTemperature(setTemp, transmit=true){
         brightnessWarmWhite = normalizePercent( brightnessWarmWhite * deviceLevel / 100 ).toInteger()
         brightnessColdWhite = normalizePercent( brightnessColdWhite * deviceLevel / 100 ).toInteger()
     }
+    else if(settings.whiteFollowsBrightness){
+    	brightnessWarmWhite = normalizePercent( brightnessWarmWhite * deviceLevel / 100 ).toInteger()
+        brightnessColdWhite = normalizePercent( brightnessColdWhite * deviceLevel / 100 ).toInteger()
+    }
     else{
        	brightnessWarmWhite = normalizePercent( brightnessWarmWhite.toInteger() )
         brightnessColdWhite = normalizePercent( brightnessColdWhite.toInteger() )
@@ -444,7 +459,12 @@ def setColorTemperature(setTemp, transmit=true){
     }
     
     def parameters = [ hue: newHue.toInteger(), saturation: newSaturation.toInteger(), level: newLevel.toInteger(), warmWhiteLevel: brightnessWarmWhite, coldWhiteLevel: brightnessColdWhite ]
-    setColor( parameters )
+    if( transmit ){
+    	setColor( parameters )
+    }
+    else{
+    	return [ warmWhiteLevel: brightnessWarmWhite, coldWhiteLevel: brightnessColdWhite ]
+    }
 } 
 
 
