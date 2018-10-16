@@ -297,7 +297,7 @@ def setColorTemperature(setTemp, transmit=true){
             else{
     			newSaturation = (((( 100 - cwSaturationHighPoint)/100 ) * ( 1.8 * Math.sqrt( offset ))) + cwSaturationHighPoint ) * cwSaturationLowPoint / 100
             }
-        newHue =  setCoolWhiteHue / 3.6 
+        newHue =  setCoolWhiteHue
     }
     else{
     	// set warm white temperature if below the user's neutral white point
@@ -309,7 +309,7 @@ def setColorTemperature(setTemp, transmit=true){
             else{
     			newSaturation = (((( 100 - wwSaturationHighPoint ) / 100) * ( 2.166666 * Math.sqrt( offset ))) + wwSaturationHighPoint ) * wwSaturationLowPoint / 100
             }
-        newHue =  setWarmWhiteHue / 3.6
+        newHue =  setWarmWhiteHue
     }
 
     // ————————————————————————————————————————————— Start White Channel CT Handling ————————————————————————————————————————————— //
