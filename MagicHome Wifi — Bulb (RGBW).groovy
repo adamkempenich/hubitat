@@ -24,7 +24,8 @@ metadata {
         command "setColorTemperature", [ "number" ] // Kelvin ( Light Minimum Color Temperature - Light Maximum Color Temperature )
         command "setWhiteLevel", [ "number" ] // 0 - 100
 
-        command "sendPreset", ["number", "number"] // 0 (off), 1-20 (other presets)
+        command "sendPreset", ["number", "number"]       // 0 (off), 1-20 (other presets)
+        command "presetSevenColorDissolve", [ "number" ] // 0 - 100 (speed)
         command "presetRedFade",            [ "number" ] // 0 - 100 (speed)
         command "presetGreenFade",          [ "number" ] // 0 - 100 (speed)
         command "presetBlueFade",           [ "number" ] // 0 - 100 (speed)
@@ -42,6 +43,7 @@ metadata {
         command "presetYellowStrobe",       [ "number" ] // 0 - 100 (speed)
         command "presetCyanStrobe",         [ "number" ] // 0 - 100 (speed)
         command "presetPurpleStrobe",       [ "number" ] // 0 - 100 (speed)
+        command "presetWhiteStrobe",        [ "number" ] // 0 - 100 (speed)
         command "presetSevenColorJump",     [ "number" ] // 0 - 100 (speed)
         
         attribute "currentPreset", "string" // 0 (off), 1-20 (other presets)
@@ -318,24 +320,24 @@ def sendPreset( turnOn, preset = 1, speed = 100, transmit = true ){
 
     byte[] msg
     byte[] data
-    
+
     if(turnOn){
         normalizePercent( preset, 1, 20 )
         normalizePercent( speed )
         
         // Hex range of presets is (int) 37 - (int) 57. Add the preset number to get that range.
-        convertedPreset = preset + 36
-        convertedSpeed = (100 - speed)
+        preset += 36
+        speed = (100 - speed)
 
-        msg =  [ 0x61, convertedPreset, convertedSpeed, 0x0F ]
-        data = [ 0x61, convertedPreset, convertedSpeed, 0x0F, calculateChecksum(msg) ]
+        msg =  [ 0x61, preset, speed, 0x0F ]
+        data = [ 0x61, preset, speed, 0x0F, calculateChecksum(msg) ]
         if(settings.powerOnBrightnessChange){
             device.currentValue("status") == "on" ? on() : (null)
         }
-    
+
         sendEvent( name: "currentPreset", value: preset )
         sendEvent( name: "presetSpeed", value: speed )
-        
+
         sendCommand( data )
     }
     else{
@@ -371,33 +373,36 @@ def presetWhiteFade( speed = 100 ){
     sendPreset( true, 8, speed )
 }
 def presetRedGreenDissolve( speed = 100 ){
-    sendPreset( true, 10, speed )
+    sendPreset( true, 9, speed )
 }
 def presetRedBlueDissolve( speed = 100 ){
-    sendPreset( true, 11, speed )
+    sendPreset( true, 10, speed )
 }
 def presetGreenBlueDissolve( speed = 100 ){
-    sendPreset( true, 12, speed )
+    sendPreset( true, 11, speed )
 }
 def presetSevenColorStrobe( speed = 100 ){
-    sendPreset( true, 13, speed )
+    sendPreset( true, 12, speed )
 }
 def presetRedStrobe( speed = 100 ){
-    sendPreset( true, 14, speed )
+    sendPreset( true, 19, speed )
 }
 def presetGreenStrobe( speed = 100 ){
-    sendPreset( true, 15, speed )
+    sendPreset( true, 14, speed )
 }
 def presetBlueStrobe( speed = 100 ){
-    sendPreset( true, 16, speed )
+    sendPreset( true, 15, speed )
 }
 def presetYellowStrobe( speed = 100 ){
-    sendPreset( true, 17, speed )
+    sendPreset( true, 16, speed )
 }
 def presetCyanStrobe( speed = 100 ){
-    sendPreset( true, 18, speed )
+    sendPreset( true, 17, speed )
 }
 def presetPurpleStrobe( speed = 100 ){
+    sendPreset( true, 18, speed )
+}
+def presetWhiteStrobe( speed = 75 ){
     sendPreset( true, 19, speed )
 }
 def presetSevenColorJump( speed = 100 ){
