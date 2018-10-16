@@ -245,7 +245,7 @@ def setColor(parameters){
     else{
         normalizedHue = normalizePercent( parameters.hue, 0, 99 )
         sendEvent( name: "hue", value: normalizedHue)
-        parameters.level = normalizedHue
+        parameters.hue = normalizedHue
     }
     // ------------ Device Saturation ------------ //
     if(parameters.saturation == null){
@@ -260,7 +260,7 @@ def setColor(parameters){
     else{
         normalizedSaturation = normalizePercent( parameters.saturation )
         sendEvent( name: "saturation", value: normalizedSaturation)
-        parameters.level = normalizedSaturation
+        parameters.saturation = normalizedSaturation
     }
     // ------------ Device Level ------------ //
     if(parameters.level == null){
