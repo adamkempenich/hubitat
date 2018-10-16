@@ -1,0 +1,215 @@
+import hubitat.helper.HexUtils
+import hubitat.device.HubAction
+import hubitat.device.Protocol
+
+metadata {
+    definition (name: "MagicHome Wifi — Bulb (WW/CW CCT)", namespace: "MagicHome", author: "Adam Kempenich") {
+        capability "Switch Level"
+        capability "Actuator"
+        capability "Switch"
+        capability "Polling"
+        capability "Refresh"
+        capability "Sensor"
+        capability "Color Temperature"
+        
+        command "on"
+        command "off" 
+
+        command "setLevel", [ "number"] // 0 - 100
+        command "setColorTemperature" // Kelvin ( Light Minimum Color Temperature - Light Maximum Color Temperature )
+
+        command "setWarmWhiteLevel" // 0 - 100
+        command "setColdWhiteLevel" // 0 - 100
+
+        
+        attribute "warmWhiteLevel", "number"
+        attribute "coldWhiteLevel", "number"
+    }
+    
+    preferences {  
+        input "deviceIP", "text", title: "Server", description: "Device IP", required: true, defaultValue: "192.168.1.X"
+        input "devicePort", "number", title: "Port", description: "Device Port", required: true, defaultValue: 5577
+
+        
+        input(name:"powerOnBrightnessChange", type:"bool", title: "Turn on this light when brightness changes?",
+              description: "Makes devices behave like other switches.", defaultValue: false,
+              required: true, displayDuringSetup: true)
+
+        input(name:"deviceWWTemperature", type:"number", title: "Warm White rating of this light",
+            description: "Temp in K (default 2700)", defaultValue: 2700,
+            required: false, displayDuringSetup: true)
+
+        input(name:"deviceCWTemperature", type:"number", title: "Cold White Rating of this light",
+            description: "Temp in K (default 6500)", defaultValue: 6500,
+            required: false, displayDuringSetup: true)
+    }
+}
+
+def poll() {
+    parent.poll(this)
+}
+
+def parse(resp) {       
+    parseResponse(resp)    
+}
+
+private parseResponse(resp){
+  log.debug resp
+}
+
+def on() {
+    // Turn on the device
+
+    sendEvent(name: "switch", value: "on")
+    log.debug "MagicHome - Switch set to " + device.currentValue("switch")
+    byte[] data = [0x71, 0x23,  0x0F, 0xA3]
+    sendCommand(data)
+}
+
+def off() {
+    // Turn off the device
+
+    sendEvent(name: "switch", value: "off")
+    log.debug "MagicHome - Switch set to " + device.currentValue("switch")
+    byte[] data = [0x71, 0x24,  0x0F, 0xA4]
+    sendCommand(data)
+}
+
+def setLevel(level, transmit=true) {
+    // Set the brightness of a device (0-100)
+
+    level = normalizePercent(level)
+    sendEvent(name: "level", value: level)
+    log.debug "MagicHome - Level set to " + device.currentValue( "level" )
+    if( transmit ) {
+        setColorTemperature(null)
+    }
+    else{
+        return device.currentValue( "level" )   
+    }
+}
+
+def setWarmWhiteLevel(warmWhiteLevel, transmit=true){
+    // Set the warm white brightness of a device (0-100)
+
+    warmWhiteLevel = normalizePercent(warmWhiteLevel)
+    sendEvent(name: "warmWhiteLevel", value: warmWhiteLevel)
+    log.debug "MagicHome - Warm White Level set to " + device.currentValue( "warmWhiteLevel" )
+     if( transmit ) {
+        setColorTemperature(null)
+    }
+    else{
+        return device.currentValue( "warmWhiteLevel" )
+    }
+}
+
+def setColdWhiteLevel(coldWhiteLevel, transmit=true){
+    // Set the cold white brightness of a device (0-100)
+
+    coldWhiteLevel = normalizePercent(coldWhiteLevel)
+    sendEvent(name: "coldWhiteLevel", value: coldWhiteLevel)
+    log.debug "MagicHome - Cold White Level set to " + device.currentValue("coldWhiteLevel")
+    if( transmit ) {
+        setColorTemperature(null)
+    }
+    else{
+        return device.currentValue( "coldWhiteLevel" )   
+    }
+}
+
+def setColorTemperature(setTemp, transmit=true){
+    // Using RGB and the WW/CW channels, adjust the color temperature of a device
+
+    // If a level isn't set, create it
+    device.currentValue( "level" ) == null ? ( deviceLevel = setLevel( 100, false )): ( deviceLevel = device.currentValue( "level" ))
+    roundUpBetweenZeroAndOne( deviceLevel )
+
+    // If no color temperature was passed through, use the current device's color temperature, and check if it's in bounds
+    if(setTemp == null){
+        if(device.currentValue( "colorTemperature") != null){
+            setTemp = device.currentValue( "colorTemperature" )
+        }
+        else{
+            sendEvent( name: "colorTemperature", value: 2700 )
+            setTemp = device.currentValue( "colorTemperature" )
+        }
+    }
+    sendEvent( name: "colorTemperature", value: setTemp )
+    // Set the colorTemperature's value between the device's maximum range, if it's out of bounds
+    setTemp = normalizePercent( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature )
+    log.info 'MagicHome - Color Temperature set to ' + setTemp
+     
+    brightnessWW = (( 100 )/( settings.deviceWWTemperature - settings.deviceCWTemperature )) * setTemp + ( 100 - ( 100 /( settings.deviceWWTemperature - settings.deviceCWTemperature )) * settings.deviceWWTemperature )
+    brightnessCW = (( 100) /( settings.deviceCWTemperature - settings.deviceWWTemperature )) * setTemp + ( 100 - ( 100 /( settings.deviceCWTemperature - settings.deviceWWTemperature )) * settings.deviceCWTemperature )
+
+    // Adjust the brightness by using device level as modifier
+    brightnessWW = roundUpBetweenZeroAndOne( normalizePercent( brightnessWW * deviceLevel / 100 ) )
+    brightnessCW = roundUpBetweenZeroAndOne( normalizePercent( brightnessCW * deviceLevel / 100 ) )
+    if(brightnessWW + brightnessCW > 100){
+        brightnessWW = brightnessWW / (( brightnessWW + brightnessCW ) / 100 )
+        brightnessCW = brightnessCW / (( brightnessWW + brightnessCW ) / 100 )
+    }
+
+    // If powerOnBrightnessChange is enabled, ensure the device is on
+    settings.powerOnBrightnessChange ? ( device.currentValue("status") == "on" ? on() : null ) : null
+    
+    setWarmWhiteLevel( brightnessWW, false )
+    setColdWhiteLevel( brightnessCW, false )
+
+    // Update WW/CW
+    byte[] msg = [ 0x31, brightnessWW*2.55, brightnessCW*2.55, 0x00, 0x03, 0x01, 0x0f ]
+    byte[] data = [ 0x31, brightnessWW*2.55, brightnessCW*2.55, 0x00, 0x03, 0x01, 0x0f, calculateChecksum( msg ) ]
+    sendCommand( data )
+}
+
+def normalizePercent(value, lowerBound=0, upperBound=100){
+    // Takes a value and ensures it's between two defined thresholds
+
+    // If the value doesn't exist, create it
+    value == null ? value = upperBound : null
+
+    if(lowerBound < upperBound){
+        if(value < lowerBound ){ value = lowerBound}
+        if(value > upperBound){ value = upperBound}
+    }
+    else if(upperBound < lowerBound){
+        if(value < upperBound){ value = upperBound}
+        if(value > lowerBound ){ value = lowerBound}
+    }
+
+    return value
+}
+
+def roundUpBetweenZeroAndOne(number){
+    if(number > 0 && number < 1){
+        return 1
+    }
+    else{
+        return number
+    }
+}
+
+
+def calculateChecksum(bytes){
+    // Totals an array of bytes
+    int sum = 0;
+    for(int d : bytes)
+        sum += d;
+    return sum & 255
+}
+
+def sendCommand(data) {
+    // Sends commands to the device
+    
+    telnetConnect([byteInterface: true], "${settings.deviceIP}", settings.devicePort.toInteger(), null, null)
+    
+    String stringBytes = HexUtils.byteArrayToHexString(data)
+    log.debug "" +  data + " was converted. Transmitting: " + stringBytes
+
+    def transmission = new HubAction(stringBytes, Protocol.TELNET)
+    sendHubCommand(transmission)
+}
+
+def refresh(data) {
+    // msg = [0x81, 0x8A, 0x8B, calc_checksum([0x81, 0x8A, 0x8B])]
+}
