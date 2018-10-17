@@ -30,9 +30,8 @@ metadata {
         input "deviceIP", "text", title: "Server", description: "Device IP", required: true, defaultValue: "192.168.1.X"
         input "devicePort", "number", title: "Port", description: "Device Port", required: true, defaultValue: 5577
 
-        
-        input(name:"powerOnBrightnessChange", type:"bool", title: "Turn on this light when brightness changes?",
-              description: "Makes devices behave like other switches.", defaultValue: false,
+        input(name:"powerOnWithChanges", type:"bool", title: "Turn on this light when settings change?",
+              description: "Makes devices behave like other switches.", defaultValue: true,
               required: true, displayDuringSetup: true)
 
         input(name:"deviceWWTemperature", type:"number", title: "Warm White rating of this light",
@@ -49,12 +48,8 @@ def poll() {
     parent.poll(this)
 }
 
-def parse(resp) {       
-    parseResponse(resp)    
-}
-
-private parseResponse(resp){
-  log.debug resp
+def parse( response ) {
+    log.debug "Device responded with " + response    
 }
 
 def on() {
@@ -64,6 +59,12 @@ def on() {
     log.debug "MagicHome - Switch set to " + device.currentValue("switch")
     byte[] data = [0x71, 0x23,  0x0F, 0xA3]
     sendCommand(data)
+}
+
+def powerOnWithChanges(){
+    // If the device is off and light settings change, turn it on (if user settings apply)
+    
+	settings.powerOnBrightnessChange ? ( device.currentValue("status") != "on" ? on() : null ) : null
 }
 
 def off() {
@@ -150,15 +151,14 @@ def setColorTemperature(setTemp, transmit=true){
         brightnessCW = brightnessCW / (( brightnessWW + brightnessCW ) / 100 )
     }
 
-    // If powerOnBrightnessChange is enabled, ensure the device is on
-    settings.powerOnBrightnessChange ? ( device.currentValue("status") == "on" ? on() : null ) : null
+    powerOnWithChanges()
     
     setWarmWhiteLevel( brightnessWW, false )
     setColdWhiteLevel( brightnessCW, false )
 
     // Update WW/CW
-    byte[] msg = [ 0x31, brightnessWW*2.55, brightnessCW*2.55, 0x00, 0x03, 0x01, 0x0f ]
-    byte[] data = [ 0x31, brightnessWW*2.55, brightnessCW*2.55, 0x00, 0x03, 0x01, 0x0f, calculateChecksum( msg ) ]
+    byte[] msg = [ 0x31, brightnessWW * 2.55, brightnessCW * 2.55, 0x00, 0x03, 0x01, 0x0f ]
+    byte[] data = [ 0x31, brightnessWW * 2.55, brightnessCW * 2.55, 0x00, 0x03, 0x01, 0x0f, calculateChecksum( msg ) ]
     sendCommand( data )
 }
 
@@ -211,5 +211,5 @@ def sendCommand(data) {
 }
 
 def refresh(data) {
-    // msg = [0x81, 0x8A, 0x8B, calc_checksum([0x81, 0x8A, 0x8B])]
+    msg = [0x81, 0x8A, 0x8B, calc_checksum([0x81, 0x8A, 0x8B])]
 }
