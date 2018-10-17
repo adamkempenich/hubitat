@@ -59,8 +59,8 @@ metadata {
 
         // input "styleSheet", "bool", title: "<style> .form-group.col-sm-4{ color:#00FF00 !important }</style> ", defaultValue: true
         
-        input(name:"powerOnBrightnessChange", type:"bool", title: "Turn on this light when brightness changes?",
-              description: "Makes devices behave like other switches. (Default: On)", defaultValue: true,
+        input(name:"powerOnWithChanges", type:"bool", title: "Turn on this light when settings change?",
+              description: "Makes devices behave like other switches.", defaultValue: true,
               required: true, displayDuringSetup: true)
 
         input(name:"enableRGBCT", type:"bool", title: "Use RGB in Color Temperature calculations?",
@@ -142,6 +142,12 @@ def on() {
     sendCommand(data)
 }
 
+def powerOnWithChanges(){
+    // If the device is off and light settings change, turn it on (if user settings apply)
+    
+	settings.powerOnBrightnessChange ? ( device.currentValue("status") != "on" ? on() : null ) : null
+}
+
 def off() {
     // Turn off the device
 
@@ -184,7 +190,7 @@ def setLevel(level, transmit=true) {
 
     level = normalizePercent(level)
     sendEvent(name: "level", value: level)
-    log.debug "MagicHome - Level set to " + device.currentValue( "level" )
+    log.debug "MagicHome - Level set to " + level
 
     if( transmit ) {
         setColor([level:level])
@@ -278,7 +284,6 @@ def setColor(parameters){
     if(settings.whiteFollowsBrightness){
         if( parameters.level != null && parameters.coldWhiteLevel == null || parameters.level != null && parameters.warmWhiteLevel == null ) {
         	newWhiteValues = setColorTemperature( null, false )
-            log.debug "New white values are " + newWhiteValues
         	parameters.warmWhiteLevel = newWhiteValues.warmWhiteLevel
             parameters.coldWhiteLevel = newWhiteValues.coldWhiteLevel
             
@@ -318,11 +323,8 @@ def setColor(parameters){
         parameters.coldWhiteLevel = normalizedColdWhite
     }    
     
-    // Turn on, if settings say to
-    if(settings.powerOnBrightnessChange){
-        device.currentValue("status") == "on" ? on() : ( null )
-    }
-    
+    powerOnWithChanges()
+
     // Set the parameter for presets to none
     sendEvent( name: "currentPreset", value: 0 )
 
