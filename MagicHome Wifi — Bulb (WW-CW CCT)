@@ -119,7 +119,7 @@ def setColdWhiteLevel(coldWhiteLevel, transmit=true){
 }
 
 def setColorTemperature(setTemp, transmit=true){
-    // Using RGB and the WW/CW channels, adjust the color temperature of a device
+    // Adjust the color temperature of a device
 
     // If a level isn't set, create it
     device.currentValue( "level" ) == null ? ( deviceLevel = setLevel( 100, false )): ( deviceLevel = device.currentValue( "level" ))
@@ -164,35 +164,23 @@ def setColorTemperature(setTemp, transmit=true){
 
 def normalizePercent(value, lowerBound=0, upperBound=100){
     // Takes a value and ensures it's between two defined thresholds
-
-    // If the value doesn't exist, create it
-    value == null ? value = upperBound : null
-
-    if(lowerBound < upperBound){
-        if(value < lowerBound ){ value = lowerBound}
-        if(value > upperBound){ value = upperBound}
-    }
-    else if(upperBound < lowerBound){
-        if(value < upperBound){ value = upperBound}
-        if(value > lowerBound ){ value = lowerBound}
-    }
-
-    return value
+    
+    value? ? ( null ) : ( return upperBound )
+    ( lowerBound <= upperBound ? ( null ) : ( def( lowerBound, upperBound ) = [ upperBound, lowerBound] ) )
+    value < upperBound ? ( value > lowerBound ? ( return value ) : ( return lowerBound ) ) : ( return upperBound ) 
 }
 
 def roundUpBetweenZeroAndOne(number){
-    if(number > 0 && number < 1){
-        return 1
-    }
-    else{
-        return number
-    }
+    // Rounds up a number between two points
+    
+    number > 0 && number < 1 ? ( return 1 ) : ( return number )
 }
 
 
 def calculateChecksum(bytes){
     // Totals an array of bytes
-    int sum = 0;
+    
+    int sum = 0
     for(int d : bytes)
         sum += d;
     return sum & 255
