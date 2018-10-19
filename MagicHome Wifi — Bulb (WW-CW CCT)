@@ -130,7 +130,7 @@ def setColorTemperature(setTemp, transmit=true){
 
     // Ensure device has a level, and that a temperature was passed through
     deviceLevel = roundUpBetweenZeroAndOne( normalizePercent( getLevel( ) ) )
-    setTemp = normalizePercent( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature, getColorTemperature( ) )
+    setTemp = normalizePercent( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature, getColorTemperature() )
 	
     sendEvent(name: "colorTemperature", value: setTemp)
     log.info 'MagicHome - Color Temperature set to ' + setTemp
@@ -155,10 +155,10 @@ def setColorTemperature(setTemp, transmit=true){
     sendCommand( data )
 }
 
-def getColorTemperaturel(){
+def getColorTemperature(){
 	// Get the color temperature of a device (~2700 - ~6000)
 
-	return device.currentValue( "colorTemperature" ) == null ? ( setColorTemperature( 2700, false ) ) : ( device.currentValue( "colorTemperature" ) )
+	return device.currentValue( "colorTemperature" ) == null ? ( setColorTemperature( 2700, false ) ) : ( device.currentValue( "colorTemperature" ))
 }
 
 def normalizePercent( value, lowerBound = 0, upperBound = 100, fallBack = upperBound ){
@@ -209,5 +209,7 @@ def sendCommand(data) {
 }
 
 def refresh(data) {
-    msg = [0x81, 0x8A, 0x8B, calc_checksum([0x81, 0x8A, 0x8B])]
+    msg =  [ 0x81, 0x8A, 0x8B ]
+    data = [ 0x81, 0x8A, 0x8B, calc_checksum( msg ) ]
+    sendCommand( data )
 }
