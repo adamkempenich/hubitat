@@ -56,7 +56,7 @@ def on() {
     // Turn on the device
 
     sendEvent(name: "switch", value: "on")
-    log.debug "MagicHome - Switch set to " + device.currentValue("switch")
+    log.debug "MagicHome - Switch set to on"
     byte[] data = [0x71, 0x23,  0x0F, 0xA3]
     sendCommand(data)
 }
@@ -71,7 +71,7 @@ def off() {
     // Turn off the device
 
     sendEvent(name: "switch", value: "off")
-    log.debug "MagicHome - Switch set to " + device.currentValue("switch")
+    log.debug "MagicHome - Switch set to off"
     byte[] data = [0x71, 0x24,  0x0F, 0xA4]
     sendCommand(data)
 }
@@ -81,76 +81,84 @@ def setLevel(level, transmit=true) {
 
     normalizePercent(level)
     sendEvent(name: "level", value: level)
-    log.debug "MagicHome - Level set to " + device.currentValue( "level" )
-    if( transmit ) {
-        setColorTemperature(null)
-    }
-    else{
-        return device.currentValue( "level" )   
-    }
+    log.debug "MagicHome - Level set to " + level
+	
+	if( !transmit ) return getLevel()
+    setColorTemperature(null)
+}
+def getLevel(){
+	// Get the brightness of a device (0 - 100)
+
+	return device.currentValue( "level" ) == null ? ( setLevel( 100, false ) ) : ( device.currentValue( "level" ) )
 }
 
 def setWarmWhiteLevel(warmWhiteLevel, transmit=true){
-    // Set the warm white brightness of a device (0-100)
+    // Set the warm white level of a device (0-100)
 
     normalizePercent(warmWhiteLevel)
     sendEvent(name: "warmWhiteLevel", value: warmWhiteLevel)
-    log.debug "MagicHome - Warm White Level set to " + device.currentValue( "warmWhiteLevel" )
-     if( transmit ) {
-        setColorTemperature(null)
-    }
-    else{
-        return device.currentValue( "warmWhiteLevel" )
-    }
+    log.debug "MagicHome - Warm White Level set to " + warmWhiteLevel
+	
+	if( !transmit ) return getWarmWhiteLevel()
+    setColorTemperature(null)
+}
+
+def getWarmWhiteLevel(){
+	// Get the brightness of a device (0 - 100)
+
+	return device.currentValue( "warmWhiteLevel" ) == null ? ( setLevel( 100, false ) ) : ( device.currentValue( "warmWhiteLevel" ) )
 }
 
 def setColdWhiteLevel(coldWhiteLevel, transmit=true){
-    // Set the cold white brightness of a device (0-100)
+    // Set the cold white level of a device (0-100)
 
     normalizePercent(coldWhiteLevel)
     sendEvent(name: "coldWhiteLevel", value: coldWhiteLevel)
-    log.debug "MagicHome - Cold White Level set to " + device.currentValue("coldWhiteLevel")
-    if( transmit ) {
-        setColorTemperature(null)
-    }
-    else{
-        return device.currentValue( "coldWhiteLevel" )   
-    }
+    log.debug "MagicHome - Cold White Level set to " + coldWhiteLevel
+    if( !transmit ) return getColdWhiteLevel()
+    setColorTemperature(null)
+}
+
+def getColdWhiteLevel(){
+	// Get the warm white level of a device (0 - 100)
+
+	return device.currentValue( "coldWhiteLevel" ) == null ? ( setLevel( 100, false ) ) : ( device.currentValue( "coldWhiteLevel" ) )
 }
 
 def setColorTemperature(setTemp, transmit=true){
     // Adjust the color temperature of a device
 
     // Ensure device has a level, and that a temperature was passed through
-    deviceLevel = roundUpBetweenZeroAndOne( normalizePercent( device.currentValue( "level" ) ) )
-    setTemp = normalizePercent( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature, device.currentValue( "colorTemperature" ) )
+    deviceLevel = roundUpBetweenZeroAndOne( normalizePercent( getLevel( ) ) )
+    setTemp = normalizePercent( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature, getColorTemperature( ) )
 	
     sendEvent(name: "colorTemperature", value: setTemp)
     log.info 'MagicHome - Color Temperature set to ' + setTemp
     
-    brightnessWW = invertLinearValue( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature )
-    brightnessCW = invertLinearValue( setTemp, settings.deviceCWTemperature, settings.deviceWWTemperature )
-   	log.debug "Brightness WW/CW " + brightnessWW + "/" + brightnessCW
-    brightnessWW = proportionalToDeviceLevel( brightnessWW )
-    brightnessCW = proportionalToDeviceLevel( brightnessCW )
-    
-    log.debug "Brightness WW/CW " + brightnessWW + "/" + brightnessCW
-
+    brightnessWW = proportionalToDeviceLevel(invertLinearValue( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature ) )
+    brightnessCW = proportionalToDeviceLevel(invertLinearValue( setTemp, settings.deviceCWTemperature, settings.deviceWWTemperature ) )
 
     if( brightnessWW + brightnessCW > 100 ){
         brightnessWW = brightnessWW / (( brightnessWW + brightnessCW ) / 100 )
         brightnessCW = brightnessCW / (( brightnessWW + brightnessCW ) / 100 )
     }
 
-    // Update internal values
     setWarmWhiteLevel( brightnessWW, false )
     setColdWhiteLevel( brightnessCW, false )
 
     // Update Device
+	if( !transmit ) return getColorTemperature()
+	
     powerOnWithChanges()
-    byte[] msg = [ 0x31, brightnessWW * 2.55, brightnessCW * 2.55, 0x00, 0x03, 0x01, 0x0f ]
+    byte[] msg =  [ 0x31, brightnessWW * 2.55, brightnessCW * 2.55, 0x00, 0x03, 0x01, 0x0f ]
     byte[] data = [ 0x31, brightnessWW * 2.55, brightnessCW * 2.55, 0x00, 0x03, 0x01, 0x0f, calculateChecksum( msg ) ]
     sendCommand( data )
+}
+
+def getColorTemperaturel(){
+	// Get the color temperature of a device (~2700 - ~6000)
+
+	return device.currentValue( "colorTemperature" ) == null ? ( setColorTemperature( 2700, false ) ) : ( device.currentValue( "colorTemperature" ) )
 }
 
 def normalizePercent( value, lowerBound = 0, upperBound = 100, fallBack = upperBound ){
@@ -168,8 +176,9 @@ def invertLinearValue( neutralValue, value1, value2 ){
 }
 
 def proportionalToDeviceLevel( value ){
-
-    return roundUpBetweenZeroAndOne( normalizePercent( value * device.currentValue( "level" ) / 100 ) )
+	// Returns the value of a number proportionally to the device's brightness
+	
+    return roundUpBetweenZeroAndOne( normalizePercent( value * getLevel( ) / 100 ) )
 }
 
 def roundUpBetweenZeroAndOne(number){
