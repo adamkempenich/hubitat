@@ -123,13 +123,20 @@ def setColorTemperature(setTemp, transmit=true){
 
     // Ensure device has a level, and that a temperature was passed through
     deviceLevel = roundUpBetweenZeroAndOne( normalizePercent( device.currentValue( "level" ) ) )
-    setTemp = normalizePercent( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature,  device.currentValue( "colorTemperature" ) )
-
+    setTemp = normalizePercent( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature, device.currentValue( "colorTemperature" ) )
+	
+    sendEvent(name: "colorTemperature", value: setTemp)
     log.info 'MagicHome - Color Temperature set to ' + setTemp
     
-    brightnessWW = proportionalToDeviceLevel( invertLinearValue( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature ) )
-    brightnessCW = proportionalToDeviceLevel( invertLinearValue( setTemp, settings.deviceCWTemperature, settings.deviceWWTemperature ) )
+    brightnessWW = invertLinearValue( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature )
+    brightnessCW = invertLinearValue( setTemp, settings.deviceCWTemperature, settings.deviceWWTemperature )
+   	log.debug "Brightness WW/CW " + brightnessWW + "/" + brightnessCW
+    brightnessWW = proportionalToDeviceLevel( brightnessWW )
+    brightnessCW = proportionalToDeviceLevel( brightnessCW )
     
+    log.debug "Brightness WW/CW " + brightnessWW + "/" + brightnessCW
+
+
     if( brightnessWW + brightnessCW > 100 ){
         brightnessWW = brightnessWW / (( brightnessWW + brightnessCW ) / 100 )
         brightnessCW = brightnessCW / (( brightnessWW + brightnessCW ) / 100 )
@@ -149,9 +156,9 @@ def setColorTemperature(setTemp, transmit=true){
 def normalizePercent( value, lowerBound = 0, upperBound = 100, fallBack = upperBound ){
     // Takes a value and ensures it's between two defined thresholds
     
-    value? ? ( null ) : ( return fallBack )
-    ( lowerBound <= upperBound ? ( null ) : ( def( lowerBound, upperBound ) = [ upperBound, lowerBound] ) )
-    value < upperBound ? ( value > lowerBound ? ( return value ) : ( return lowerBound ) ) : ( return upperBound ) 
+    if( value == null ) return fallBack
+    lowerBound <= upperBound ? ( null ) : ( ( lowerBound, upperBound ) = [ upperBound, lowerBound] )
+    return value < upperBound ? ( value > lowerBound ? ( value ) : ( lowerBound ) ) : ( upperBound ) 
 }
 
 def invertLinearValue( neutralValue, value1, value2 ){
@@ -162,13 +169,13 @@ def invertLinearValue( neutralValue, value1, value2 ){
 
 def proportionalToDeviceLevel( value ){
 
-    return roundUpBetweenZeroAndOne( normalizePercent( value * deviceLevel / 100 ) )
+    return roundUpBetweenZeroAndOne( normalizePercent( value * device.currentValue( "level" ) / 100 ) )
 }
 
 def roundUpBetweenZeroAndOne(number){
     // Rounds up a number between two points
     
-    number > 0 && number < 1 ? ( return 1 ) : ( return number )
+    return number > 0 && number < 1 ? ( 1 ) : ( number )
 }
 
 def calculateChecksum(bytes){
