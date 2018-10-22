@@ -50,8 +50,8 @@ metadata {
     }
     
     preferences {  
-        input "deviceIP", "text", title: "Server", description: "Device IP (e.g. 192.168.1.X)", required: true, defaultValue: "192.168.1.X"
-        input "devicePort", "number", title: "Port", description: "Device Port (Default: 5577)", required: true, defaultValue: 5577
+        input "deviceIP", "text", title: "Device IP", description: "Device IP (e.g. 192.168.1.X)", required: true, defaultValue: "192.168.1.X"
+        input "devicePort", "number", title: "Device Port", description: "Device Port (Default: 5577)", required: true, defaultValue: 5577
 
         
         input(name:"powerOnBrightnessChange", type:"bool", title: "Turn on this light when brightness changes?",
@@ -75,9 +75,6 @@ metadata {
             description: "Saturation: (0-100) Default: 0", defaultValue: 0)
         input(name:"wwSaturationHighPoint", type:"number", title: "Warm White Saturation at ~2700k.",
             description: "Saturation: (0-100) Default: 50", defaultValue: 50)
-
-
-
     }
 }
 
@@ -199,7 +196,7 @@ def setColor( parameters, transmit = true ){
     else{
         // Update bulb's color
 
-        /rgbColors = hslToRGB( parameters.hue, parameters.saturation, parameters.level )
+        rgbColors = hslToRGB( parameters.hue, parameters.saturation, parameters.level )
 
         msg =  [ 0x31, *hslToRGB( parameters.hue, parameters.saturation, parameters.level ), 0x00, 0xf0, 0x0f ]
         data = [ *msg, calculateChecksum( msg ) ]
@@ -214,7 +211,9 @@ def setColorTemperature(setTemp, transmit=true){
     // Using RGB and the WW/CW channels, adjust the color temperature of a device
     
     setTemp == null ? ( setTemp = getColorTemperature() ) : ( normalizePercent( sendEvent( name: "colorTemperature", value: setTemp ), settings.deviceWWTemperature, settings.deviceCWTemperature ) ) 
-    def( float newSaturation, float newHue, int neutralWhite ) = ( 0, 0, normalizePercent( settings.neutralWhite, 2000, 8000 ) )
+    float newSaturation = 0
+    float newHue = 0
+    int neutralWhite = normalizePercent( settings.neutralWhite, 2000, 8000 )
 
     log.info 'MagicHome - Color Temperature set to ' + setTemp
 
