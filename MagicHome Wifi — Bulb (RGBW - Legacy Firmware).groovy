@@ -487,6 +487,8 @@ def sendCommand(data) {
     sendHubCommand(transmission)
 }
 
+def telnetStatus(status) { log.debug "telnetStatus:${status}" }
+
 def refresh(data) {
 	// Check these values
 
