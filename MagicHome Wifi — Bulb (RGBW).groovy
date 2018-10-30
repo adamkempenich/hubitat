@@ -417,6 +417,8 @@ def sendCommand(data) {
     sendHubCommand(transmission)
 }
 
+def telnetStatus(status) { log.debug "telnetStatus:${status}" }
+
 def refresh(data) {
     msg =  [ 0x81, 0x8A, 0x8B ]
     data = [*msg, calculateChecksum( msg )]
