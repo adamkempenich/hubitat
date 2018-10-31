@@ -16,9 +16,10 @@ metadata {
         command "on"    
         command "off" 
 
-        command "setLevel" // 0 - 100
+        command "setLevel", [ "number" ]        // 0 - 100
         command "setHue", [ "number" ]          // 0 - 100
         command "setSaturation", [ "number" ]   // 0 - 100
+        command "setAdjustedColor"
         command "setColor" // Hue (0-100), Saturation (0-100), Value (0-100)
         command "setColorTemperature", [ "number" ] // Kelvin ( Light Minimum Color Temperature - Light Maximum Color Temperature )
         command "setWhiteLevel", [ "number" ] // 0 - 100
@@ -50,8 +51,8 @@ metadata {
     }
     
     preferences {  
-        input "deviceIP", "text", title: "Device IP", description: "Device IP (e.g. 192.168.1.X)", required: true, defaultValue: "192.168.1.X"
-        input "devicePort", "number", title: "Device Port", description: "Device Port (Default: 5577)", required: true, defaultValue: 5577
+        input "deviceIP", "text", title: "Server", description: "Device IP (e.g. 192.168.1.X)", required: true, defaultValue: "192.168.1.X"
+        input "devicePort", "number", title: "Port", description: "Device Port (Default: 5577)", required: true, defaultValue: 5577
 
         
         input(name:"powerOnBrightnessChange", type:"bool", title: "Turn on this light when brightness changes?",
@@ -75,6 +76,9 @@ metadata {
             description: "Saturation: (0-100) Default: 0", defaultValue: 0)
         input(name:"wwSaturationHighPoint", type:"number", title: "Warm White Saturation at ~2700k.",
             description: "Saturation: (0-100) Default: 50", defaultValue: 50)
+
+
+
     }
 }
 
@@ -82,8 +86,12 @@ def poll() {
     parent.poll(this)
 }
 
-def parse( response ) {
-    log.debug "Device responded with " + response    
+def parse(resp) {       
+    parseResponse(resp)    
+}
+
+private parseResponse(resp){
+  log.debug resp
 }
 
 def on() {
@@ -91,14 +99,8 @@ def on() {
 
     sendEvent(name: "switch", value: "on")
     log.debug "MagicHome - Switch set to " + device.currentValue("switch")
-    byte[] data = [ 0x71, 0x23,  0x0F, 0xA3 ]
-    sendCommand( data )
-}
-
-def powerOnWithChanges(){
-    // If the device is off and light settings change, turn it on (if user settings apply)
-    
-    settings.powerOnBrightnessChange ? ( device.currentValue("status") != "on" ? on() : null ) : null
+    byte[] data = [0x71, 0x23,  0x0F, 0xA3]
+    sendCommand(data)
 }
 
 def off() {
@@ -106,145 +108,215 @@ def off() {
 
     sendEvent(name: "switch", value: "off")
     log.debug "MagicHome - Switch set to " + device.currentValue("switch")
-    byte[] data = [ 0x71, 0x24,  0x0F, 0xA4 ]
-    sendCommand( data )
+    byte[] data = [0x71, 0x24,  0x0F, 0xA4]
+    sendCommand(data)
 }
 
 def setHue(hue, transmit=true){
     // Set the hue of a device (0-100)
 
-    normalizePercent(hue) 
+    hue = normalizePercent(hue) 
     sendEvent(name: "hue", value: hue)
     log.debug "MagicHome - Hue set to " + device.currentValue("hue")
-    
-    if( !transmit ) return getHue()
-    setColor(null)
-}
-
-def getHue(){
-    // Get the brightness of a device (0 - 100)
-
-    return device.currentValue( "hue" ) == null ? ( setHue( 100, false ) ) : ( device.currentValue( "hue" ) )
+    if( transmit ) {
+        setColor([hue:hue])
+    }
+    else {
+        return device.currentValue( "hue" )
+    }
 }
 
 def setSaturation(saturation, transmit=true){
         // Set the saturation of a device (0-100)
 
-    normalizePercent(saturation)
+    saturation = normalizePercent(saturation)
     sendEvent(name: "saturation", value: saturation)    
     log.debug "MagicHome - Saturation set to " + device.currentValue("saturation")
-    
-    if( !transmit ) return getSaturation()
-    setColor(null)
-}
-def getSaturation(){
-    // Get the brightness of a device (0 - 100)
-
-    return device.currentValue( "saturation" ) == null ? ( setSaturation( 100, false ) ) : ( device.currentValue( "saturation" ) )
+    if( transmit ) {
+        setColor([saturation:saturation])
+    }
+    else{
+        return device.currentValue( "saturation" )
+    }
 }
 
 def setLevel(level, transmit=true) {
     // Set the brightness of a device (0-100)
 
-    normalizePercent(level)
+    level = normalizePercent(level)
     sendEvent(name: "level", value: level)
-    log.debug "MagicHome - Level set to " + level
-    
-    if( !transmit ) return getLevel()
-    setColor(null)
-}
-def getLevel(){
-    // Get the brightness of a device (0 - 100)
-
-    return device.currentValue( "level" ) == null ? ( setLevel( 100, false ) ) : ( device.currentValue( "level" ) )
+    log.debug "MagicHome - Level set to " + device.currentValue( "level" )
+    if( transmit ) {
+        setColor([level:level])
+    }
+    else{
+        return device.currentValue( "level" )   
+    }
 }
 
 
 def setWhiteLevel(whiteLevel, transmit=true){
     // Set the warm white brightness of a device (0-100)
 
-    normalizePercent(whiteLevel) 
-    setHue( 100, false )
-    setLevel( whiteLevel, false )
+    whiteLevel = normalizePercent(whiteLevel) 
+    sendEvent(name: "hue", value: 100)
+    sendEvent(name: "level", value: whiteLevel)
     log.debug "MagicHome - light set to white mode with level " + device.currentValue("level")
-    
-    if( !transmit ) return getwhiteLevel()
-    setColor(null)
-}
-def getWhiteLevel(){
-    // Get the brightness of a device (0 - 100)
-
-    return device.currentValue( "level" ) == null ? ( setWhiteLevel( 100, false ) ) : ( device.currentValue( "level" ) )
+    if( transmit ) {
+        setColor([hue:hue, level:whiteLevel])
+    }
+    else {
+        return device.currentValue( "level" )
+    }
 }
 
-def setColor( parameters, transmit = true ){
+def setAdjustedColor( parameters ){
+    // This is an old function from the SmartThings days. Pass its values to setColor
+
+    setColor( parameters )
+}
+
+def setColor(parameters){
     // Set the color of a device. Hue (0 - 100), Saturation (0 - 100), Level (0 - 100). If Hue is 16.6, use the white LEDs.
 
     byte[] msg
     byte[] data
 
-    parameters.hue == null ? ( parameters.hue = getHue() ) : ( setHue( parameters.hue, false ) )
-    parameters.saturation == null ? ( parameters.saturation = getSaturation() ) : ( setSaturation( parameters.saturation, false ) )
-    parameters.level == null ? ( parameters.level = getLevel() ) : ( setLevel( parameters.level, false ) )
+    if(parameters.hue == null){
+        if( device.currentValue( "hue" ) == null ){
+            sendEvent( name: "hue", value: 100 )
+            parameters.hue = 100
+        }
+        else{
+            parameters.hue = device.currentValue( "hue" )
+        }
+    }
+    else{
+        sendEvent( name: "hue", value: normalizePercent(parameters.hue))
+    }
+    if(parameters.saturation == null){
+        if( device.currentValue( "saturation" ) == null ){
+            sendEvent( name: "saturation", value: 100 )
+            parameters.saturation = 100
+        }
+        else{
+            parameters.saturation = device.currentValue( "saturation" )
+        }
+    }
+    else{
+        sendEvent( name: "saturation", value: normalizePercent(parameters.saturation))
+    }
+    if(parameters.level == null){
+        if( device.currentValue( "level" ) == null ){
+            sendEvent( name: "level", value: 100 )
+            parameters.level = 100
+        }
+        else{
+            parameters.level = device.currentValue( "level" )
+        }
+    }
+    else{
+        sendEvent( name: "level", value: normalizePercent(parameters.level))
+    }
+
+
+    if(settings.powerOnBrightnessChange){
+        device.currentValue("status") == "on" ? on() : ( null )
+    }
+    // Register that presets are disabled
+    sendEvent( name: "currentPreset", value: 0 )
 
     if( parameters.hue == 100 ){
         // Update bulb's white level if the hue is set to 100
 
         msg =  [ 0x31, 0x00, 0x00, 0x00, device.currentValue( "level" ) * 2.55, 0x0f, 0x0f ]
-        data = [ *msg, calculateChecksum( msg ) ]
+        data = [ 0x31, 0x00, 0x00, 0x00, device.currentValue( "level" ) * 2.55, 0x0f, 0x0f, calculateChecksum( msg ) ]
     }
     else{
         // Update bulb's color
 
         rgbColors = hslToRGB( parameters.hue, parameters.saturation, parameters.level )
 
-        msg =  [ 0x31, *hslToRGB( parameters.hue, parameters.saturation, parameters.level ), 0x00, 0xf0, 0x0f ]
-        data = [ *msg, calculateChecksum( msg ) ]
+        msg =  [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0xf0, 0x0f ]
+        data = [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0xf0, 0x0f, calculateChecksum( msg ) ]
     }
 
-    setPreset(false)
-    powerOnWithChanges()
     sendCommand( data )
 }
 
 def setColorTemperature(setTemp, transmit=true){
     // Using RGB and the WW/CW channels, adjust the color temperature of a device
-    
-    setTemp == null ? ( setTemp = getColorTemperature() ) : ( normalizePercent( sendEvent( name: "colorTemperature", value: setTemp ), settings.deviceWWTemperature, settings.deviceCWTemperature ) ) 
-    float newSaturation = 0
-    float newHue = 0
-    int neutralWhite = normalizePercent( settings.neutralWhite, 2000, 8000 )
 
+    // If a level isn't set, create it
+    device.currentValue( "level" ) == null ? ( deviceLevel = setLevel( 100, false )): ( deviceLevel = device.currentValue( "level" ))
+    // If the percentage is above zero, but less than one (for some reason), set it to one
+    roundUpIfBetweenTwoNumbers( deviceLevel )
+
+    // If no color temperature was passed through, use the current device's color temperature, and check if it's in bounds
+    if(setTemp == null){
+        if(device.currentValue( "colorTemperature") != null){
+            setTemp = device.currentValue( "colorTemperature" )
+        }
+        else{
+            sendEvent( name: "colorTemperature", value: 2700 )
+            setTemp = device.currentValue( "colorTemperature" )
+        }
+    }
+    else{
+        sendEvent( name: "colorTemperature", value: setTemp )
+    }
+    // Set the colorTemperature's value between the device's maximum range, if it's out of bounds
+    setTemp = normalizePercent( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature )
     log.info 'MagicHome - Color Temperature set to ' + setTemp
+     
+    // Initialize base variables
+    def ( float newSaturation, float newHue ) = [ 0, 0 ]
+    def ( double setCoolWhiteHue, double setWarmWhiteHue, int neutralWhite ) = [normalizePercent( settings.cwHue ), normalizePercent( settings.wwHue ), normalizePercent( settings.neutralWhite, 2000, 8000 )]
+    def ( int cwSaturationLowPoint, int cwSaturationHighPoint, int wwSaturationLowPoint, int wwSaturationHighPoint ) = [ normalizePercent( settings.cwSaturationLowPoint ), normalizePercent( settings.cwSaturationHighPoint ), normalizePercent( settings.wwSaturationLowPoint ), normalizePercent( settings.wwSaturationHighPoint ) ]
 
     if(setTemp >= neutralWhite){
         // Set cold white temperature if above the user's neutral white point
 
-        cwSaturationLowPoint < cwSaturationHighPoint ? ( newSaturation = rgbColorTempCalculation( normalizePercent( settings.cwSaturationLowPoint ), normalizePercent( settings.cwSaturationHighPoint ), setTemp - neutralWhite ) ) : ( newSaturation = rgbColorTempCalculation( normalizePercent( settings.cwSaturationHighPoint ), normalizePercent( settings.cwSaturationLowPoint ), setTemp - neutralWhite ) )
-        newHue =  normalizePercent( settings.cwHue )
+        int offset = setTemp - neutralWhite
+            if( cwSaturationLowPoint < cwSaturationHighPoint ){
+                newSaturation = (((( 100 - cwSaturationLowPoint)/100 ) * ( 1.8 * Math.sqrt( offset ))) + cwSaturationLowPoint ) * cwSaturationHighPoint / 100
+            }
+            else{
+                newSaturation = (((( 100 - cwSaturationHighPoint)/100 ) * ( 1.8 * Math.sqrt( offset ))) + cwSaturationHighPoint ) * cwSaturationLowPoint / 100
+            }
+        newHue =  setCoolWhiteHue
     }
     else{
         // set warm white temperature if below the user's neutral white point
 
-        wwSaturationLowPoint < wwSaturationHighPoint ? ( newSaturation = rgbColorTempCalculation( normalizePercent( settings.wwSaturationLowPoint ), normalizePercent( settings.wwSaturationHighPoint ), neutralWhite - setTemp ) ) : ( newSaturation = rgbColorTempCalculation( normalizePercent( settings.wwSaturationHighPoint ), normalizePercent( settings.wwSaturationLowPoint ), neutralWhite - setTemp ) )
-        newHue =  normalizePercent( settings.wwHue )
+        int offset = neutralWhite - setTemp
+            if(wwSaturationLowPoint < wwSaturationHighPoint ){
+                newSaturation = (((( 100 - wwSaturationLowPoint ) / 100) * ( 2.166666 * Math.sqrt( offset ))) + wwSaturationLowPoint ) * wwSaturationHighPoint / 100
+            }
+            else{
+                newSaturation = (((( 100 - wwSaturationHighPoint ) / 100) * ( 2.166666 * Math.sqrt( offset ))) + wwSaturationHighPoint ) * wwSaturationLowPoint / 100
+            }
+        newHue =  setWarmWhiteHue
     }
+
+    // If powerOnBrightnessChange is enabled, ensure the device is on
+    settings.powerOnBrightnessChange ? ( device.currentValue("status") == "on" ? on() : null ) : null
     
-    setColor( [hue: newHue, saturation: newSaturation] )
+    log.debug "Color Temperature set hue to " + newHue + " and Saturation to " + newSaturation
+    // Update WW/CW
+    def parameters = [hue: newHue, saturation: newSaturation]
+    setColor( parameters )
 }
 
-def getColorTemperature(){
-    // Get the color temperature of a device (~2700 - ~6000)
 
-    return device.currentValue( "colorTemperature" ) == null ? ( setColorTemperature( 2700, false ) ) : ( device.currentValue( "colorTemperature" ))
-}
-
-def rgbColorTempCalculation( lowPoint, highPoint, offset ){
-    return (((( 100 - lowPoint ) / 100 ) * ( 1.8 * Math.sqrt( offset ))) + lowPoint ) * highPoint / 100
-}
-
+// ------------------- Begin Preset Handling ------------------------- //
 def sendPreset( turnOn, preset = 1, speed = 100, transmit = true ){
     // Turn on preset mode (true), turn off preset mode (false). Preset (1 - 20), Speed (1 (slow) - 100 (fast)).
+
+    // Presets:
+    // 1 Seven Color Dissolve, 2 Red Fade, 3 Green Fade, 4 Blue Fade, 5 Yellow Fade, 6 Cyan Fade, 7 Purple Fade, 8 White Fade, 9 Red Green Dissolve
+    // 10 Red Blue Dissolve, 11 Green Blue Dissolve, 12 Seven Color Strobe, 13 Red Strobe, 14 Green Strobe, 15 Blue Strobe, 16 Yellow Strobe
+    // 17 Cyan Strobe, 18 Purple Strobe, 19 White Strobe, 20 Seven Color Jump
 
     byte[] msg
     byte[] data
@@ -258,9 +330,10 @@ def sendPreset( turnOn, preset = 1, speed = 100, transmit = true ){
         speed = (100 - speed)
 
         msg =  [ 0x61, preset, speed, 0x0F ]
-        data = [ *msg, calculateChecksum(msg) ]
-
-        powerOnWithChanges()
+        data = [ 0x61, preset, speed, 0x0F, calculateChecksum(msg) ]
+        if(settings.powerOnBrightnessChange){
+            device.currentValue("status") == "on" ? on() : (null)
+        }
 
         sendEvent( name: "currentPreset", value: preset )
         sendEvent( name: "presetSpeed", value: speed )
@@ -336,30 +409,35 @@ def presetSevenColorJump( speed = 100 ){
     sendPreset( true, 20, speed )
 }
 
-def normalizePercent( value, lowerBound = 0, upperBound = 100, fallBack = upperBound ){
+// ------------------- End Preset Handling ------------------------- //
+
+
+// ------------------- Begin Helper Functions ------------------------- //
+def normalizePercent(value, lowerBound=0, upperBound=100){
     // Takes a value and ensures it's between two defined thresholds
-    
-    if( value == null ) return fallBack
-    lowerBound <= upperBound ? ( null ) : ( ( lowerBound, upperBound ) = [ upperBound, lowerBound] )
-    return value < upperBound ? ( value > lowerBound ? ( value ) : ( lowerBound ) ) : ( upperBound ) 
+
+    // If the value doesn't exist, create it
+    value == null ? value = upperBound : null
+
+    if(lowerBound < upperBound){
+        if(value < lowerBound ){ value = lowerBound}
+        if(value > upperBound){ value = upperBound}
+    }
+    else if(upperBound < lowerBound){
+        if(value < upperBound){ value = upperBound}
+        if(value > lowerBound ){ value = lowerBound}
+    }
+
+    return value
 }
 
-def invertLinearValue( neutralValue, value1, value2 ){
-    // Determines how far from a point two values are 
-
-    return (( 100 )/( value1 - value2 )) * neutralValue + ( 100 - ( 100 /( value1 - value2 )) * value1 )
-}
-
-def proportionalToDeviceLevel( value ){
-    // Returns the value of a number proportionally to the device's brightness
-    
-    return roundUpBetweenZeroAndOne( normalizePercent( value * getLevel( ) / 100 ) )
-}
-
-def roundUpBetweenZeroAndOne(number){
-    // Rounds up a number between two points
-    
-    return number > 0 && number < 1 ? ( 1 ) : ( number )
+def roundUpIfBetweenTwoNumbers(number, lowPoint = 0, highPoint = 1){
+    if(number > lowPoint && number < highPoint){
+        return highPoint
+    }
+    else{
+        return number
+    }
 }
 
 def hslToRGB(float conversionHue, float conversionSaturation, float conversionValue){
@@ -396,8 +474,7 @@ def hslToRGB(float conversionHue, float conversionSaturation, float conversionVa
 
 def calculateChecksum(bytes){
     // Totals an array of bytes
-    
-    int sum = 0
+    int sum = 0;
     for(int d : bytes)
         sum += d;
     return sum & 255
@@ -417,11 +494,9 @@ def sendCommand(data) {
     sendHubCommand(transmission)
 }
 
-def telnetStatus(status) { log.debug "telnetStatus:${status}" }
-
 def refresh(data) {
     msg =  [ 0x81, 0x8A, 0x8B ]
-    data = [*msg, calculateChecksum( msg )]
+    data = [ 0x81, 0x8A, 0x8B, calculateChecksum( msg )]
 
     sendCommand( data )
 }
