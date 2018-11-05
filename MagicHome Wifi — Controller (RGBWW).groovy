@@ -1,5 +1,6 @@
 import hubitat.helper.HexUtils
 import hubitat.device.HubAction
+import hubitat.helper.InterfaceUtils
 import hubitat.device.Protocol
 
 metadata {
@@ -12,8 +13,9 @@ metadata {
         capability "Sensor"
         capability "Color Temperature"
         capability "Color Control"
-        
-        command "on"
+		capability "Initialize"
+		
+		command "on"
         command "off" 
 
         command "setLevel", [ "number" ]        // 0 - 100
@@ -73,16 +75,16 @@ metadata {
 
         input(name:"cwHue", type:"number", title: "Hue that Cold White (bluish light) uses",
             description: "Hue (0 - 100). Default 55", defaultValue: 55)
-        input(name:"cwSaturationLowPoint", type:"number", title: "Cold White Saturation closest 4000k (or the neutral white point).",
+        input(name:"cwSaturationLowPoint", type:"number", title: "Cold White Saturation when white balance is ${neutralWhite}k",
             description: "Saturation: (0-100) Default: 0", defaultValue: 0)
         input(name:"cwSaturationHighPoint", type:"number", title: "Cold White Saturation at ~6000k.",
             description: "Saturation: (0-100) Default: 50", defaultValue: 50)
 
         input(name:"wwHue", type:"number", title: "Hue that Warm White (orangeish light) uses",
             description: "Hue (0 - 100). Default 100 (Bulb's White LEDs)", defaultValue: 100)
-        input(name:"wwSaturationLowPoint", type:"number", title: "Cold White Saturation closest 4000k (or the neutral white point).",
+        input(name:"wwSaturationLowPoint", type:"number", title: "Warm White Saturation when white balance is ${neutralWhite}k",
             description: "Saturation: (0-100) Default: 0", defaultValue: 0)
-        input(name:"wwSaturationHighPoint", type:"number", title: "Cold White Saturation at ~2700k.",
+        input(name:"wwSaturationHighPoint", type:"number", title: "Warm White Saturation at ~2700k.",
             description: "Saturation: (0-100) Default: 50", defaultValue: 50)
 
 
@@ -132,6 +134,12 @@ def poll() {
 def parse( response ) {
     log.debug "Device responded with " + response    
 }
+
+def initialize() {
+	InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
+}
+
+
 
 def on() {
     // Turn on the device
@@ -275,9 +283,11 @@ def setColor(parameters){
         }
     }
     else{
-        normalizedLevel = normalizePercent( parameters.level )
-        sendEvent( name: "level", value: normalizedLevel)
-        parameters.level = normalizedLevel
+		if( parameters.level != -1 ) {
+			normalizedLevel = normalizePercent( parameters.level )
+			sendEvent( name: "level", value: normalizedLevel)
+			parameters.level = normalizedLevel
+		}
     }
     
     // ------------ White Brightness Adjustments? -------- //
@@ -329,8 +339,13 @@ def setColor(parameters){
     sendEvent( name: "currentPreset", value: 0 )
 
     // Convert HSL (0-99, 0-100, 0-100) to an RGB list (0-255, 0-255, 0-255)
-    rgbColors = hslToRGB( parameters.hue, parameters.saturation, parameters.level )
-    
+	if( parameters.level == -1 ) {
+		rgbColors = hslToRGB( 0, 0, 0 )
+	}
+	else {
+  		rgbColors = hslToRGB( parameters.hue, parameters.saturation, parameters.level )
+	}
+	
     // Send the new values to the device
     rgbData =   [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0x00, 0xf0, 0x0f ]
     wwCWData =  [0x31, 0x00, 0x00, 0x00, parameters.warmWhiteLevel * 2.55, parameters.coldWhiteLevel * 2.55, 0x0f, 0x0f]
@@ -455,9 +470,9 @@ def setColorTemperature(setTemp, transmit=true){
     
     if( !settings.enableRGBCT ){
         // If we're not using RGB LEDs, turn them off
-    	newHue = null
-        newSaturation= null
-        newLevel = 0
+    	newHue = device.currentValue("hue")
+        newSaturation= device.currentValue("saturation")
+        newLevel = -1
     }
     
     def parameters = [ hue: newHue.toInteger(), saturation: newSaturation.toInteger(), level: newLevel.toInteger(), warmWhiteLevel: brightnessWarmWhite, coldWhiteLevel: brightnessColdWhite ]
@@ -642,21 +657,18 @@ def calculateChecksum(bytes){
 
 def sendCommand(data) {
     // Sends commands to the device
-    
-    telnetConnect([byteInterface: true], "${settings.deviceIP}", settings.devicePort.toInteger(), null, null)
-    
+	
     String stringBytes = HexUtils.byteArrayToHexString(data)
-    // log.debug "" +  data + " was converted. Transmitting: " + stringBytes
-
-    def transmission = new HubAction(stringBytes, Protocol.TELNET)
-    sendHubCommand(transmission)
+	InterfaceUtils.sendSocketMessage(device, stringBytes)
 }
 
 def telnetStatus(status) { log.debug "telnetStatus:${status}" }
 
-def refresh(data) {
-    msg =  [ 0x81, 0x8A, 0x8B ]
-    data = [ 0x81, 0x8A, 0x8B, calculateChecksum( msg )]
+def socketStatus(status) { log.debug "socketStatus:${status}" }
+
+def refresh( parameters ) {
+    byte[] msg =  [ 0x81, 0x8A, 0x8B ]
+    byte[] data = [ 0x81, 0x8A, 0x8B, calculateChecksum( msg )]
 
     sendCommand( data )
 }
