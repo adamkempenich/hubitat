@@ -1,29 +1,31 @@
 import hubitat.helper.HexUtils
 import hubitat.device.HubAction
+import hubitat.helper.InterfaceUtils
 import hubitat.device.Protocol
 
 metadata {
     definition (name: "MagicHome Wifi — Bulb (WW/CW CCT)", namespace: "MagicHome", author: "Adam Kempenich") {
-        capability "Switch Level"
-        capability "Actuator"
-        capability "Switch"
-        capability "Polling"
-        capability "Refresh"
-        capability "Sensor"
-        capability "Color Temperature"
-        
-        command "on"
-        command "off" 
+		capability "Switch Level"
+		capability "Actuator"
+		capability "Switch"
+		capability "Polling"
+		capability "Refresh"
+		capability "Sensor"
+		capability "Color Temperature"
+		capability "Initialize"
 
-        command "setLevel" // 0 - 100
-        command "setColorTemperature" // Kelvin ( Light Minimum Color Temperature - Light Maximum Color Temperature )
+		command "on"
+		command "off" 
 
-        command "setWarmWhiteLevel", [ "number" ] // 0 - 100
-        command "setColdWhiteLevel", [ "number" ] // 0 - 100
+		command "setLevel" // 0 - 100
+		command "setColorTemperature" // Kelvin ( Light Minimum Color Temperature - Light Maximum Color Temperature )
 
-        
-        attribute "warmWhiteLevel", "number"
-        attribute "coldWhiteLevel", "number"
+		command "setWarmWhiteLevel", [ "number" ] // 0 - 100
+		command "setColdWhiteLevel", [ "number" ] // 0 - 100
+
+
+		attribute "warmWhiteLevel", "number"
+		attribute "coldWhiteLevel", "number"
     }
     
     preferences {  
@@ -42,14 +44,6 @@ metadata {
             description: "Temp in K (default 6500)", defaultValue: 6500,
             required: false, displayDuringSetup: true)
     }
-}
-
-def poll() {
-    parent.poll(this)
-}
-
-def parse( response ) {
-    log.debug "Device responded with " + response    
 }
 
 def on() {
@@ -198,20 +192,29 @@ def calculateChecksum(bytes){
 
 def sendCommand(data) {
     // Sends commands to the device
-    
-    telnetConnect([byteInterface: true], "${settings.deviceIP}", settings.devicePort.toInteger(), null, null)
-    
     String stringBytes = HexUtils.byteArrayToHexString(data)
-    log.debug "" +  data + " was converted. Transmitting: " + stringBytes
 
-    def transmission = new HubAction(stringBytes, Protocol.TELNET)
-    sendHubCommand(transmission)
+	InterfaceUtils.sendSocketMessage(device, stringBytes)
 }
 
+def refresh( parameters ) {
+    byte[] msg =  [ 0x81, 0x8A, 0x8B ]
+    byte[] data = [ 0x81, 0x8A, 0x8B, calculateChecksum( msg )]
+
+    sendCommand( data )
+}
+
+def socketStatus(status) { log.debug "socketStatus:${status}" }
 def telnetStatus(status) { log.debug "telnetStatus:${status}" }
 
-def refresh(data) {
-    msg =  [ 0x81, 0x8A, 0x8B ]
-    data = [ 0x81, 0x8A, 0x8B, calc_checksum( msg ) ]
-    sendCommand( data )
+def poll() {
+    parent.poll(this)
+}
+
+def parse( response ) {
+    log.debug "Device responded with " + response    
+}
+
+def initialize() {
+	InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
 }
