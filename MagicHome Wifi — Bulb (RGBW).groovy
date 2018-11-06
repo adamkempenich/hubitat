@@ -495,8 +495,12 @@ def parse( response ) {
     log.debug "Device responded with " + response    
 }
 
+def updated(){
+	initialize()
+}
 def initialize() {
 	InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
+	unschedule()
 	runIn(20, keepAlive)
 }
 
