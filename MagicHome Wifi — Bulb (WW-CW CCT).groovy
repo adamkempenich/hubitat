@@ -50,7 +50,7 @@ def on() {
     // Turn on the device
 
     sendEvent(name: "switch", value: "on")
-    log.debug "MagicHome - Switch set to on"
+    log.debug "${settings.deviceIP}: MagicHome - Switch set to on"
     byte[] data = [0x71, 0x23,  0x0F, 0xA3]
     sendCommand(data)
 }
@@ -65,7 +65,7 @@ def off() {
     // Turn off the device
 
     sendEvent(name: "switch", value: "off")
-    log.debug "MagicHome - Switch set to off"
+    log.debug "${settings.deviceIP}: MagicHome - Switch set to off"
     byte[] data = [0x71, 0x24,  0x0F, 0xA4]
     sendCommand(data)
 }
@@ -75,7 +75,7 @@ def setLevel(level, transmit=true) {
 
     normalizePercent(level)
     sendEvent(name: "level", value: level)
-    log.debug "MagicHome - Level set to " + level
+    log.debug "${settings.deviceIP}: MagicHome - Level set to " + level
 	
 	if( !transmit ) return getLevel()
     setColorTemperature(null)
@@ -91,7 +91,7 @@ def setWarmWhiteLevel(warmWhiteLevel, transmit=true){
 
     normalizePercent(warmWhiteLevel)
     sendEvent(name: "warmWhiteLevel", value: warmWhiteLevel)
-    log.debug "MagicHome - Warm White Level set to " + warmWhiteLevel
+    log.debug "${settings.deviceIP}: MagicHome - Warm White Level set to " + warmWhiteLevel
 	
 	if( !transmit ) return getWarmWhiteLevel()
     setColorTemperature(null)
@@ -108,7 +108,7 @@ def setColdWhiteLevel(coldWhiteLevel, transmit=true){
 
     normalizePercent(coldWhiteLevel)
     sendEvent(name: "coldWhiteLevel", value: coldWhiteLevel)
-    log.debug "MagicHome - Cold White Level set to " + coldWhiteLevel
+    log.debug "${settings.deviceIP}: MagicHome - Cold White Level set to " + coldWhiteLevel
     if( !transmit ) return getColdWhiteLevel()
     setColorTemperature(null)
 }
@@ -127,7 +127,7 @@ def setColorTemperature(setTemp, transmit=true){
     setTemp = normalizePercent( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature, getColorTemperature() )
 	
     sendEvent(name: "colorTemperature", value: setTemp)
-    log.info 'MagicHome - Color Temperature set to ' + setTemp
+    log.info "${settings.deviceIP}: MagicHome - Color Temperature set to " + setTemp
     
     brightnessWW = proportionalToDeviceLevel(invertLinearValue( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature ) )
     brightnessCW = proportionalToDeviceLevel(invertLinearValue( setTemp, settings.deviceCWTemperature, settings.deviceWWTemperature ) )
@@ -208,16 +208,55 @@ def socketStatus(status) { log.debug "socketStatus:${status}" }
 def telnetStatus(status) { log.debug "telnetStatus:${status}" }
 
 def poll() {
+	// Poll this device 
+	
     parent.poll(this)
 }
 
 def parse( response ) {
-    log.debug "Device responded with " + response    
+	// Parse data received back from this device
+
+	def responseArray = HexUtils.hexStringToIntArray(response)
+	if( responseArray.length == 4 ) {
+		// Does the device say it's on?
+		
+		responseArray[ 2 ] == 35 ? sendEvent(name: "switch", value: "on") : sendEvent(name: "switch", value: "off")
+	}
+	else if( responseArray.length == 14 ) {
+		// Does the device say it's on?
+		
+		responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
+		
+		// Convert integers to percentages
+		double warmWhite = responseArray[ 6 ] / 2.55
+		double coldWhite = responseArray[ 7 ] / 2.55
+		
+		// If values differ from HE, change them
+		device.currentValue( "warmWhite" ) != warmWhite ? ( setWarmWhiteLevel( warmWhite, false ) ) : null
+		device.currentValue( "coldWhite" ) != coldWhite ? ( setColdWhiteLevel( coldWhite, false ) ) : null
+		device.currentValue( "level" ) != ( warmWhite + coldWhite ) ? ( setLevel( ( warmWhite + coldWhite ), false ) ) : null
+		
+		// Calculate the color temperature, based on what data was received
+		setTemp = settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))
+		// If value differs from HE, change it
+		setTemp != device.currentValue( "colorTemperature" ) ? ( sendEvent(name: "colorTemperature", value: setTemp.toInteger()) ) : null
+	}
+	else if( response == null ){
+		log.debug "${settings.deviceIP}: No response received from device" 
+	}
+	else{
+		log.debug "${settings.deviceIP}: Received a response with an unexpected length of " + responseArray.length
+	}
 }
+
 def updated(){
+	// If any settings were changed, re-initialize the device in HE
+	
 	initialize()
 }
 def initialize() {
+	// Set up the device on boot
+	
 	InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
 	unschedule()
 	runIn(20, keepAlive)
