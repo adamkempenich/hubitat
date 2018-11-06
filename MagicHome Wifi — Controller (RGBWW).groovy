@@ -127,20 +127,6 @@ metadata {
     }
 }
 
-def poll() {
-    parent.poll(this)
-}
-
-def parse( response ) {
-    log.debug "Device responded with " + response    
-}
-
-def initialize() {
-	InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
-}
-
-
-
 def on() {
     // Turn on the device
 
@@ -663,7 +649,6 @@ def sendCommand(data) {
 }
 
 def telnetStatus(status) { log.debug "telnetStatus:${status}" }
-
 def socketStatus(status) { log.debug "socketStatus:${status}" }
 
 def refresh( parameters ) {
@@ -671,4 +656,24 @@ def refresh( parameters ) {
     byte[] data = [ 0x81, 0x8A, 0x8B, calculateChecksum( msg )]
 
     sendCommand( data )
+}
+
+def poll() {
+    parent.poll(this)
+}
+
+def parse( response ) {
+    log.debug "Device responded with " + response    
+}
+
+def initialize() {
+	InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
+	runIn(20, keepAlive)
+}
+
+def keepAlive(){
+	// Poll the device every 250 seconds, or it will lose connection.
+	
+	refresh()
+	runIn(150, keepAlive)
 }
