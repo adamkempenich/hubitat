@@ -78,18 +78,6 @@ metadata {
 	}
 }
 
-def poll() {
-	parent.poll(this)
-}
-
-def parse(resp) {	    
-	parseResponse(resp)    
-}
-
-private parseResponse(resp){
-  log.debug resp
-}
-
 def on() {
     // Turn on the device
 
