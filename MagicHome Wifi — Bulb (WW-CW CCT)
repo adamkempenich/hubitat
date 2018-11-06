@@ -217,4 +217,12 @@ def parse( response ) {
 
 def initialize() {
 	InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
+	runIn(20, keepAlive)
+}
+
+def keepAlive(){
+	// Poll the device every 250 seconds, or it will lose connection.
+	
+	refresh()
+	runIn(150, keepAlive)
 }
