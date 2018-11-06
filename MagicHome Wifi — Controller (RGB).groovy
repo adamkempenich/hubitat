@@ -454,25 +454,31 @@ def calculateChecksum(bytes){
     return sum & 255
 }
 
-// ------------------- End Helper Functions ------------------------- //
-
 def sendCommand(data) {
     // Sends commands to the device
-	
-    telnetConnect([byteInterface: true], "${settings.deviceIP}", settings.devicePort.toInteger(), null, null)
-    
-	String stringBytes = HexUtils.byteArrayToHexString(data)
-	log.debug "" +  data + " was converted. Transmitting: " + stringBytes
+    String stringBytes = HexUtils.byteArrayToHexString(data)
 
-    def transmission = new HubAction(stringBytes, Protocol.TELNET)
-    sendHubCommand(transmission)
+	InterfaceUtils.sendSocketMessage(device, stringBytes)
 }
 
-def telnetStatus(status) { log.debug "telnetStatus:${status}" }
-
-def refresh(data) {
-    msg =  [ 0x81, 0x8A, 0x8B ]
-    data = [ 0x81, 0x8A, 0x8B, calculateChecksum( msg )]
+def refresh( parameters ) {
+    byte[] msg =  [ 0x81, 0x8A, 0x8B ]
+    byte[] data = [ 0x81, 0x8A, 0x8B, calculateChecksum( msg )]
 
     sendCommand( data )
+}
+
+def socketStatus(status) { log.debug "socketStatus:${status}" }
+def telnetStatus(status) { log.debug "telnetStatus:${status}" }
+
+def poll() {
+    parent.poll(this)
+}
+
+def parse( response ) {
+    log.debug "Device responded with " + response    
+}
+
+def initialize() {
+	InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
 }
