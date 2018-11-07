@@ -1,5 +1,6 @@
 import hubitat.helper.HexUtils
 import hubitat.device.HubAction
+import hubitat.helper.InterfaceUtils
 import hubitat.device.Protocol
 
 metadata {
