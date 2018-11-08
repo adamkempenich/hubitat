@@ -13,17 +13,10 @@ metadata {
         capability "Sensor"
         capability "Color Temperature"
         capability "Color Control"
+	capability "Initialize"
 		
         command "on"
         command "off" 
-
-        command "setLevel", [ "number" ] 		// 0 - 100
-        command "setHue", [ "number" ] 			// 0 - 100
-        command "setSaturation", [ "number" ] 	// 0 - 100
-    	command "setAdjustedColor"
-		command "setColor" // Hue (0-100), Saturation (0-100), Value (0-100)
-        command "setColorTemperature", [ "number" ] // Kelvin ( Light Minimum Color Temperature - Light Maximum Color Temperature )
-
         command "sendPreset", ["number", "number"]       // 0 (off), 1-20 (other presets)
         command "presetSevenColorDissolve", [ "number" ] // 0 - 100 (speed)
         command "presetRedFade",            [ "number" ] // 0 - 100 (speed)
