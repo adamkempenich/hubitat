@@ -17,9 +17,6 @@ metadata {
 		command "on"
 		command "off" 
 
-		command "setLevel" // 0 - 100
-		command "setColorTemperature" // Kelvin ( Light Minimum Color Temperature - Light Maximum Color Temperature )
-
 		command "setWarmWhiteLevel", [ "number" ] // 0 - 100
 		command "setColdWhiteLevel", [ "number" ] // 0 - 100
 
