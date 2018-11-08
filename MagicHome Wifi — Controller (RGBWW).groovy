@@ -16,13 +16,7 @@ metadata {
 		capability "Initialize"
 		
 		command "on"
-        command "off" 
-
-        command "setLevel", [ "number" ]        // 0 - 100
-        command "setHue", [ "number" ]          // 0 - 99
-        command "setSaturation", [ "number" ]   // 0 - 100
-        command "setColor" // Hue (0-99), Saturation (0-100), Value (0-100)
-        command "setColorTemperature", [ "number" ] // Kelvin ( Light Minimum Color Temperature - Light Maximum Color Temperature )
+        command "off"
         command "setWarmWhiteLevel", [ "number" ] // 0 - 100
         command "setColdWhiteLevel", [ "number" ] // 0 - 100
 
