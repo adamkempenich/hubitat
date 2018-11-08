@@ -469,8 +469,16 @@ def refresh( parameters ) {
     sendCommand( data )
 }
 
-def socketStatus(status) { log.debug "socketStatus:${status}" }
 def telnetStatus(status) { log.debug "telnetStatus:${status}" }
+def socketStatus(status) { 
+	log.debug "socketStatus:${status}"
+	if(status == "send error: Broken pipe (Write failed)") {
+		// Cannot reach device
+		log.debug "Cannot reach ${settings.deviceIP}, attempting to reconnect in 10s..."
+		runIn( 10, initialize )
+	}
+	
+}
 
 def poll() {
     parent.poll(this)
