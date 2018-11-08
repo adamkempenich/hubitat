@@ -200,7 +200,7 @@ def setColor(parameters){
 	rgbColors = hslToRGB( parameters.hue, parameters.saturation, parameters.level )
 
 	msg =  [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0x0f ]
-	data = [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0x00, 0x0f, calculateChecksum( msg ) ]
+	data = [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0x0f, calculateChecksum( msg ) ]
 
     sendCommand( data )
 }
