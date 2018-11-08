@@ -643,7 +643,15 @@ def sendCommand(data) {
 }
 
 def telnetStatus(status) { log.debug "telnetStatus:${status}" }
-def socketStatus(status) { log.debug "socketStatus:${status}" }
+def socketStatus(status) { 
+	log.debug "socketStatus:${status}"
+	if(status == "send error: Broken pipe (Write failed)") {
+		// Cannot reach device
+		log.debug "Cannot reach ${settings.deviceIP}, attempting to reconnect in 10s..."
+		runIn( 10, initialize )
+	}
+	
+}
 
 def refresh( parameters ) {
     byte[] msg =  [ 0x81, 0x8A, 0x8B ]
