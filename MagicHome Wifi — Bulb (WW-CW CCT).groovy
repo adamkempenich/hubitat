@@ -237,8 +237,8 @@ def parse( response ) {
 		double coldWhite = responseArray[ 7 ] / 2.55
 		
 		// If values differ from HE, change them
-		device.currentValue( "warmWhite" ) != warmWhite ? ( setWarmWhiteLevel( warmWhite, false ) ) : null
-		device.currentValue( "coldWhite" ) != coldWhite ? ( setColdWhiteLevel( coldWhite, false ) ) : null
+		device.currentValue( "warmWhiteLevel" ) != warmWhite ? ( setWarmWhiteLevel( warmWhite, false ) ) : null
+		device.currentValue( "coldWhiteLevel" ) != coldWhite ? ( setColdWhiteLevel( coldWhite, false ) ) : null
 		device.currentValue( "level" ) != ( warmWhite + coldWhite ) ? ( setLevel( ( warmWhite + coldWhite ), false ) ) : null
 		
 		// Calculate the color temperature, based on what data was received
