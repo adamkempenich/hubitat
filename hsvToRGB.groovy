@@ -1,10 +1,11 @@
-def hsvToRGB(float conversionHue = 0, float conversionSaturation = 100, float conversionValue = 100){
-    // Function's parameters are between 0 - 100
+def hsvToRGB(float conversionHue = 0, float conversionSaturation = 100, float conversionValue = 100, resolution = "low"){
+    // Accepts conversionHue (0-100 or 0-360), conversionSaturation (0-100), and converstionValue (0-100), resolution ("low", "high")
+    // If resolution is low, conversionHue accepts 0-100. If resolution is high, conversionHue accepts 0-360
     // Returns RGB map ([ red: 0-255, green: 0-255, blue: 0-255 ])
     
-    conversionHue = conversionHue / 100
-    conversionSaturation = conversionSaturation / 100
-    conversionValue = conversionValue / 100        
+    conversionHue /= 100
+    conversionSaturation /= 100
+    conversionValue /= 100        
         
     int h = (int)(conversionHue * 6);
     float f = conversionHue * 6 - h;
