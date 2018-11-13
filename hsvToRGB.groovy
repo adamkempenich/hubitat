@@ -3,9 +3,11 @@ def hsvToRGB(float conversionHue = 0, float conversionSaturation = 100, float co
     // If resolution is low, conversionHue accepts 0-100. If resolution is high, conversionHue accepts 0-360
     // Returns RGB map ([ red: 0-255, green: 0-255, blue: 0-255 ])
     
-    conversionHue /= 100
-    conversionSaturation /= 100
-    conversionValue /= 100        
+    // Check HSV limits
+    resolution == "low" ? ( hueMax = 100 ) : ( hueMax = 360 ) 
+    conversionHue > hueMax ? ( conversionHue = 1 ) : ( conversionHue < 0 ? ( conversionHue = 0 ) : ( conversionHue /= hueMax ) )
+    conversionSaturation > 100 ? ( conversionSaturation = 1 ) : ( conversionSaturation < 0 ? ( conversionSaturation = 0 ) : ( conversionSaturation /= 100 ) )
+    conversionValue > 100 ? ( conversionValue = 1 ) : ( conversionValue < 0 ? ( conversionValue = 0 ) : ( conversionValue /= 100 ) )
         
     int h = (int)(conversionHue * 6)
     float f = conversionHue * 6 - h
