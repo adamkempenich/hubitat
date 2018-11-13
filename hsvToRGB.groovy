@@ -7,11 +7,11 @@ def hsvToRGB(float conversionHue = 0, float conversionSaturation = 100, float co
     conversionSaturation /= 100
     conversionValue /= 100        
         
-    int h = (int)(conversionHue * 6);
-    float f = conversionHue * 6 - h;
-    float p = conversionValue * (1 - conversionSaturation);
-    float q = conversionValue * (1 - f * conversionSaturation);
-    float t = conversionValue * (1 - (1 - f) * conversionSaturation);
+    int h = (int)(conversionHue * 6)
+    float f = conversionHue * 6 - h
+    float p = conversionValue * (1 - conversionSaturation)
+    float q = conversionValue * (1 - f * conversionSaturation)
+    float t = conversionValue * (1 - (1 - f) * conversionSaturation)
     
     conversionValue *= 255
     f *= 255
