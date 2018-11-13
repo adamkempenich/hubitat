@@ -85,7 +85,7 @@ metadata {
         input(name:"enableWW", type:"bool", title: "Use Warm White in Color Temperature calculations?",
             description: "For use with color temperature calculation.", defaultValue: true,
             required: true, displayDuringSetup: true)
-        input(name:"deviceWarmWhiteTemperature", type:"number", title: "Warm white channel's color temperature .",
+        input(name:"deviceWWTemperature", type:"number", title: "Warm white channel's color temperature .",
             description: "Temp in K (default 2700)", defaultValue: 2700,
             required: false, displayDuringSetup: true)
 
@@ -99,7 +99,7 @@ metadata {
         input(name:"enableCW", type:"bool", title: "Use Cold White in Color Temperature calculations?",
             description: "For use with color temperature calculation.", defaultValue: true,
             required: true, displayDuringSetup: true)
-        input(name:"deviceColdWhiteTemperature", type:"number", title: "Cold white channel's color temperature .",
+        input(name:"deviceCWTemperature", type:"number", title: "Cold white channel's color temperature .",
             description: "Temp in K (default 6000)", defaultValue: 6000,
             required: false, displayDuringSetup: true)
 
@@ -320,10 +320,10 @@ def setColor(parameters){
 
     // Convert HSL (0-99, 0-100, 0-100) to an RGB list (0-255, 0-255, 0-255)
 	if( parameters.level == -1 ) {
-		rgbColors = hslToRGB( 0, 0, 0 )
+		rgbColors = hsvToRGB( 0, 0, 0 )
 	}
 	else {
-  		rgbColors = hslToRGB( parameters.hue, parameters.saturation, parameters.level )
+  		rgbColors = hsvToRGB( parameters.hue, parameters.saturation, parameters.level )
 	}
 	
     // Send the new values to the device
@@ -371,8 +371,8 @@ def setColorTemperature(setTemp, transmit=true){
     cwSaturationHighPoint = normalizePercent( settings.cwSaturationHighPoint )
     wwSaturationLowPoint = normalizePercent( settings.wwSaturationLowPoint )
     wwSaturationHighPoint = normalizePercent( settings.wwSaturationHighPoint )
-    deviceWarmWhiteTemperature = settings.deviceWarmWhiteTemperature
-    deviceColdWhiteTemperature = settings.deviceColdWhiteTemperature
+    deviceWWTemperature = settings.deviceWWTemperature
+    deviceCWTemperature = settings.deviceCWTemperature
     ww_high_cutoff_temp = settings.ww_high_cutoff_temperature
     ww_low_cutoff_temp = settings.ww_low_cutoff_temperature
     cw_low_cutoff_temp = settings.cw_low_cutoff_temperature
@@ -417,19 +417,19 @@ def setColorTemperature(setTemp, transmit=true){
     else{
         // Set the warm white and cold white channel temperatures
         if(settings.enableWW){
-            if(deviceWarmWhiteTemperature <= setTemp){
-                brightnessWarmWhite = ((100)/(deviceWarmWhiteTemperature - ww_high_cutoff_temp))*setTemp + (100 - (100/(deviceWarmWhiteTemperature - ww_high_cutoff_temp))*deviceWarmWhiteTemperature)
+            if(deviceWWTemperature <= setTemp){
+                brightnessWarmWhite = ((100)/(deviceWWTemperature - ww_high_cutoff_temp))*setTemp + (100 - (100/(deviceWWTemperature - ww_high_cutoff_temp))*deviceWWTemperature)
             }
             else{
-                brightnessWarmWhite = ((100)/(deviceWarmWhiteTemperature - ww_low_cutoff_temp))*setTemp + (100 - (100/(deviceWarmWhiteTemperature - ww_low_cutoff_temp))*deviceWarmWhiteTemperature)
+                brightnessWarmWhite = ((100)/(deviceWWTemperature - ww_low_cutoff_temp))*setTemp + (100 - (100/(deviceWWTemperature - ww_low_cutoff_temp))*deviceWWTemperature)
             }
         }
         if(settings.enableCW){
-            if(deviceColdWhiteTemperature >= setTemp){
-                brightnessColdWhite = ((100)/(deviceColdWhiteTemperature - cw_low_cutoff_temp))*setTemp + (100 - (100/(deviceColdWhiteTemperature - cw_low_cutoff_temp))*deviceColdWhiteTemperature)
+            if(deviceCWTemperature >= setTemp){
+                brightnessColdWhite = ((100)/(deviceCWTemperature - cw_low_cutoff_temp))*setTemp + (100 - (100/(deviceCWTemperature - cw_low_cutoff_temp))*deviceCWTemperature)
             }
             else{
-                brightnessColdWhite = ((100)/(deviceColdWhiteTemperature - cw_high_cutoff_temp))*setTemp + (100 - (100/(deviceColdWhiteTemperature - cw_high_cutoff_temp))*deviceColdWhiteTemperature)
+                brightnessColdWhite = ((100)/(deviceCWTemperature - cw_high_cutoff_temp))*setTemp + (100 - (100/(deviceCWTemperature - cw_high_cutoff_temp))*deviceCWTemperature)
             }
         }
     }
@@ -595,26 +595,24 @@ def roundUpIfBetweenTwoNumbers(number, lowPoint = 0, highPoint = 1){
     }
 }
 
-def hslToRGB(float conversionHue = 0, float conversionSaturation = 100, float conversionValue = 100){
-    // Function's parameters are between 0 - 100
+def hsvToRGB(float conversionHue = 0, float conversionSaturation = 100, float conversionValue = 100, resolution = "low"){
+    // Accepts conversionHue (0-100 or 0-360), conversionSaturation (0-100), and converstionValue (0-100), resolution ("low", "high")
+    // If resolution is low, conversionHue accepts 0-100. If resolution is high, conversionHue accepts 0-360
     // Returns RGB map ([ red: 0-255, green: 0-255, blue: 0-255 ])
     
-    conversionHue = conversionHue / 100
-    conversionSaturation = conversionSaturation / 100
-    conversionValue = conversionValue / 100        
+    // Check HSV limits
+    resolution == "low" ? ( hueMax = 100 ) : ( hueMax = 360 ) 
+    conversionHue > hueMax ? ( conversionHue = 1 ) : ( conversionHue < 0 ? ( conversionHue = 0 ) : ( conversionHue /= hueMax ) )
+    conversionSaturation > 100 ? ( conversionSaturation = 1 ) : ( conversionSaturation < 0 ? ( conversionSaturation = 0 ) : ( conversionSaturation /= 100 ) )
+    conversionValue > 100 ? ( conversionValue = 1 ) : ( conversionValue < 0 ? ( conversionValue = 0 ) : ( conversionValue /= 100 ) )
         
-    int h = (int)(conversionHue * 6);
-    float f = conversionHue * 6 - h;
-    float p = conversionValue * (1 - conversionSaturation);
-    float q = conversionValue * (1 - f * conversionSaturation);
-    float t = conversionValue * (1 - (1 - f) * conversionSaturation);
-    
+    int h = conversionHue * 6
+    float f = ( conversionHue * 6 - h ) * 255
+    float p = ( conversionValue * (1 - conversionSaturation) ) * 255
+    float q = ( conversionValue * (1 - f * conversionSaturation) ) * 255
+    float t = ( conversionValue * (1 - (1 - f) * conversionSaturation) ) * 255    
     conversionValue *= 255
-    f *= 255
-    p *= 255
-    q *= 255
-    t *= 255
-            
+          
     if      (h==0) { rgbMap = [red: conversionValue, green: t, blue: p] }
     else if (h==1) { rgbMap = [red: q, green: conversionValue, blue: p] }
     else if (h==2) { rgbMap = [red: p, green: conversionValue, blue: t] }
@@ -625,6 +623,47 @@ def hslToRGB(float conversionHue = 0, float conversionSaturation = 100, float co
 
     return rgbMap
 }
+
+def rgbToHSV( r = 255, g = 255, b = 255, resolution = "low" ) {
+	// Takes RGB (0-255) and returns HSV in 0-360, 0-100, 0-100
+	// resolution ("low", "high") will return a hue between 0-100, or 0-360, respectively.
+  
+	r /= 255
+	g /= 255
+	b /= 255
+
+	float h
+	float s
+	
+	float max =   Math.max( Math.max( r, g ), b )
+	float min = Math.min( Math.min( r, g ), b )
+	float delta = ( max - min )
+	float v = ( max * 100.0 )
+
+	max != 0.0 ? ( s = delta / max * 100.0 ) : ( s = 0 )
+
+	if (s == 0.0) {
+		h = 0.0
+	}
+	else{
+		if (r == max){
+        		h = ((g - b) / delta)
+		}
+		else if(g == max) {
+        		h = (2 + (b - r) / delta)
+		}
+		else if (b == max) {
+        		h = (4 + (r - g) / delta)
+		}
+	}
+
+	h *= 60.0
+    	h < 0 ? ( h += 360 ) : null
+  
+  	resolution == "low" ? h /= 3.6 : null
+  	return [ hue: h, saturation: s, value: v ]
+}
+
 
 def calculateChecksum(bytes){
     // Totals an array of bytes
@@ -665,7 +704,52 @@ def poll() {
 }
 
 def parse( response ) {
-    log.debug "Device responded with " + response    
+	// Parse data received back from this device
+
+	def responseArray = HexUtils.hexStringToIntArray(response)
+	if( responseArray.length == 4 ) {
+		// Does the device say it's on?
+		
+		responseArray[ 2 ] == 35 ? sendEvent(name: "switch", value: "on") : sendEvent(name: "switch", value: "off")
+	}
+	else if( responseArray.length == 14 ) {
+		// Full set received. Check received colors
+		
+		responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
+		
+		// Convert integers to percentages
+		double warmWhite = responseArray[ 9 ] / 2.55
+		double coldWhite = responseArray[ 11 ] / 2.55
+		hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
+		
+		//log.info "HSV conversion: Map:${hsvMap} HSV ${hsvMap.hue}, ${hsvMap.saturation}, ${hsvMap.value}"
+
+		//log.debug "WarmWhite ${warmWhite} ColdWhite ${coldWhite}"
+		
+		// If values differ from HE, change them
+		device.currentValue( "warmWhiteLevel" ).toDouble() 	!= warmWhite.toDouble() 		? ( setWarmWhiteLevel( warmWhite, false ) ) : null
+		device.currentValue( "coldWhiteLevel" ).toDouble() 	!= coldWhite.toDouble() 		? ( setColdWhiteLevel( coldWhite, false ) ) : null
+		device.currentValue( "level" ).toDouble() 			!= ( hsvMap.value ).toDouble() 		? setLevel( hsvMap.value, false ) : null
+		device.currentValue( "saturation" ).toDouble() 		!= ( hsvMap.saturation ).toDouble() 	? setSaturation( hsvMap.saturation, false ) : null
+		device.currentValue( "hue" ).toDouble() 			!= ( hsvMap.hue ).toDouble() 			? setHue( hsvMap.hue, false ) : null
+		
+		// Calculate the color temperature, based on what data was received
+		if(settings.highBrightnessMode){
+			// Calculate CT if HSL is in line with the settings
+		}
+		else{
+			// Calculate CT based on WW/CW channels
+			setTemp = settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))
+			setTemp != device.currentValue( "colorTemperature" ) ? ( sendEvent(name: "colorTemperature", value: setTemp.toInteger()) ) : null
+		}
+	}
+	else if( response == null ){
+		log.debug "${settings.deviceIP}: No response received from device"
+		initialize()
+	}
+	else{
+		log.debug "${settings.deviceIP}: Received a response with an unexpected length of " + responseArray.length
+	}
 }
 
 def updated(){
@@ -674,7 +758,7 @@ def updated(){
 def initialize() {
 	InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
 	unschedule()
-	runIn(20, keepAlive)
+	runIn(2, keepAlive)
 }
 
 def keepAlive(){
