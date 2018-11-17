@@ -365,10 +365,6 @@ def presetSevenColorJump( speed = 100 ){
     sendPreset( true, 20, speed )
 }
 
-// ------------------- End Preset Handling ------------------------- //
-
-
-// ------------------- Begin Helper Functions ------------------------- //
 def normalizePercent(value, lowerBound=0, upperBound=100){
     // Takes a value and ensures it's between two defined thresholds
 
@@ -396,14 +392,16 @@ def roundUpIfBetweenTwoNumbers(number, lowPoint = 0, highPoint = 1){
     }
 }
 
-def hslToRGB(float conversionHue, float conversionSaturation, float conversionValue){
-	// Returns RGB between 0 - 255
-	conversionHue = conversionHue / 100
-	conversionSaturation = conversionSaturation / 100
-	conversionValue = conversionValue / 100
-
-    log.debug 'Adding RGB via HSV conversion. H: ' + conversionHue + ' S: ' + conversionSaturation + ' L: ' + conversionValue
-        
+def hsvToRGB(float conversionHue = 0, float conversionSaturation = 100, float conversionValue = 100, resolution = "low"){
+    // Accepts conversionHue (0-100 or 0-360), conversionSaturation (0-100), and converstionValue (0-100), resolution ("low", "high")
+    // If resolution is low, conversionHue accepts 0-100. If resolution is high, conversionHue accepts 0-360
+    // Returns RGB map ([ red: 0-255, green: 0-255, blue: 0-255 ])
+    
+    // Check HSV limits
+    resolution == "low" ? ( hueMax = 100 ) : ( hueMax = 360 ) 
+    conversionHue > hueMax ? ( conversionHue = 1 ) : ( conversionHue < 0 ? ( conversionHue = 0 ) : ( conversionHue /= hueMax ) )
+    conversionSaturation > 100 ? ( conversionSaturation = 1 ) : ( conversionSaturation < 0 ? ( conversionSaturation = 0 ) : ( conversionSaturation /= 100 ) )
+    conversionValue > 100 ? ( conversionValue = 1 ) : ( conversionValue < 0 ? ( conversionValue = 0 ) : ( conversionValue /= 100 ) ) 
         
     int h = (int)(conversionHue * 6);
     float f = conversionHue * 6 - h;
@@ -426,6 +424,46 @@ def hslToRGB(float conversionHue, float conversionSaturation, float conversionVa
     else           { rgbMap = [red: 0, green: 0, blue: 0] }
 
     return rgbMap
+}
+
+def rgbToHSV( r = 255, g = 255, b = 255, resolution = "low" ) {
+    // Takes RGB (0-255) and returns HSV in 0-360, 0-100, 0-100
+    // resolution ("low", "high") will return a hue between 0-100, or 0-360, respectively.
+  
+    r /= 255
+    g /= 255
+    b /= 255
+
+    float h
+    float s
+    
+    float max =   Math.max( Math.max( r, g ), b )
+    float min = Math.min( Math.min( r, g ), b )
+    float delta = ( max - min )
+    float v = ( max * 100.0 )
+
+    max != 0.0 ? ( s = delta / max * 100.0 ) : ( s = 0 )
+
+    if (s == 0.0) {
+        h = 0.0
+    }
+    else{
+        if (r == max){
+                h = ((g - b) / delta)
+        }
+        else if(g == max) {
+                h = (2 + (b - r) / delta)
+        }
+        else if (b == max) {
+                h = (4 + (r - g) / delta)
+        }
+    }
+
+    h *= 60.0
+        h < 0 ? ( h += 360 ) : null
+  
+    resolution == "low" ? h /= 3.6 : null
+    return [ hue: h, saturation: s, value: v ]
 }
 
 def calculateChecksum(bytes){
@@ -466,7 +504,36 @@ def poll() {
 }
 
 def parse( response ) {
-    log.debug "Device responded with " + response    
+    // Parse data received back from this device
+
+    def responseArray = HexUtils.hexStringToIntArray(response)
+    if( responseArray.length == 4 ) {
+        // Does the device say it's on?
+        
+        responseArray[ 2 ] == 35 ? sendEvent(name: "switch", value: "on") : sendEvent(name: "switch", value: "off")
+    }
+    else if( responseArray.length == 14 ) {
+        // Full set received. Check received colors
+        
+        responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
+        
+        // Convert integers to percentages
+        hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
+
+        // If values differ from HE, change them
+        device.currentValue( "level" ).toDouble()           != ( hsvMap.value ).toDouble()          ? setLevel( hsvMap.value, false ) : null
+        device.currentValue( "saturation" ).toDouble()      != ( hsvMap.saturation ).toDouble()     ? setSaturation( hsvMap.saturation, false ) : null
+        device.currentValue( "hue" ).toDouble()             != ( hsvMap.hue ).toDouble()            ? setHue( hsvMap.hue, false ) : null
+        
+        // Calculate the color temperature, based on what data was received
+    }
+    else if( response == null ){
+        log.debug "${settings.deviceIP}: No response received from device"
+        initialize()
+    }
+    else{
+        log.debug "${settings.deviceIP}: Received a response with an unexpected length of " + responseArray.length
+    }
 }
 
 def updated(){
