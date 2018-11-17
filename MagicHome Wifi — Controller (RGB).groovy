@@ -48,8 +48,8 @@ metadata {
         input "devicePort", "number", title: "Port", description: "Device Port (Default: 5577)", required: true, defaultValue: 5577
 
 		
-	    input(name:"powerOnBrightnessChange", type:"bool", title: "Turn on this light when brightness changes?",
-       		  description: "Makes devices behave like other switches. (Default: Off)", defaultValue: false,
+	    input(name:"powerOnWithChanges", type:"bool", title: "Turn on this light when settings change?",
+              description: "Makes devices behave like other switches.", defaultValue: true,
               required: true, displayDuringSetup: true)
 
         input(name:"neutralWhite", type:"number", title: "Point where the light changes between cold and warm white hues",
@@ -91,16 +91,16 @@ def off() {
 }
 
 def setHue(hue, transmit=true){
-    // Set the hue of a device (0-100)
+    // Set the hue of a device (0-99)
 
-   	hue = normalizePercent(hue) 
-	sendEvent(name: "hue", value: hue)
+    hue = normalizePercent( hue, 0, 99) 
+    sendEvent(name: "hue", value: hue)
     log.debug "MagicHome - Hue set to " + device.currentValue("hue")
     if( transmit ) {
-    	setColor([hue:hue])
+        setColor([hue:hue])
     }
     else {
-    	return device.currentValue( "hue" )
+        return device.currentValue( "hue" )
     }
 }
 
@@ -108,13 +108,13 @@ def setSaturation(saturation, transmit=true){
     // Set the saturation of a device (0-100)
 
     saturation = normalizePercent(saturation)
-	sendEvent(name: "saturation", value: saturation)    
-	log.debug "MagicHome - Saturation set to " + device.currentValue("saturation")
+    sendEvent(name: "saturation", value: saturation)    
+    log.debug "MagicHome - Saturation set to " + device.currentValue("saturation")
     if( transmit ) {
-    	setColor([saturation:saturation])
+        setColor([saturation:saturation])
     }
     else{
-    	return device.currentValue( "saturation" )
+        return device.currentValue( "saturation" )
     }
 }
 
@@ -140,36 +140,43 @@ def setAdjustedColor( parameters ){
 }
 
 def setColor(parameters){
-	// Set the color of a device. Hue (0 - 100), Saturation (0 - 100), Level (0 - 100). If Hue is 16.6, use the white LEDs.
+	// Set the color of a device. Hue (0 - 100), Saturation (0 - 100), Level (0 - 100).
 
 	byte[] msg
 	byte[] data
 
-	if(parameters.hue == null){
-		if( device.currentValue( "hue" ) == null ){
-			sendEvent( name: "hue", value: 100 )
-			parameters.hue = 100
-		}
-		else{
-			parameters.hue = device.currentValue( "hue" )
-		}
-	}
-	else{
-		sendEvent( name: "hue", value: normalizePercent(parameters.hue))
-	}
-	if(parameters.saturation == null){
-		if( device.currentValue( "saturation" ) == null ){
-			sendEvent( name: "saturation", value: 100 )
-			parameters.saturation = 100
-		}
-		else{
-			parameters.saturation = device.currentValue( "saturation" )
-		}
-	}
-	else{
-		sendEvent( name: "saturation", value: normalizePercent(parameters.saturation))
-	}
-	if(parameters.level == null){
+	// ------------ Device Hue ------------ //
+    if(parameters.hue == null){
+        if( device.currentValue( "hue" ) == null ){
+            sendEvent( name: "hue", value: 99 )
+            parameters.hue = 99
+        }
+        else{
+            parameters.hue = device.currentValue( "hue" )
+        }
+    }
+    else{
+        normalizedHue = normalizePercent( parameters.hue, 0, 99 )
+        sendEvent( name: "hue", value: normalizedHue)
+        parameters.hue = normalizedHue
+    }
+    // ------------ Device Saturation ------------ //
+    if(parameters.saturation == null){
+        if( device.currentValue( "saturation" ) == null ){
+            sendEvent( name: "saturation", value: 100 )
+            parameters.saturation = 100
+        }
+        else{
+            parameters.saturation = device.currentValue( "saturation" )
+        }
+    }
+    else{
+        normalizedSaturation = normalizePercent( parameters.saturation )
+        sendEvent( name: "saturation", value: normalizedSaturation)
+        parameters.saturation = normalizedSaturation
+    }
+    // ------------ Device Level ------------ //
+    if(parameters.level == null){
         if( device.currentValue( "level" ) == null ){
             sendEvent( name: "level", value: 100 )
             parameters.level = 100
@@ -187,9 +194,8 @@ def setColor(parameters){
     }
 
 
-	if( settings.powerOnBrightnessChange ){
-    	device.currentValue("status") == "on" ? on() : ( null )
-    }
+	powerOnWithChanges()
+
     // Register that presets are disabled
     sendEvent( name: "currentPreset", value: 0 )
 
@@ -369,12 +375,19 @@ def presetSevenColorJump( speed = 100 ){
     sendPreset( true, 20, speed )
 }
 
+def powerOnWithChanges(){
+    // If the device is off and light settings change, turn it on (if user settings apply)
+    
+	settings.powerOnBrightnessChange ? ( device.currentValue("status") != "on" ? on() : null ) : null
+}
+
 def normalizePercent(value, lowerBound=0, upperBound=100){
     // Takes a value and ensures it's between two defined thresholds
 
     // If the value doesn't exist, create it
     value == null ? value = upperBound : null
-
+    
+    // If the boundary parameters were backwards (for some reason) flip them around
     if(lowerBound < upperBound){
         if(value < lowerBound ){ value = lowerBound}
         if(value > upperBound){ value = upperBound}
@@ -383,11 +396,12 @@ def normalizePercent(value, lowerBound=0, upperBound=100){
         if(value < upperBound){ value = upperBound}
         if(value > lowerBound ){ value = lowerBound}
     }
-
     return value
 }
 
 def roundUpIfBetweenTwoNumbers(number, lowPoint = 0, highPoint = 1){
+    // Round up everything between two numbers when necessary
+    
     if(number > lowPoint && number < highPoint){
         return highPoint
     }
