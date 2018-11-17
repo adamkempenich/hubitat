@@ -230,7 +230,7 @@ def setColor(parameters){
     sendEvent( name: "currentPreset", value: 0 )
 
 
-	rgbColors = hslToRGB( parameters.hue, parameters.saturation, parameters.level )
+	rgbColors = hsvToRGB( parameters.hue, parameters.saturation, parameters.level )
 
 	msg =  [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, parameters.whiteLevel * 2.55, 0xf0, 0x0f ]
 	data = [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, parameters.whiteLevel * 2.55, 0xf0, 0x0f, calculateChecksum( msg ) ]
