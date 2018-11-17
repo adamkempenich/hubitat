@@ -526,7 +526,47 @@ def poll() {
 }
 
 def parse( response ) {
-    log.debug "Device responded with " + response    
+	// Parse data received back from this device
+
+	def responseArray = HexUtils.hexStringToIntArray(response)
+	if( responseArray.length == 4 ) {
+		// Does the device say it's on?
+		
+		responseArray[ 2 ] == 35 ? sendEvent(name: "switch", value: "on") : sendEvent(name: "switch", value: "off")
+	}
+	else if( responseArray.length == 14 ) {
+		// Full set received. Check received colors
+		
+		responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
+		
+		// Convert integers to percentages
+		double white = responseArray[ 9 ] / 2.55
+		hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
+		
+		//log.info "HSV conversion: Map:${hsvMap} HSV ${hsvMap.hue}, ${hsvMap.saturation}, ${hsvMap.value}"
+
+		
+		// If values differ from HE, change them
+		device.currentValue( "whiteLevel" ).toDouble() 	    != white.toDouble() 		            ? ( setWhiteLevel( white, false ) ) : null
+		device.currentValue( "level" ).toDouble() 			!= ( hsvMap.value ).toDouble() 		    ? setLevel( hsvMap.value, false ) : null
+		device.currentValue( "saturation" ).toDouble() 		!= ( hsvMap.saturation ).toDouble() 	? setSaturation( hsvMap.saturation, false ) : null
+		device.currentValue( "hue" ).toDouble() 			!= ( hsvMap.hue ).toDouble() 			? setHue( hsvMap.hue, false ) : null
+		
+		// Calculate the color temperature, based on what data was received
+		if(settings.highBrightnessMode){
+			// Calculate CT if HSL is in line with the settings
+		}
+		else{
+			// Calculate CT based on WW/CW channels
+		}
+	}
+	else if( response == null ){
+		log.debug "${settings.deviceIP}: No response received from device"
+		initialize()
+	}
+	else{
+		log.debug "${settings.deviceIP}: Received a response with an unexpected length of " + responseArray.length
+	}
 }
 
 def updated(){
