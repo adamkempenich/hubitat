@@ -123,13 +123,13 @@ def setLevel(level, transmit=true) {
 
     level = normalizePercent(level)
     sendEvent(name: "level", value: level)
-    log.debug "MagicHome - Level set to " + device.currentValue( "level" )
+    log.debug "MagicHome - Level set to " + level
 
     if( transmit ) {
         setColor([level:level])
     }
     else{
-    	return device.currentValue( "level" )   
+        return device.currentValue( "level" )   
     }
 }
 
@@ -179,11 +179,15 @@ def setColor(parameters){
         }
     }
     else{
-        sendEvent( name: "level", value: normalizePercent(parameters.level))
+		if( parameters.level != -1 ) {
+			normalizedLevel = normalizePercent( parameters.level )
+			sendEvent( name: "level", value: normalizedLevel)
+			parameters.level = normalizedLevel
+		}
     }
 
 
-	if(settings.powerOnBrightnessChange){
+	if( settings.powerOnBrightnessChange ){
     	device.currentValue("status") == "on" ? on() : ( null )
     }
     // Register that presets are disabled
