@@ -6,11 +6,11 @@ import hubitat.device.Protocol
 metadata {
     definition (name: "MagicHome Wifi — Controller (RGBWW)", namespace: "MagicHome", author: "Adam Kempenich") {
         capability "Switch Level"
-        capability "Actuator"
+        //capability "Actuator"
         capability "Switch"
         capability "Polling"
         capability "Refresh"
-        capability "Sensor"
+        //capability "Sensor"
         capability "Color Temperature"
         capability "Color Control"
 		capability "Initialize"
@@ -687,9 +687,10 @@ def sendCommand(data) {
 }
 
 def telnetStatus(status) { log.debug "telnetStatus:${status}" }
+
 def socketStatus(status) { 
 	log.debug "socketStatus:${status}"
-	if(status == "send error: Broken pipe (Write failed)") {
+	if(status != "") {
 		// Cannot reach device
 		log.debug "Cannot reach ${settings.deviceIP}, attempting to reconnect in 10s..."
 		runIn( 10, initialize )
@@ -705,7 +706,8 @@ def refresh( parameters ) {
 }
 
 def poll() {
-    parent.poll(this)
+    refresh()
+	//parent.poll(this)
 }
 
 def parse( response ) {
