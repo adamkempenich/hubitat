@@ -466,9 +466,14 @@ def calculateChecksum(bytes){
 
 def sendCommand(data) {
     // Sends commands to the device
+    
+    telnetConnect([byteInterface: true], "${settings.deviceIP}", settings.devicePort.toInteger(), null, null)
+    
     String stringBytes = HexUtils.byteArrayToHexString(data)
+    // log.debug "" +  data + " was converted. Transmitting: " + stringBytes
 
-	InterfaceUtils.sendSocketMessage(device, stringBytes)
+    def transmission = new HubAction(stringBytes, Protocol.TELNET)
+    sendHubCommand(transmission)
 }
 
 def refresh( parameters ) {
@@ -498,17 +503,17 @@ def parse( response ) {
 }
 
 def updated(){
-	initialize()
+	//initialize()
 }
 def initialize() {
-	InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
-	unschedule()
-	runIn(20, keepAlive)
+	//InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
+	//unschedule()
+	//runIn(20, keepAlive)
 }
 
 def keepAlive(){
 	// Poll the device every 250 seconds, or it will lose connection.
 	
-	refresh()
-	runIn(150, keepAlive)
+	//refresh()
+	//runIn(150, keepAlive)
 }
