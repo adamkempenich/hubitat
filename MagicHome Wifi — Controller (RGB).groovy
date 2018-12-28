@@ -492,35 +492,6 @@ def calculateChecksum(bytes){
     return sum & 255
 }
 
-def sendCommand(data) {
-    // Sends commands to the device
-    String stringBytes = HexUtils.byteArrayToHexString(data)
-
-	InterfaceUtils.sendSocketMessage(device, stringBytes)
-}
-
-def refresh( parameters ) {
-    byte[] msg =  [ 0x81, 0x8A, 0x8B ]
-    byte[] data = [ 0x81, 0x8A, 0x8B, calculateChecksum( msg )]
-
-    sendCommand( data )
-}
-
-def telnetStatus(status) { log.debug "telnetStatus:${status}" }
-def socketStatus(status) { 
-	log.debug "socketStatus:${status}"
-	if(status == "send error: Broken pipe (Write failed)") {
-		// Cannot reach device
-		log.debug "Cannot reach ${settings.deviceIP}, attempting to reconnect in 10s..."
-		runIn( 10, initialize )
-	}
-	
-}
-
-def poll() {
-    parent.poll(this)
-}
-
 def parse( response ) {
     // Parse data received back from this device
 
@@ -554,18 +525,53 @@ def parse( response ) {
     }
 }
 
+def sendCommand(data) {
+    // Sends commands to the device
+    
+    telnetConnect([byteInterface: true], "${settings.deviceIP}", settings.devicePort.toInteger(), null, null)
+    
+    String stringBytes = HexUtils.byteArrayToHexString(data)
+    // log.debug "" +  data + " was converted. Transmitting: " + stringBytes
+
+    def transmission = new HubAction(stringBytes, Protocol.TELNET)
+    sendHubCommand(transmission)
+}
+
+def refresh( parameters ) {
+    byte[] msg =  [ 0x81, 0x8A, 0x8B ]
+    byte[] data = [ 0x81, 0x8A, 0x8B, calculateChecksum( msg )]
+
+    sendCommand( data )
+}
+
+def telnetStatus(status) { log.debug "telnetStatus:${status}" }
+def socketStatus(status) { 
+	log.debug "socketStatus:${status}"
+	if(status == "send error: Broken pipe (Write failed)") {
+		// Cannot reach device
+		log.debug "Cannot reach ${settings.deviceIP}, attempting to reconnect in 10s..."
+		runIn( 10, initialize )
+	}
+	
+}
+
+def poll() {
+    parent.poll(this)
+}
+
+
 def updated(){
-	initialize()
+	//initialize()
 }
 def initialize() {
-	InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
-	unschedule()
-	runIn(20, keepAlive)
+	//InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
+	//unschedule()
+	//runIn(20, keepAlive)
 }
 
 def keepAlive(){
 	// Poll the device every 250 seconds, or it will lose connection.
 	
-	refresh()
-	runIn(150, keepAlive)
+	//refresh()
+	//runIn(150, keepAlive)
 }
