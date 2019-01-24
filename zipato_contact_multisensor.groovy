@@ -5,8 +5,7 @@
  *    Adam Kempenich
  *
  *  Documentation:  [Does not exist, yet]
- *  This driver is derived from Mike Maxwell's z-wave configuration tool
- *  Thank you, Mike!
+ *    
  *
  *  Changelog:
  *
@@ -37,6 +36,11 @@ metadata {
 		
     }
 	preferences {
+		input "externalContact", "bool", 
+			title: "Use external contact instead of magnetic?", 
+			defaultValue: false, 
+			displayDuringSetup: true, 
+			required: false
 		input "debugOutput", "bool", 
 			title: "Enable debug logging?", 
 			defaultValue: true, 
@@ -44,6 +48,11 @@ metadata {
 			required: false
 	}
 }
+
+//@Field Map zwLibType = [
+//	0:"N/A",1:"Static Controller",2:"Controller",3:"Enhanced Slave",4:"Slave",5:"Installer",
+//	6:"Routing Slave",7:"Bridge Controller",8:"Device Under Test (DUT)",9:"N/A",10:"AV Remote",11:"AV Device"
+//]
 
 def parse(String description) {
 	//log.debug description
@@ -84,47 +93,119 @@ def zwaveEvent(hubitat.zwave.commands.securityv1.SecurityMessageEncapsulation cm
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
-	if ( cmd.value == 0 ) {
-		logDebug("Contact closed")
-		sendEvent(name: "contact", value: "closed")
-	}
-	else if( cmd.value == 255 ) {
-		logDebug("Contact opened")
-		sendEvent(name: "contact", value: "open")
-	}
-	else{
-		logDebug("Unexpected result of ${cmd.value} returned")
+	if ( !settings?.externalContact) {
+		// Only assign contact if the magnetic contact is set to be used
+		
+		if ( cmd.value == 0 ) {
+			logDebug("Magnetic contact closed")
+			sendEvent(name: "contact", value: "closed")
+		}
+		else if( cmd.value == 255 ) {
+			logDebug("Magnetic contact opened")
+			sendEvent(name: "contact", value: "open")
+		}
+		else{
+			logDebug("Unexpected result of ${cmd.value} returned")
+		}
 	}
 }
 
 def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd){
 	if( cmd.v1AlarmType == 3 ) {
+		// Tamper Switch Report
+		
 		logDebug("Alarm Type is 3")
+		if ( cmd.v1AlarmLevel == 0 ) {
+			logDebug("Alarm tamper is clear")
+			sendEvent(name: "tamper", value: "clear")
+		}
+		else if( cmd.v1AlarmLevel == 255 ) {
+			logDebug("Alarm tamper is detected")
+			sendEvent(name: "tamper", value: "detected")
+		}
+		else {
+			logDebug("Alarm type is ${cmd.v1AlarmType}")
+		}
+	}
+	else if ( cmd.v1AlarmType == 2 ) {
+		// External Contact Report
+		
+		logDebug("Alarm Type is 2")
+		if ( settings?.externalContact || settings?.externalContact == null ) {
+			// Only assign contact if external contact is desired
+			
+			if ( cmd.v1AlarmLevel == 0 ) {
+				logDebug("External contact closed")
+				sendEvent(name: "contact", value: "closed")
+			}
+			else if( cmd.v1AlarmLevel == 255 ) {
+				logDebug("External ontact opened")
+				sendEvent(name: "contact", value: "open")
+			}
+			else {
+				logDebug("Alarm type is ${cmd.v1AlarmType}")
+			}	
+		}
 	}
 	else {
-		logDebug("Alarm type is ${cmd.v1AlarmType}")
-	}
-
-	if ( cmd.v1AlarmLevel == 0 ) {
-		logDebug("Alarm tamper is clear")
-		sendEvent(name: "tamper", value: "clear")
-	}
-	else if( cmd.v1AlarmLevel == 255 ) {
-		logDebug("Alarm tamper is detected")
-		sendEvent(name: "tamper", value: "detected")
-	}
-	else{
 		logDebug("Unexpected result of ${cmd.v1AlarmLevel} returned")
 	}
+	
+
+	
 }
 
 def zwaveEvent(hubitat.zwave.Command cmd) {
     log.debug "skip: ${cmd}"
+	
+	// Values ... (v1AlarmType:3, v1AlarmLevel:0, reserved:0, notificationStatus:0, notificationType:0, event:0, sequence:false, eventParametersLength:0, eventParameter:[])
+	
 }
 
 //cmds
 def getVersionReport(){
 	return secureCmd(zwave.versionV1.versionGet())		
+}
+
+def setParameter(parameterNumber = null, size = null, value = null){
+    if (parameterNumber == null || size == null || value == null) {
+		log.warn "incomplete parameter list supplied..."
+		log.info "syntax: setParameter(parameterNumber,size,value)"
+    } else {
+		return delayBetween([
+	    	secureCmd(zwave.configurationV1.configurationSet(scaledConfigurationValue: value, parameterNumber: parameterNumber, size: size)),
+	    	secureCmd(zwave.configurationV1.configurationGet(parameterNumber: parameterNumber))
+		],500)
+    }
+}
+
+def getAssociationReport(){
+	def cmds = []
+	1.upto(5, {
+		cmds.add(secureCmd(zwave.associationV1.associationGet(groupingIdentifier: it)))
+    })
+    return cmds	
+}
+
+def getParameterReport(param = null){
+    def cmds = []
+    if (param) {
+		cmds = [secureCmd(zwave.configurationV1.configurationGet(parameterNumber: param))]
+    } else {
+		0.upto(255, {
+	    	cmds.add(secureCmd(zwave.configurationV1.configurationGet(parameterNumber: it)))	
+		})
+    }
+    return cmds
+}	
+
+def getCommandClassReport(){
+    def cmds = []
+    def ic = getDataValue("inClusters").split(",").collect{ hexStrToUnsignedInt(it) }
+    ic.each {
+		if (it) cmds.add(secureCmd(zwave.versionV1.versionCommandClassGet(requestedCommandClass:it)))
+    }
+    return delayBetween(cmds,500)
 }
 
 def installed(){}
