@@ -172,8 +172,14 @@ def setColor(parameters){
 
 	byte[] msg
 	byte[] data
-
-	if(parameters.hue == null){
+	def hue
+	def saturation
+	def level
+	def whiteLevel
+	
+	log.debug "Hue: ${parameters.hue} S: ${parameters.saturation} L: ${parameters.level}"
+	
+	if(!parameters.containsKey('hue')){
 		if( device.currentValue( "hue" ) == null ){
 			sendEvent( name: "hue", value: 100 )
 			parameters.hue = 100
@@ -185,7 +191,7 @@ def setColor(parameters){
 	else{
 		sendEvent( name: "hue", value: normalizePercent(parameters.hue))
 	}
-	if(parameters.saturation == null){
+	if(!parameters.containsKey('saturation')){
 		if( device.currentValue( "saturation" ) == null ){
 			sendEvent( name: "saturation", value: 100 )
 			parameters.saturation = 100
@@ -197,7 +203,7 @@ def setColor(parameters){
 	else{
 		sendEvent( name: "saturation", value: normalizePercent(parameters.saturation))
 	}
-	if(parameters.level == null){
+	if(!parameters.containsKey('level')){
         if( device.currentValue( "level" ) == null ){
             sendEvent( name: "level", value: 100 )
             parameters.level = 100
@@ -209,7 +215,7 @@ def setColor(parameters){
     else{
         sendEvent( name: "level", value: normalizePercent(parameters.level))
     }
-    if(parameters.whiteLevel == null){
+    if(!parameters.containsKey('whiteLevel')){
         if( device.currentValue( "whiteLevel" ) == null ){
             sendEvent( name: "whiteLevel", value: 100 )
             parameters.whiteLevel = 100
@@ -232,8 +238,8 @@ def setColor(parameters){
 
 	rgbColors = hsvToRGB( parameters.hue, parameters.saturation, parameters.level )
 
-	msg =  [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, parameters.whiteLevel * 2.55, 0xf0, 0x0f ]
-	data = [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, parameters.whiteLevel * 2.55, 0xf0, 0x0f, calculateChecksum( msg ) ]
+	msg =  [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, parameters.whiteLevel * 2.55, 0x00, 0x0f ]
+	data = [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, parameters.whiteLevel * 2.55, 0x00, 0x0f, calculateChecksum( msg ) ]
 
     sendCommand( data )
 }
@@ -601,8 +607,8 @@ def refresh( parameters ) {
     sendCommand( data )
 }
 
-def telnetStatus(status) { log.debug "telnetStatus:${status}" }
-def socketStatus(status) { 
+def telnetStatus( status ) { log.debug "telnetStatus:${status}" }
+def socketStatus( status ) { 
 	log.debug "socketStatus:${status}"
 	if(status == "send error: Broken pipe (Write failed)") {
 		// Cannot reach device
@@ -632,3 +638,4 @@ def keepAlive(){
 	//refresh()
 	//runIn(150, keepAlive)
 }
+
