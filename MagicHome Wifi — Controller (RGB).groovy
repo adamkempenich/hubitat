@@ -1,46 +1,75 @@
+/**
+ *  MagicHome Wifi — Controller (RGB - Model 2) 0.7
+ *
+ *  Author: 
+ *    Adam Kempenich
+ *
+ *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/
+ *    
+ *
+ *  Changelog:
+ *
+ *    0.7 (Jan 27 2019)
+ *      - Initial Release of fixed RGB Controller
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+ */
+
 import hubitat.helper.HexUtils
 import hubitat.device.HubAction
 import hubitat.helper.InterfaceUtils
 import hubitat.device.Protocol
 
 metadata {
-	definition (name: "MagicHome Wifi — Controller (RGB)", namespace: "MagicHome", author: "Adam Kempenich") {
-        capability "Switch Level"
-        capability "Actuator"
-        capability "Switch"
-        capability "Polling"
-        capability "Refresh"
-        capability "Sensor"
-        capability "Color Temperature"
-        capability "Color Control"
-	capability "Initialize"
-		
-        command "on"
-        command "off" 
-        command "sendPreset", ["number", "number"]       // 0 (off), 1-20 (other presets)
-        command "presetSevenColorDissolve", [ "number" ] // 0 - 100 (speed)
-        command "presetRedFade",            [ "number" ] // 0 - 100 (speed)
-        command "presetGreenFade",          [ "number" ] // 0 - 100 (speed)
-        command "presetBlueFade",           [ "number" ] // 0 - 100 (speed)
-        command "presetYellowFade",         [ "number" ] // 0 - 100 (speed)
-        command "presetCyanFade",           [ "number" ] // 0 - 100 (speed)
-        command "presetPurpleFade",         [ "number" ] // 0 - 100 (speed)
-        command "presetWhiteFade",          [ "number" ] // 0 - 100 (speed)
-        command "presetRedGreenDissolve",   [ "number" ] // 0 - 100 (speed)
-        command "presetRedBlueDissolve",    [ "number" ] // 0 - 100 (speed)
-        command "presetGreenBlueDissolve",  [ "number" ] // 0 - 100 (speed)
-        command "presetSevenColorStrobe",   [ "number" ] // 0 - 100 (speed)
-        command "presetRedStrobe",          [ "number" ] // 0 - 100 (speed)
-        command "presetGreenStrobe",        [ "number" ] // 0 - 100 (speed)
-        command "presetBlueStrobe",         [ "number" ] // 0 - 100 (speed)
-        command "presetYellowStrobe",       [ "number" ] // 0 - 100 (speed)
-        command "presetCyanStrobe",         [ "number" ] // 0 - 100 (speed)
-        command "presetPurpleStrobe",       [ "number" ] // 0 - 100 (speed)
-        command "presetWhiteStrobe",        [ "number" ] // 0 - 100 (speed)
-        command "presetSevenColorJump",     [ "number" ] // 0 - 100 (speed)
-        
-    	attribute "currentPreset", "string" // 0 (off), 1-20 (other presets)
-        attribute "presetSpeed", "string" 
+	definition (
+		name: "MagicHome Wifi — Controller (RGB)", 
+		namespace: "MagicHome", 
+		author: "Adam Kempenich") {
+
+		capability "Switch Level"
+		capability "Actuator"
+		capability "Switch"
+		capability "Polling"
+		capability "Refresh"
+		capability "Sensor"
+		capability "Color Temperature"
+		capability "Color Control"
+		capability "Initialize"
+
+		command "on"
+		command "off" 
+		command "sendPreset", ["number", "number"]       // 0 (off), 1-20 (other presets)
+		command "presetSevenColorDissolve", [ "number" ] // 0 - 100 (speed)
+		command "presetRedFade",            [ "number" ] // 0 - 100 (speed)
+		command "presetGreenFade",          [ "number" ] // 0 - 100 (speed)
+		command "presetBlueFade",           [ "number" ] // 0 - 100 (speed)
+		command "presetYellowFade",         [ "number" ] // 0 - 100 (speed)
+		command "presetCyanFade",           [ "number" ] // 0 - 100 (speed)
+		command "presetPurpleFade",         [ "number" ] // 0 - 100 (speed)
+		command "presetWhiteFade",          [ "number" ] // 0 - 100 (speed)
+		command "presetRedGreenDissolve",   [ "number" ] // 0 - 100 (speed)
+		command "presetRedBlueDissolve",    [ "number" ] // 0 - 100 (speed)
+		command "presetGreenBlueDissolve",  [ "number" ] // 0 - 100 (speed)
+		command "presetSevenColorStrobe",   [ "number" ] // 0 - 100 (speed)
+		command "presetRedStrobe",          [ "number" ] // 0 - 100 (speed)
+		command "presetGreenStrobe",        [ "number" ] // 0 - 100 (speed)
+		command "presetBlueStrobe",         [ "number" ] // 0 - 100 (speed)
+		command "presetYellowStrobe",       [ "number" ] // 0 - 100 (speed)
+		command "presetCyanStrobe",         [ "number" ] // 0 - 100 (speed)
+		command "presetPurpleStrobe",       [ "number" ] // 0 - 100 (speed)
+		command "presetWhiteStrobe",        [ "number" ] // 0 - 100 (speed)
+		command "presetSevenColorJump",     [ "number" ] // 0 - 100 (speed)
+
+		attribute "currentPreset", "string" // 0 (off), 1-20 (other presets)
+		attribute "presetSpeed", "string" 
 	}
     
     preferences {  
