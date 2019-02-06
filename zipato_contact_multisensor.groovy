@@ -8,6 +8,8 @@
  *    
  *
  *  Changelog:
+ *    0.9.1 (Feb 06 2019)
+ *      - Supplemental update w/ bug fixes
  *
  *    0.9 (Jan 24 2019)
  *      - Initial Release
@@ -34,6 +36,7 @@ metadata {
 		capability "Contact Sensor"
 		capability "Tamper Alert"
 		
+		fingerprint deviceId: "0x4482", inClusters: "0x71,0x85,0x80,0x70,0x72,0x30,0x86,0x84,0x31"
     }
 	preferences {
 		input "externalContact", "bool", 
@@ -93,7 +96,7 @@ def zwaveEvent(hubitat.zwave.commands.securityv1.SecurityMessageEncapsulation cm
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
-	if ( !settings?.externalContact) {
+	if ( !settings.externalContact) {
 		// Only assign contact if the magnetic contact is set to be used
 		
 		if ( cmd.value == 0 ) {
@@ -131,7 +134,7 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd){
 		// External Contact Report
 		
 		logDebug("Alarm Type is 2")
-		if ( settings?.externalContact || settings?.externalContact == null ) {
+		if ( settings.externalContact ) {
 			// Only assign contact if external contact is desired
 			
 			if ( cmd.v1AlarmLevel == 0 ) {
