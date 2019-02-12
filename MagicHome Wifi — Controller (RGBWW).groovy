@@ -14,7 +14,7 @@
  *      - Auto-discovery not yet implemented
  *      - Custom functions not yet implemented
  *      - On-device scheduling not yet implemented
- *      - Power on with settings changes will be enhanced in the next release
+ *	- Parse does not check for presets yet
  * 
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -34,7 +34,7 @@ import hubitat.device.Protocol
 
 metadata {
     definition (
-        name: "MagicHome Wifi — Controller (RGB + WW/CW CCT)", 
+        name: "MagicHome Wifi — 0.8 Controller (RGB + WW/CW CCT)", 
         namespace: "MagicHome", 
         author: "Adam Kempenich") {
         
@@ -233,7 +233,7 @@ def setColorTemperature( setTemp = getColorTemperature(), transmit=true ){
     // Adjust the color temperature of a device  
     
     deviceLevel = roundUpBetweenZeroAndOne( normalizePercent( getLevel( ) ) )
-	
+    
     sendEvent(name: "colorTemperature", value: setTemp)
     logDebug "Color Temperature set to ${setTemp}"
 
@@ -547,20 +547,24 @@ def parse( response ) {
         // Does the device say it's on?
         
         responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
-        
+        double warmWhite = responseArray[ 9 ] / 2.55
+        double coldWhite = responseArray[ 11 ] / 2.55
+        hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
+
         // Convert integers to percentages
         double warmWhite = responseArray[ 6 ] / 2.55
         double coldWhite = responseArray[ 7 ] / 2.55
         
         // If values differ from HE, change them
-        device.currentValue( "warmWhiteLevel" ) != warmWhite ? ( setWarmWhiteLevel( warmWhite, false ) ) : null
-        device.currentValue( "coldWhiteLevel" ) != coldWhite ? ( setColdWhiteLevel( coldWhite, false ) ) : null
-        device.currentValue( "level" ) != ( warmWhite + coldWhite ) ? ( setLevel( ( warmWhite + coldWhite ), false ) ) : null
+        setWarmWhiteLevel( warmWhite, false ) 
+        setColdWhiteLevel( coldWhite, false ) 
+        setLevel( hsvMap.value, false )
+        setSaturation( hsvMap.saturation, false )
+        setHue( hsvMap.hue, false )
         
         // Calculate the color temperature, based on what data was received
         setTemp = settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))
-        // If value differs from HE, change it
-        setTemp != device.currentValue( "colorTemperature" ) ? ( sendEvent(name: "colorTemperature", value: setTemp.toInteger()) ) : null
+        sendEvent( name: "colorTemperature", value: setTemp.toInteger() )
     }
     else if( response == null ){
         log.debug "${settings.deviceIP}: No response received from device" 
