@@ -33,7 +33,7 @@ import hubitat.device.Protocol
 
 metadata {
     definition (
-        name: "MagicHome Wifi — 0.8 Controller (RGB + WW/CW CCT)", 
+        name: "MagicHome Wifi — Controller (RGB + WW/CW CCT)", 
         namespace: "MagicHome", 
         author: "Adam Kempenich") {
         
