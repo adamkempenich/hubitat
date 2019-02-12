@@ -1,26 +1,54 @@
+/**
+ *  MagicHome Wifi - Controller (RGB + WW/CW CCT) 0.8
+ *
+ *  Author: 
+ *    Adam Kempenich 
+ *
+ *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
+ *
+ *  Changelog:
+ *
+ *    0.8 (Feb 11 2019)
+ *      - Initial Release
+ *      - Cannot set device time, yet.
+ *      - Auto-discovery not yet implemented
+ *      - Custom functions not yet implemented
+ *      - On-device scheduling not yet implemented
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+ */
+
 import hubitat.helper.HexUtils
 import hubitat.device.HubAction
 import hubitat.helper.InterfaceUtils
 import hubitat.device.Protocol
 
 metadata {
-    definition (name: "MagicHome Wifi — Controller (RGBWW)", namespace: "MagicHome", author: "Adam Kempenich") {
+    definition (
+        name: "MagicHome Wifi — Controller (RGB + WW/CW CCT)", 
+        namespace: "MagicHome", 
+        author: "Adam Kempenich") {
+        
         capability "Switch Level"
-        //capability "Actuator"
+        capability "Actuator"
         capability "Switch"
         capability "Polling"
         capability "Refresh"
-        //capability "Sensor"
+        capability "Sensor"
         capability "Color Temperature"
         capability "Color Control"
-		capability "Initialize"
-		
-		command "on"
-        command "off"
-        command "setWarmWhiteLevel", [ "number" ] // 0 - 100
-        command "setColdWhiteLevel", [ "number" ] // 0 - 100
+        capability "Initialize"
 
-        command "sendPreset", ["number", "number"]       // 0 (off), 1-20 (other presets)
+        command "setWhiteLevel", [ "number" ] // 0 - 100
+        command "sendPreset",               ["number", "number"]       // 0 (off), 1-20 (other presets)
         command "presetSevenColorDissolve", [ "number" ] // 0 - 100 (speed)
         command "presetRedFade",            [ "number" ] // 0 - 100 (speed)
         command "presetGreenFade",          [ "number" ] // 0 - 100 (speed)
@@ -41,83 +69,34 @@ metadata {
         command "presetPurpleStrobe",       [ "number" ] // 0 - 100 (speed)
         command "presetWhiteStrobe",        [ "number" ] // 0 - 100 (speed)
         command "presetSevenColorJump",     [ "number" ] // 0 - 100 (speed)
-        
-        attribute "currentPreset", "string" // 0 (off), 1-20 (other presets)
-        attribute "presetSpeed", "string" 
+
+        command "setWarmWhiteLevel", [ "number" ] // 0 - 100
+        command "setColdWhiteLevel", [ "number" ] // 0 - 100
+
+        attribute "currentPreset", "number" // 0 (off), 1-20 (other presets)
+        attribute "presetSpeed", "number" // 0 - 100
         attribute "warmWhiteLevel", "number"
         attribute "coldWhiteLevel", "number"
-
     }
     
     preferences {  
         input "deviceIP", "text", title: "Server", description: "Device IP (e.g. 192.168.1.X)", required: true, defaultValue: "192.168.1.X"
         input "devicePort", "number", title: "Port", description: "Device Port (Default: 5577)", required: true, defaultValue: 5577
 
-        // input "styleSheet", "bool", title: "<style> .form-group.col-sm-4{ color:#00FF00 !important }</style> ", defaultValue: true
+        input(name:"logDebug", type:"bool", title: "Log debug information?",
+              description: "Logs raw data for debugging. (Default: Off)", defaultValue: false,
+              required: false, displayDuringSetup: true)
         
-        input(name:"powerOnWithChanges", type:"bool", title: "Turn on this light when settings change?",
-              description: "Makes devices behave like other switches.", defaultValue: true,
-              required: true, displayDuringSetup: true)
+        input(name:"powerOnWithChanges", type:"bool", title: "Turn on this light when values change?",
+              defaultValue: true, required: true, displayDuringSetup: true)
 
-        input(name:"enableRGBCT", type:"bool", title: "Use RGB in Color Temperature calculations?",
-            description: "For use with color temperature calculation.", defaultValue: true,
-            required: true, displayDuringSetup: true)
-
-        input(name:"neutralWhite", type:"number", title: "Point where the light changes between cold and warm white hues",
-            description: "Temp in K (Default: 4000)", defaultValue: 4000,
-            required: false, displayDuringSetup: true)
-
-        input(name:"cwHue", type:"number", title: "Hue that Cold White (bluish light) uses",
-            description: "Hue (0 - 100). Default 55", defaultValue: 55)
-        input(name:"cwSaturationLowPoint", type:"number", title: "Cold White Saturation when white balance is ${neutralWhite}k",
-            description: "Saturation: (0-100) Default: 0", defaultValue: 0)
-        input(name:"cwSaturationHighPoint", type:"number", title: "Cold White Saturation at ~6000k.",
-            description: "Saturation: (0-100) Default: 50", defaultValue: 50)
-
-        input(name:"wwHue", type:"number", title: "Hue that Warm White (orangeish light) uses",
-            description: "Hue (0 - 100). Default 100 (Bulb's White LEDs)", defaultValue: 100)
-        input(name:"wwSaturationLowPoint", type:"number", title: "Warm White Saturation when white balance is ${neutralWhite}k",
-            description: "Saturation: (0-100) Default: 0", defaultValue: 0)
-        input(name:"wwSaturationHighPoint", type:"number", title: "Warm White Saturation at ~2700k.",
-            description: "Saturation: (0-100) Default: 50", defaultValue: 50)
-
-
-        input(name:"enableWW", type:"bool", title: "Use Warm White in Color Temperature calculations?",
-            description: "For use with color temperature calculation.", defaultValue: true,
-            required: true, displayDuringSetup: true)
-        input(name:"deviceWWTemperature", type:"number", title: "Warm white channel's color temperature .",
+        input(name:"deviceWWTemperature", type:"number", title: "Warm White rating of this light",
             description: "Temp in K (default 2700)", defaultValue: 2700,
             required: false, displayDuringSetup: true)
 
-        input(name:"ww_low_cutoff_temperature", type:"number", title: "Low-End WW point?",
-            description: "Temp in K", defaultValue: 2300,
-            required: true, displayDuringSetup: true)
-        input(name:"ww_high_cutoff_temperature", type:"number", title: "High-end WW point?",
-            description: "Temp in K", defaultValue: 6200,
+        input(name:"deviceCWTemperature", type:"number", title: "Cold White Rating of this light",
+            description: "Temp in K (default 6500)", defaultValue: 6500,
             required: false, displayDuringSetup: true)
-
-        input(name:"enableCW", type:"bool", title: "Use Cold White in Color Temperature calculations?",
-            description: "For use with color temperature calculation.", defaultValue: true,
-            required: true, displayDuringSetup: true)
-        input(name:"deviceCWTemperature", type:"number", title: "Cold white channel's color temperature .",
-            description: "Temp in K (default 6000)", defaultValue: 6000,
-            required: false, displayDuringSetup: true)
-
-        input(name:"cw_low_cutoff_temperature", type:"number", title: "Low-End CW point?",
-            description: "Temp in K", defaultValue: 2800,
-            required: true, displayDuringSetup: true)
-        input(name:"cw_high_cutoff_temperature", type:"number", title: "High-end CW point?",
-            description: "Temp in K", defaultValue: 7000,
-            required: true, displayDuringSetup: true)
-            
-
-        input(name:"whiteFollowsBrightness", type:"bool", title: "White channel follows device brightness for color temperature?",
-            description: "Default: On", defaultValue: true,
-            required: false, displayDuringSetup: true)
-
-        input(name:"highBrightnessMode", type:"bool", title: "Enable high-brightness color temperature mode",
-              description: "Blast WW & CW channels at full, use color range to adjust temperature.", defaultValue: false,
-              required: true, displayDuringSetup: true)
     }
 }
 
@@ -125,347 +104,170 @@ def on() {
     // Turn on the device
 
     sendEvent(name: "switch", value: "on")
-    log.debug "MagicHome - Switch set to " + device.currentValue("switch")
-    byte[] data = [0x71, 0x23,  0x0F, 0xA3]
+    logDebug( "Switch set to on" )
+    byte[] data = [0x71, 0x23, 0x0F, 0xA3]
     sendCommand(data)
-}
-
-def powerOnWithChanges(){
-    // If the device is off and light settings change, turn it on (if user settings apply)
-    
-	settings.powerOnBrightnessChange ? ( device.currentValue("status") != "on" ? on() : null ) : null
 }
 
 def off() {
     // Turn off the device
 
     sendEvent(name: "switch", value: "off")
-    log.debug "MagicHome - Switch set to " + device.currentValue("switch")
-    byte[] data = [0x71, 0x24,  0x0F, 0xA4]
+    logDebug( "Switch set to off" )
+    byte[] data = [0x71, 0x24, 0x0F, 0xA4]
     sendCommand(data)
 }
 
 def setHue(hue, transmit=true){
-    // Set the hue of a device (0-99)
+    // Set the hue of a device ( 0-100) 
 
-    hue = normalizePercent( hue, 0, 99) 
-    sendEvent(name: "hue", value: hue)
-    log.debug "MagicHome - Hue set to " + device.currentValue("hue")
-    if( transmit ) {
-        setColor([hue:hue])
-    }
-    else {
-        return device.currentValue( "hue" )
-    }
+    hue = normalizePercent( hue, 0, 101 )
+    sendEvent(name: "hue", value: hue )
+    logDebug( "Hue set to " + device.currentValue('hue'))
+        
+    if( !transmit ) return hue
+    setColor( hue: hue )
+
+}
+
+def getHue(){
+    // Get the brightness of a device (0 - 100)
+
+    return device.currentValue( "hue" ) == null ? ( setHue( 20, false ) ) : ( device.currentValue( "hue" ) )
 }
 
 def setSaturation(saturation, transmit=true){
     // Set the saturation of a device (0-100)
 
-    saturation = normalizePercent(saturation)
-    sendEvent(name: "saturation", value: saturation)    
-    log.debug "MagicHome - Saturation set to " + device.currentValue("saturation")
-    if( transmit ) {
-        setColor([saturation:saturation])
-    }
-    else{
-        return device.currentValue( "saturation" )
-    }
+    saturation = normalizePercent( saturation )
+    sendEvent(name: "saturation", value: saturation)
+    logDebug( "Saturation set to ${saturation}")
+    
+    if( !transmit ) return saturation
+    setColor( saturation: saturation )
+}
+def getSaturation(){
+    // Get the brightness of a device (0 - 100)
+
+    return device.currentValue( "saturation" ) == null ? ( setSaturation( 100, false ) ) : ( device.currentValue( "saturation" ) )
 }
 
 def setLevel(level, transmit=true) {
     // Set the brightness of a device (0-100)
 
-    level = normalizePercent(level)
+    level = normalizePercent( level )
     sendEvent(name: "level", value: level)
-    log.debug "MagicHome - Level set to " + level
-
-    if( transmit ) {
-        setColor([level:level])
-    }
-    else{
-        return device.currentValue( "level" )   
-    }
+    logDebug( "Level set to ${level}")
+    
+    if( !transmit ) return level
+    setColor( level: level )
 }
 
-def setWarmWhiteLevel( warmWhiteLevel, transmit=true ){
-    // Set the dedicated white channel's brightness of a device (0-100)
+def getLevel(){
+    // Get the brightness of a device (0 - 100)
 
-    warmWhiteLevel = normalizePercent(warmWhiteLevel, 0, 99 ) 
+    return device.currentValue( "level" ) == null ? ( setLevel( 100, false ) ) : ( device.currentValue( "level" ) )
+}
+
+def setWarmWhiteLevel(warmWhiteLevel, transmit=true){
+    // Set the warm white level of a device (0-100)
+
+    normalizePercent(warmWhiteLevel)
     sendEvent(name: "warmWhiteLevel", value: warmWhiteLevel)
-    log.debug "MagicHome - Warm white level set to " + device.currentValue("warmWhiteLevel")
-    if( transmit ) {
-        setColor( [ warmWhiteLevel : warmWhiteLevel ] )
-    }
-    else {
-        return device.currentValue( "warmWhiteLevel" )
-    }
+    log.debug "${settings.deviceIP}: MagicHome - Warm White Level set to " + warmWhiteLevel
+    
+    if( !transmit ) return getWarmWhiteLevel()
+    setColorTemperature(null)
 }
 
-def setColdWhiteLevel( coldWhiteLevel, transmit=true ){
-    // Set the dedicated white channel's brightness of a device (0-100)
+def getWarmWhiteLevel(){
+    // Get the brightness of a device (0 - 100)
 
-    coldWhiteLevel = normalizePercent(coldWhiteLevel, 0, 99 ) 
+    return device.currentValue( "warmWhiteLevel" ) == null ? ( setWarmWhiteLevel( 100, false ) ) : ( device.currentValue( "warmWhiteLevel" ) )
+}
+
+def setColdWhiteLevel(coldWhiteLevel, transmit=true){
+    // Set the cold white level of a device (0-100)
+
+    normalizePercent(coldWhiteLevel)
     sendEvent(name: "coldWhiteLevel", value: coldWhiteLevel)
-    log.debug "MagicHome - Cold white level set to " + device.currentValue("coldWhiteLevel")
-    if( transmit ) {
-        setColor( [ coldWhiteLevel : coldWhiteLevel ] )
-    }
-    else {
-        return device.currentValue( "coldWhiteLevel" )
-    }
+    log.debug "${settings.deviceIP}: MagicHome - Cold White Level set to " + coldWhiteLevel
+    if( !transmit ) return getColdWhiteLevel()
+    setColorTemperature(null)
 }
 
-def setColor(parameters){
-    // Set the color of a device. Hue (0 - 100), Saturation (0 - 100), Level (0 - 100). If Hue is 16.6, use the white LEDs.
+def getColdWhiteLevel(){
+    // Get the warm white level of a device (0 - 100)
 
-    byte[] msg
+    return device.currentValue( "coldWhiteLevel" ) == null ? ( setColdWhiteLevel( 100, false ) ) : ( device.currentValue( "coldWhiteLevel" ) )
+}
+
+def setColor( parameters ){
+    // Set the color of a device. Hue (0 - 100), Saturation (0 - 100), Level (0 - 100). If Hue is 100, use the white LEDs.
+    def newParameters = [ hue: checkIfInMap( parameters?.hue, "hue"),
+                          saturation: checkIfInMap( parameters?.saturation, "saturation"),
+                          level: checkIfInMap( parameters?.level, "level") ]
     byte[] data
 
-    // ------------ Device Hue ------------ //
-    if(parameters.hue == null){
-        if( device.currentValue( "hue" ) == null ){
-            sendEvent( name: "hue", value: 99 )
-            parameters.hue = 99
-        }
-        else{
-            parameters.hue = device.currentValue( "hue" )
-        }
-    }
-    else{
-        normalizedHue = normalizePercent( parameters.hue, 0, 99 )
-        sendEvent( name: "hue", value: normalizedHue)
-        parameters.hue = normalizedHue
-    }
-    // ------------ Device Saturation ------------ //
-    if(parameters.saturation == null){
-        if( device.currentValue( "saturation" ) == null ){
-            sendEvent( name: "saturation", value: 100 )
-            parameters.saturation = 100
-        }
-        else{
-            parameters.saturation = device.currentValue( "saturation" )
-        }
-    }
-    else{
-        normalizedSaturation = normalizePercent( parameters.saturation )
-        sendEvent( name: "saturation", value: normalizedSaturation)
-        parameters.saturation = normalizedSaturation
-    }
-    // ------------ Device Level ------------ //
-    if(parameters.level == null){
-        if( device.currentValue( "level" ) == null ){
-            sendEvent( name: "level", value: 100 )
-            parameters.level = 100
-        }
-        else{
-            parameters.level = device.currentValue( "level" )
-        }
-    }
-    else{
-		if( parameters.level != -1 ) {
-			normalizedLevel = normalizePercent( parameters.level )
-			sendEvent( name: "level", value: normalizedLevel)
-			parameters.level = normalizedLevel
-		}
-    }
-    
-    // ------------ White Brightness Adjustments? -------- //
-    if(settings.whiteFollowsBrightness){
-        if( parameters.level != null && parameters.coldWhiteLevel == null || parameters.level != null && parameters.warmWhiteLevel == null ) {
-        	newWhiteValues = setColorTemperature( null, false )
-        	parameters.warmWhiteLevel = newWhiteValues.warmWhiteLevel
-            parameters.coldWhiteLevel = newWhiteValues.coldWhiteLevel
-            
-        }
-    }
-    
-    // ------------ Warm White Channel ------------ //
-    if(parameters.warmWhiteLevel == null){
-        if( device.currentValue( "warmWhiteLevel" ) == null ){
-            setWarmWhiteLevel( 99, false )
-            parameters.warmWhiteLevel = 100
-        }
-        else{
-        	parameters.warmWhiteLevel = device.currentValue( "warmWhiteLevel" )
-        }
-    }
-    else{
-        normalizedWarmWhite = normalizePercent( parameters.warmWhiteLevel, 0, 99 )
-        sendEvent( name: "warmWhiteLevel", value: normalizedWarmWhite )
-        parameters.warmWhiteLevel = normalizedWarmWhite
-    }
-    
-    
-    
-    // ------------ Cold White Channel ------------ //
-    if(parameters.coldWhiteLevel == null){
-        if( device.currentValue( "coldWhiteLevel" ) == null ){ 
-            setColdWhiteLevel( 99 , false ) 
-        }
-        else{
-        	parameters.coldWhiteLevel = device.currentValue( "coldWhiteLevel" )
-        }
-    }
-    else{
-        normalizedColdWhite = normalizePercent( parameters.coldWhiteLevel, 0, 99 )
-        sendEvent( name: "coldWhiteLevel", value: normalizedColdWhite )
-        parameters.coldWhiteLevel = normalizedColdWhite
-    }    
-    
-    powerOnWithChanges()
-
-    // Set the parameter for presets to none
+    // Register that presets are disabled
     sendEvent( name: "currentPreset", value: 0 )
 
-    // Convert HSL (0-99, 0-100, 0-100) to an RGB list (0-255, 0-255, 0-255)
-	if( parameters.level == -1 ) {
-		rgbColors = hsvToRGB( 0, 0, 0 )
-	}
-	else {
-  		rgbColors = hsvToRGB( parameters.hue, parameters.saturation, parameters.level )
-	}
-	
-    // Send the new values to the device
-    rgbData =   [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0x00, 0xf0, 0x0f ]
-    wwCWData =  [0x31, 0x00, 0x00, 0x00, parameters.warmWhiteLevel * 2.55, parameters.coldWhiteLevel * 2.55, 0x0f, 0x0f]
+    powerOnWithChanges()
     
-    // Combine RGB and WW/CW for final transmission
-    data = [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0x00, 0xf0, 0x0f, calculateChecksum( rgbData ), 0x31, 0x00, 0x00, 0x00, parameters.warmWhiteLevel * 2.55, parameters.coldWhiteLevel * 2.55, 0x0f, 0x0f, calculateChecksum( wwCWData )]
+    if( newParameters.hue == 100 ) {
+        byte[] rgbData =   appendChecksum( [ 0x31, 0, 0, 0, 0x00, 0x00, 0xf0, 0x0f ] )
+        byte[] wwCWData =  appendChecksum( [0x31, 0x00, 0x00, 0x00, newParameters.Level * 2.55, 0, 0x0f, 0x0f] )
+        data = rgbData + wwCWData
+    }
+    else if( newParameters.hue == 101 ) {
+        byte[] rgbData =   appendChecksum( [ 0x31, 0, 0, 0, 0x00, 0x00, 0xf0, 0x0f ] )
+        byte[] wwCWData =  appendChecksum( [0x31, 0x00, 0x00, 0x00, 0, newParameters.Level * 2.55, 0x0f, 0x0f] )
+        data = rgbData + wwCWData
+    }
+    else{
+        rgbColors = hsvToRGB( newParameters.hue, newParameters.saturation, newParameters.level )
+        byte[] rgbData =   appendChecksum( [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0x00, 0xf0, 0x0f ] )
+        byte[] wwCWData =  appendChecksum( [0x31, 0x00, 0x00, 0x00, 0, 0, 0x0f, 0x0f] )
+        data = rgbData + wwCWData
+    }
+    sendCommand( data ) 
     
+}
+
+def setColorTemperature( setTemp = getColorTemperature(), transmit=true ){
+    // Adjust the color temperature of a device  
+    
+    deviceLevel = roundUpBetweenZeroAndOne( normalizePercent( getLevel( ) ) )
+    setTemp = normalizePercent( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature, getColorTemperature() )
+    
+    sendEvent(name: "colorTemperature", value: setTemp)
+    logDebug "Color Temperature set to ${setTemp}"
+
+    brightnessWW = proportionalToDeviceLevel(invertLinearValue( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature ) )
+    brightnessCW = proportionalToDeviceLevel(invertLinearValue( setTemp, settings.deviceCWTemperature, settings.deviceWWTemperature ) )
+
+    if( brightnessWW + brightnessCW > 100 ){
+        brightnessWW = brightnessWW / (( brightnessWW + brightnessCW ) / 100 )
+        brightnessCW = brightnessCW / (( brightnessWW + brightnessCW ) / 100 )
+    }
+
+    setWarmWhiteLevel( brightnessWW, false )
+    setColdWhiteLevel( brightnessCW, false )
+
+    if( !transmit ) return setTemp
+    powerOnWithChanges()
+    byte[] rgbData =   appendChecksum( [ 0x31, 0, 0, 0, 0x00, 0x00, 0xf0, 0x0f ] )
+    byte[] wwCWData =  appendChecksum( [0x31, 0x00, 0x00, 0x00, brightnessWW * 2.55, brightnessCW * 2.55, 0x0f, 0x0f] )
+    data = rgbData + wwCWData
     sendCommand( data )
 }
 
-def setColorTemperature(setTemp, transmit=true){
-    // Using RGB and the WW/CW channels, adjust the color temperature of a device
-    
-    // If a level isn't set, initialize it
-    device.currentValue( "level" ) == null ? ( deviceLevel = setLevel( 100, false )): ( deviceLevel = device.currentValue( "level" ))
-    device.currentValue( "warmWhiteLevel" ) == null ? ( deviceWarmWhiteLevel = setWarmWhiteLevel( 100, false )): ( deviceWarmWhiteLevel = device.currentValue( "warmWhiteLevel" ))
-    device.currentValue( "coldWhiteLevel" ) == null ? ( deviceColdWhiteLevel = setColdWhiteLevel( 100, false )): ( deviceColdWhiteLevel = device.currentValue( "coldWhiteLevel" ))
+def getColorTemperature(){
+    // Get the color temperature of a device ( ~2000-7000 )
 
-    roundUpIfBetweenTwoNumbers( deviceLevel )
-	
-    // If no color temperature was passed through, use the current device's color temperature, and check if it's in bounds
-    if(setTemp == null){
-        if( device.currentValue( "colorTemperature") != null ){ setTemp = device.currentValue( "colorTemperature" ) }
-        else{
-            sendEvent( name: "colorTemperature", value: 2700 )
-            setTemp = 2700
-        }
-    }
-    else{ sendEvent( name: "colorTemperature", value: setTemp ) }
-    
-    // Declare all our variables
-    setTemp = normalizePercent( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature )
-    
-    newSaturation = 0
-    newHue = 0
-	newLevel = device.currentValue( "level" )
-    
-    setCoolWhiteHue = normalizePercent( settings.cwHue )
-    setWarmWhiteHue = normalizePercent( settings.wwHue )
-    neutralWhite = normalizePercent( settings.neutralWhite, 2000, 8000 )
+    return device.currentValue( "colorTemperature" ) == null ? ( sendEvent( name: "colorTemperature", value: 2700 ) ) : ( device.currentValue( "colorTemperature" ) )
+}
 
-    cwSaturationLowPoint = normalizePercent( settings.cwSaturationLowPoint )
-    cwSaturationHighPoint = normalizePercent( settings.cwSaturationHighPoint )
-    wwSaturationLowPoint = normalizePercent( settings.wwSaturationLowPoint )
-    wwSaturationHighPoint = normalizePercent( settings.wwSaturationHighPoint )
-    deviceWWTemperature = settings.deviceWWTemperature
-    deviceCWTemperature = settings.deviceCWTemperature
-    ww_high_cutoff_temp = settings.ww_high_cutoff_temperature
-    ww_low_cutoff_temp = settings.ww_low_cutoff_temperature
-    cw_low_cutoff_temp = settings.cw_low_cutoff_temperature
-    cw_high_cutoff_temp = settings.cw_high_cutoff_temperature
-    brightnessWarmWhite = 0
-    brightnessColdWhite = 0
-    
-    // ————————————————————————————————————————————— Start RGB CT Handling ————————————————————————————————————————————— //
-    if(settings.enableRGBCT){
-        if(setTemp >= neutralWhite){
-            // Set cold white temperature if above the user's neutral white point
-    		
-            int offset = setTemp - neutralWhite
-                if( cwSaturationLowPoint < cwSaturationHighPoint ){
-                    newSaturation = (((( 100 - cwSaturationLowPoint)/100 ) * ( 1.8 * Math.sqrt( offset ))) + cwSaturationLowPoint ) * cwSaturationHighPoint / 100
-                }
-                else{
-                    newSaturation = (((( 100 - cwSaturationHighPoint)/100 ) * ( 1.8 * Math.sqrt( offset ))) + cwSaturationHighPoint ) * cwSaturationLowPoint / 100
-                }
-            newHue =  setCoolWhiteHue 
-        }
-        else{
-            // set warm white temperature if below the user's neutral white point
-    
-            int offset = neutralWhite - setTemp
-                if(wwSaturationLowPoint < wwSaturationHighPoint ){
-                    newSaturation = (((( 100 - wwSaturationLowPoint ) / 100) * ( 2.166666 * Math.sqrt( offset ))) + wwSaturationLowPoint ) * wwSaturationHighPoint / 100
-                }
-                else{
-                    newSaturation = (((( 100 - wwSaturationHighPoint ) / 100) * ( 2.166666 * Math.sqrt( offset ))) + wwSaturationHighPoint ) * wwSaturationLowPoint / 100
-                }
-            newHue =  setWarmWhiteHue
-        }
-    }
-
-    // ————————————————————————————————————————————— Start White Channel CT Handling ————————————————————————————————————————————— //
-    // High Brightness Mode Uses the max value of WW and CW channels, and RGB to shift the light's hue
-    if(settings.highBrightnessMode){
-        brightnessWarmWhite = 100
-        brightnessColdWhite = 100
-    }
-    else{
-        // Set the warm white and cold white channel temperatures
-        if(settings.enableWW){
-            if(deviceWWTemperature <= setTemp){
-                brightnessWarmWhite = ((100)/(deviceWWTemperature - ww_high_cutoff_temp))*setTemp + (100 - (100/(deviceWWTemperature - ww_high_cutoff_temp))*deviceWWTemperature)
-            }
-            else{
-                brightnessWarmWhite = ((100)/(deviceWWTemperature - ww_low_cutoff_temp))*setTemp + (100 - (100/(deviceWWTemperature - ww_low_cutoff_temp))*deviceWWTemperature)
-            }
-        }
-        if(settings.enableCW){
-            if(deviceCWTemperature >= setTemp){
-                brightnessColdWhite = ((100)/(deviceCWTemperature - cw_low_cutoff_temp))*setTemp + (100 - (100/(deviceCWTemperature - cw_low_cutoff_temp))*deviceCWTemperature)
-            }
-            else{
-                brightnessColdWhite = ((100)/(deviceCWTemperature - cw_high_cutoff_temp))*setTemp + (100 - (100/(deviceCWTemperature - cw_high_cutoff_temp))*deviceCWTemperature)
-            }
-        }
-    }
-
-    // Adjust the brightness by using device level as modifier
-    if(settings.whiteFollowsBrightness && !settings.enableRGBCT){
-        brightnessWarmWhite = normalizePercent( brightnessWarmWhite * deviceLevel / 100 ).toInteger()
-        brightnessColdWhite = normalizePercent( brightnessColdWhite * deviceLevel / 100 ).toInteger()
-    }
-    else if(settings.whiteFollowsBrightness){
-    	brightnessWarmWhite = normalizePercent( brightnessWarmWhite * deviceLevel / 100 ).toInteger()
-        brightnessColdWhite = normalizePercent( brightnessColdWhite * deviceLevel / 100 ).toInteger()
-    }
-    else{
-       	brightnessWarmWhite = normalizePercent( brightnessWarmWhite.toInteger() )
-        brightnessColdWhite = normalizePercent( brightnessColdWhite.toInteger() )
-    }
-    
-    if( !settings.enableRGBCT ){
-        // If we're not using RGB LEDs, turn them off
-    	newHue = device.currentValue("hue")
-        newSaturation= device.currentValue("saturation")
-        newLevel = -1
-    }
-    
-    def parameters = [ hue: newHue.toInteger(), saturation: newSaturation.toInteger(), level: newLevel.toInteger(), warmWhiteLevel: brightnessWarmWhite, coldWhiteLevel: brightnessColdWhite ]
-    if( transmit ){
-    	setColor( parameters )
-    }
-    else{
-    	return [ warmWhiteLevel: brightnessWarmWhite, coldWhiteLevel: brightnessColdWhite ]
-    }
-} 
-
-
-// ------------------- Begin Preset Handling ------------------------- //
 def sendPreset( turnOn, preset = 1, speed = 100, transmit = true ){
     // Turn on preset mode (true), turn off preset mode (false). Preset (1 - 20), Speed (1 (slow) - 100 (fast)).
 
@@ -473,9 +275,6 @@ def sendPreset( turnOn, preset = 1, speed = 100, transmit = true ){
     // 1 Seven Color Dissolve, 2 Red Fade, 3 Green Fade, 4 Blue Fade, 5 Yellow Fade, 6 Cyan Fade, 7 Purple Fade, 8 White Fade, 9 Red Green Dissolve
     // 10 Red Blue Dissolve, 11 Green Blue Dissolve, 12 Seven Color Strobe, 13 Red Strobe, 14 Green Strobe, 15 Blue Strobe, 16 Yellow Strobe
     // 17 Cyan Strobe, 18 Purple Strobe, 19 White Strobe, 20 Seven Color Jump
-
-    byte[] msg
-    byte[] data
 
     if(turnOn){
         normalizePercent( preset, 1, 20 )
@@ -485,16 +284,12 @@ def sendPreset( turnOn, preset = 1, speed = 100, transmit = true ){
         preset += 36
         speed = (100 - speed)
 
-        msg =  [ 0x61, preset, speed, 0x0F ]
-        data = [ 0x61, preset, speed, 0x0F, calculateChecksum(msg) ]
-        if(settings.powerOnBrightnessChange){
-            device.currentValue("status") == "on" ? on() : (null)
-        }
+        powerOnWithChanges()
 
         sendEvent( name: "currentPreset", value: preset )
         sendEvent( name: "presetSpeed", value: speed )
 
-        sendCommand( data )
+        sendCommand( appendChecksum(  [ 0x61, preset, speed, 0x0F ] ) ) 
     }
     else{
         // Return the color back to its normal state
@@ -558,21 +353,74 @@ def presetCyanStrobe( speed = 100 ){
 def presetPurpleStrobe( speed = 100 ){
     sendPreset( true, 18, speed )
 }
-def presetWhiteStrobe( speed = 75 ){
+def presetWhiteStrobe( speed = 100 ){
     sendPreset( true, 19, speed )
 }
 def presetSevenColorJump( speed = 100 ){
     sendPreset( true, 20, speed )
 }
 
-// ------------------- Begin Helper Functions ------------------------- //
-def normalizePercent(value, lowerBound=0, upperBound=100){
-    // Takes a value and ensures it's between two defined thresholds
+// ------------------- Helper Functions ------------------------- //
 
-    // If the value doesn't exist, create it
-    value == null ? value = upperBound : null
+def powerOnWithChanges( append=false ){
+    // If the device is off and light settings change, turn it on (if user settings apply)
+    if(append){
+        return settings.powerOnBrightnessChange ? ( [0x71, 0x23, 0x0F, 0xA3] ) : null
+    }
+    else{
+        settings.powerOnBrightnessChange ? ( device.currentValue("status") != "on" ? on() : null ) : null
+    }
+}
+
+def invertLinearValue( neutralValue, value1, value2 ){
+    // Determines how far from a point two values are 
+
+    return (( 100 )/( value1 - value2 )) * neutralValue + ( 100 - ( 100 /( value1 - value2 )) * value1 )
+}
+
+def proportionalToDeviceLevel( value ){
+    // Returns the value of a number proportionally to the device's brightness
     
-    // If the boundary parameters were backwards (for some reason) flip them around
+    return roundUpBetweenZeroAndOne( normalizePercent( value * getLevel( ) / 100 ) )
+}
+
+def roundUpBetweenZeroAndOne(number){
+    // Rounds up a number between two points
+    
+    return number > 0 && number < 1 ? ( 1 ) : ( number )
+}
+
+
+def calculateCTSaturation( coldWhite = true, offset ) {
+        
+    def CURVE
+    def lowPoint
+    def highPoint
+    
+    if( coldWhite ) {
+        lowPoint = settings.cwSaturationLowPoint < settings.cwSaturationHighPoint ? settings.cwSaturationLowPoint : settings.cwSaturationHighPoint
+        highPoint = settings.cwSaturationHighPoint > settings.cwSaturationLowPoint ? settings.cwSaturationHighPoint : settings.cwSaturationLowPoint
+        CURVE = 1.8
+    }
+    else{ 
+        lowPoint = settings.wwSaturationLowPoint < settings.wwSaturationHighPoint ? settings.wwSaturationLowPoint : settings.wwSaturationHighPoint
+        highPoint = settings.wwSaturationHighPoint > settings.wwSaturationLowPoint ? settings.wwSaturationHighPoint : settings.wwSaturationLowPoint
+        CURVE = 2.16666
+    }
+    
+    return (((( 100 - lowPoint  ) / 100 ) * ( CURVE * Math.sqrt( offset ))) + lowPoint  ) * highPoint / 100
+}      
+
+def hslToCT(){
+
+}
+
+def normalizePercent(value, lowerBound=0, upperBound=100 ){
+    // Takes a value and ensures it's between two defined thresholds
+    
+    // If the value doesn't exist, create it
+    value = value == null ? upperBound : value
+
     if(lowerBound < upperBound){
         if(value < lowerBound ){ value = lowerBound}
         if(value > upperBound){ value = upperBound}
@@ -581,17 +429,25 @@ def normalizePercent(value, lowerBound=0, upperBound=100){
         if(value < upperBound){ value = upperBound}
         if(value > lowerBound ){ value = lowerBound}
     }
+    
     return value
 }
 
-def roundUpIfBetweenTwoNumbers(number, lowPoint = 0, highPoint = 1){
-    // Round up everything between two numbers when necessary
-    
-    if(number > lowPoint && number < highPoint){
-        return highPoint
+def checkIfInMap( parameterValue, valueName) {
+    // Check if a value is in a map, and return (or set and return) a value
+
+    if( parameterValue == null ){ 
+        if( device.currentValue( valueName ) == null ){
+            sendEvent( name: valueName, value: maxValue )
+            return device.currentValue( "${valueName}" )
+        }
+        else{
+            return device.currentValue( "${valueName}" )
+        }
     }
-    else{
-        return number
+    else {
+        sendEvent( name: valueName, value: parameterValue )
+        return parameterValue
     }
 }
 
@@ -601,6 +457,7 @@ def hsvToRGB(float conversionHue = 0, float conversionSaturation = 100, float co
     // Returns RGB map ([ red: 0-255, green: 0-255, blue: 0-255 ])
     
     // Check HSV limits
+    hue = hue > 100 ? normalizePercent( hue, 0, 99 ) : normalizePercent( hue, 0, 359 )
     resolution == "low" ? ( hueMax = 100 ) : ( hueMax = 360 ) 
     conversionHue > hueMax ? ( conversionHue = 1 ) : ( conversionHue < 0 ? ( conversionHue = 0 ) : ( conversionHue /= hueMax ) )
     conversionSaturation > 100 ? ( conversionSaturation = 1 ) : ( conversionSaturation < 0 ? ( conversionSaturation = 0 ) : ( conversionSaturation /= 100 ) )
@@ -630,151 +487,148 @@ def hsvToRGB(float conversionHue = 0, float conversionSaturation = 100, float co
 }
 
 def rgbToHSV( r = 255, g = 255, b = 255, resolution = "low" ) {
-	// Takes RGB (0-255) and returns HSV in 0-360, 0-100, 0-100
-	// resolution ("low", "high") will return a hue between 0-100, or 0-360, respectively.
+    // Takes RGB (0-255) and returns HSV in 0-360, 0-100, 0-100
+    // resolution ("low", "high") will return a hue between 0-100, or 0-360, respectively.
   
-	r /= 255
-	g /= 255
-	b /= 255
+    r /= 255
+    g /= 255
+    b /= 255
 
-	float h
-	float s
-	
-	float max =   Math.max( Math.max( r, g ), b )
-	float min = Math.min( Math.min( r, g ), b )
-	float delta = ( max - min )
-	float v = ( max * 100.0 )
+    float h
+    float s
+    
+    float max =   Math.max( Math.max( r, g ), b )
+    float min = Math.min( Math.min( r, g ), b )
+    float delta = ( max - min )
+    float v = ( max * 100.0 )
 
-	max != 0.0 ? ( s = delta / max * 100.0 ) : ( s = 0 )
+    max != 0.0 ? ( s = delta / max * 100.0 ) : ( s = 0 )
 
-	if (s == 0.0) {
-		h = 0.0
-	}
-	else{
-		if (r == max){
-        		h = ((g - b) / delta)
-		}
-		else if(g == max) {
-        		h = (2 + (b - r) / delta)
-		}
-		else if (b == max) {
-        		h = (4 + (r - g) / delta)
-		}
-	}
+    if (s == 0.0) {
+        h = 0.0
+    }
+    else{
+        if (r == max){
+                h = ((g - b) / delta)
+        }
+        else if(g == max) {
+                h = (2 + (b - r) / delta)
+        }
+        else if (b == max) {
+                h = (4 + (r - g) / delta)
+        }
+    }
 
-	h *= 60.0
-    	h < 0 ? ( h += 360 ) : null
+    h *= 60.0
+        h < 0 ? ( h += 360 ) : null
   
-  	resolution == "low" ? h /= 3.6 : null
-  	return [ hue: h, saturation: s, value: v ]
+    resolution == "low" ? h /= 3.6 : null
+    return [ hue: h, saturation: s, value: v ]
 }
 
-
-def calculateChecksum(bytes){
+def calculateChecksum( data ){
     // Totals an array of bytes
     
     int sum = 0;
-    for(int d : bytes)
+    for(int d : data)
         sum += d;
     return sum & 255
 }
 
-def parse( response ) {
-	// Parse data received back from this device
-
-	def responseArray = HexUtils.hexStringToIntArray(response)
-	if( responseArray.length == 4 ) {
-		// Does the device say it's on?
-		
-		responseArray[ 2 ] == 35 ? sendEvent(name: "switch", value: "on") : sendEvent(name: "switch", value: "off")
-	}
-	else if( responseArray.length == 14 ) {
-		// Full set received. Check received colors
-		
-		responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
-		
-		// Convert integers to percentages
-		double warmWhite = responseArray[ 9 ] / 2.55
-		double coldWhite = responseArray[ 11 ] / 2.55
-		hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
-		
-		//log.info "HSV conversion: Map:${hsvMap} HSV ${hsvMap.hue}, ${hsvMap.saturation}, ${hsvMap.value}"
-
-		//log.debug "WarmWhite ${warmWhite} ColdWhite ${coldWhite}"
-		
-		// If values differ from HE, change them
-		device.currentValue( "warmWhiteLevel" ).toDouble() 	!= warmWhite.toDouble() 		? ( setWarmWhiteLevel( warmWhite, false ) ) : null
-		device.currentValue( "coldWhiteLevel" ).toDouble() 	!= coldWhite.toDouble() 		? ( setColdWhiteLevel( coldWhite, false ) ) : null
-		device.currentValue( "level" ).toDouble() 			!= ( hsvMap.value ).toDouble() 		? setLevel( hsvMap.value, false ) : null
-		device.currentValue( "saturation" ).toDouble() 		!= ( hsvMap.saturation ).toDouble() 	? setSaturation( hsvMap.saturation, false ) : null
-		device.currentValue( "hue" ).toDouble() 			!= ( hsvMap.hue ).toDouble() 			? setHue( hsvMap.hue, false ) : null
-		
-		// Calculate the color temperature, based on what data was received
-		if(settings.highBrightnessMode){
-			// Calculate CT if HSL is in line with the settings
-		}
-		else{
-			// Calculate CT based on WW/CW channels
-			setTemp = settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))
-			setTemp != device.currentValue( "colorTemperature" ) ? ( sendEvent(name: "colorTemperature", value: setTemp.toInteger()) ) : null
-		}
-	}
-	else if( response == null ){
-		log.debug "${settings.deviceIP}: No response received from device"
-		initialize()
-	}
-	else{
-		log.debug "${settings.deviceIP}: Received a response with an unexpected length of " + responseArray.length
-	}
+def appendChecksum( data ){
+    // Adds a checksum to an array
+    
+    data += calculateChecksum(data)
+    return data 
 }
 
-def sendCommand(data) {
+def parse( response ) {
+    // Parse data received back from this device
+
+    def responseArray = HexUtils.hexStringToIntArray(response)
+    if( responseArray.length == 4 ) {
+        // Does the device say it's on?
+        
+        responseArray[ 2 ] == 35 ? sendEvent(name: "switch", value: "on") : sendEvent(name: "switch", value: "off")
+    }
+    else if( responseArray.length == 14 ) {
+        // Does the device say it's on?
+        
+        responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
+        
+        // Convert integers to percentages
+        double warmWhite = responseArray[ 6 ] / 2.55
+        double coldWhite = responseArray[ 7 ] / 2.55
+        
+        // If values differ from HE, change them
+        device.currentValue( "warmWhiteLevel" ) != warmWhite ? ( setWarmWhiteLevel( warmWhite, false ) ) : null
+        device.currentValue( "coldWhiteLevel" ) != coldWhite ? ( setColdWhiteLevel( coldWhite, false ) ) : null
+        device.currentValue( "level" ) != ( warmWhite + coldWhite ) ? ( setLevel( ( warmWhite + coldWhite ), false ) ) : null
+        
+        // Calculate the color temperature, based on what data was received
+        setTemp = settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))
+        // If value differs from HE, change it
+        setTemp != device.currentValue( "colorTemperature" ) ? ( sendEvent(name: "colorTemperature", value: setTemp.toInteger()) ) : null
+    }
+    else if( response == null ){
+        log.debug "${settings.deviceIP}: No response received from device" 
+    }
+    else{
+        log.debug "${settings.deviceIP}: Received a response with an unexpected length of " + responseArray.length
+    }
+}
+
+private logDebug( debugText ){
+    // If debugging is enabled in settings, pass text to the logs
+    
+    if( settings.logDebug ) { 
+        log.info "MagicHome (${settings.deviceIP}): ${debugText}"
+    }
+}
+
+def sendCommand( data ) {
     // Sends commands to the device
     
-    telnetConnect([byteInterface: true], "${settings.deviceIP}", settings.devicePort.toInteger(), null, null)
-    
     String stringBytes = HexUtils.byteArrayToHexString(data)
-    // log.debug "" +  data + " was converted. Transmitting: " + stringBytes
-
-    def transmission = new HubAction(stringBytes, Protocol.TELNET)
-    sendHubCommand(transmission)
+    logDebug "${data} was converted. Transmitting: ${stringBytes}"
+    InterfaceUtils.sendSocketMessage(device, stringBytes)
 }
-
-def refresh( parameters ) {
-    byte[] msg =  [ 0x81, 0x8A, 0x8B ]
-    byte[] data = [ 0x81, 0x8A, 0x8B, calculateChecksum( msg )]
-
+def refresh( ) {
+    
+    byte[] data =  [ 0x81, 0x8A, 0x8B, 0x96 ]
     sendCommand( data )
 }
 
-def telnetStatus(status) { log.debug "telnetStatus:${status}" }
-def socketStatus(status) { 
-	log.debug "socketStatus:${status}"
-	if(status == "send error: Broken pipe (Write failed)") {
-		// Cannot reach device
-		log.debug "Cannot reach ${settings.deviceIP}, attempting to reconnect in 10s..."
-		runIn( 10, initialize )
-	}
-	
+def telnetStatus( status ) { logDebug "telnetStatus: ${status}" }
+def socketStatus( status ) { 
+    logDebug "socketStatus: ${status}"
+    if(status == "send error: Broken pipe (Write failed)") {
+        // Cannot reach device
+        logDebug "Cannot reach device. Attempting to reconnect."
+        runin(10, initialize)
+    }   
 }
 
 def poll() {
-    parent.poll(this)
+    refresh()
 }
 
 def updated(){
-	//initialize()
+    initialize()
 }
 def initialize() {
-	//InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
-	//unschedule()
-	//runIn(20, keepAlive)
+    // Establish a connection to the device
+    
+    logDebug "Initializing device."
+    InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
+    unschedule()
+
+    runIn(20, keepAlive)
 }
 
 def keepAlive(){
-	// Poll the device every 250 seconds, or it will lose connection.
-	
-	//refresh()
-	//runIn(150, keepAlive)
+    // Poll the device every 250 seconds, or it will lose connection.
+    
+    refresh()
+    runIn(150, keepAlive)
 }
-
