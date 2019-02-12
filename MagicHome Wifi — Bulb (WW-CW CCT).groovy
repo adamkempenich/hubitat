@@ -37,7 +37,7 @@ metadata {
         namespace: "MagicHome", 
         author: "Adam Kempenich") {
         
-        apability "Switch Level"
+        capability "Switch Level"
         capability "Actuator"
         capability "Switch"
         capability "Polling"
