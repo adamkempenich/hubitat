@@ -14,8 +14,7 @@
  *      - Auto-discovery not yet implemented
  *      - Custom functions not yet implemented
  *      - On-device scheduling not yet implemented
- *	- Parse does not check for presets yet
- * 
+ *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
@@ -551,10 +550,6 @@ def parse( response ) {
         double coldWhite = responseArray[ 11 ] / 2.55
         hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
 
-        // Convert integers to percentages
-        double warmWhite = responseArray[ 6 ] / 2.55
-        double coldWhite = responseArray[ 7 ] / 2.55
-        
         // If values differ from HE, change them
         setWarmWhiteLevel( warmWhite, false ) 
         setColdWhiteLevel( coldWhite, false ) 
