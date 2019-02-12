@@ -46,9 +46,6 @@ metadata {
         capability "Color Temperature"
         capability "Initialize"
 
-        command "on"
-        command "off" 
-
         command "setWarmWhiteLevel", [ "number" ] // 0 - 100
         command "setColdWhiteLevel", [ "number" ] // 0 - 100
 
