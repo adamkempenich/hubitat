@@ -176,7 +176,7 @@ def setWarmWhiteLevel(warmWhiteLevel, transmit=true){
     sendEvent(name: "warmWhiteLevel", value: warmWhiteLevel)
     log.debug "${settings.deviceIP}: MagicHome - Warm White Level set to " + warmWhiteLevel
     
-    if( !transmit ) return getWarmWhiteLevel()
+    if( !transmit ) return warmWhiteLevel
     setColorTemperature(null)
 }
 
@@ -192,7 +192,7 @@ def setColdWhiteLevel(coldWhiteLevel, transmit=true){
     normalizePercent(coldWhiteLevel)
     sendEvent(name: "coldWhiteLevel", value: coldWhiteLevel)
     log.debug "${settings.deviceIP}: MagicHome - Cold White Level set to " + coldWhiteLevel
-    if( !transmit ) return getColdWhiteLevel()
+    if( !transmit ) return coldWhiteLevel
     setColorTemperature(null)
 }
 
