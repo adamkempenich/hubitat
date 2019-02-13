@@ -166,8 +166,7 @@ def setColorTemperature( setTemp = getColorTemperature(), transmit=true ){
     setColdWhiteLevel( brightnessCW, false )
 
     if( !transmit ) return getColorTemperature()
-    powerOnWithChanges()
-    byte[] data =  appendChecksum( [ 0x31, brightnessWW * 2.55, brightnessCW * 2.55, 0x00, 0x03, 0x01, 0x0f ] )
+    byte[] data = powerOnWithChanges(true) + appendChecksum( [ 0x31, brightnessWW * 2.55, brightnessCW * 2.55, 0x00, 0x03, 0x01, 0x0f ] )
     sendCommand( data )
 }
 
