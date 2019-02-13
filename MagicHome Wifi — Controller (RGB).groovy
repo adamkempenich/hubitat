@@ -311,7 +311,7 @@ def presetSevenColorJump( speed = 100 ){
 def powerOnWithChanges( append=false ){
     // If the device is off and light settings change, turn it on (if user settings apply)
 	if(append){
-		return settings.powerOnBrightnessChange ? ( [0x71, 0x23, 0x0F, 0xA3] ) : null
+		return settings.powerOnBrightnessChange ? ( [0x71, 0x23, 0x0F, 0xA3] ) : ([])
 	}
 	else{
 		settings.powerOnBrightnessChange ? ( device.currentValue("status") != "on" ? on() : null ) : null
