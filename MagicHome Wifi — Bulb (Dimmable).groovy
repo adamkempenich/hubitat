@@ -80,12 +80,11 @@ def off() {
 def setLevel(level, transmit=true) {
     // Set the brightness of a device (0-100)
 
-    level = normalizePercent( level )
     sendEvent(name: "level", value: level)
     logDebug( "Level set to ${level}")
     
     if( !transmit ) return level
-    data = powerOnWithChanges(true) + appendChecksum( [ 0x31, level * 2.55, 0, 0, 0x03, 0x01, 0x0f ] )
+    byte[] data = powerOnWithChanges(true) + appendChecksum( [ 0x31, level * 2.55, 0, 0, 0x03, 0x01, 0x0f ] )
     sendCommand( data ) 
 }
 
@@ -100,7 +99,7 @@ def getLevel(){
 def powerOnWithChanges( append=false ){
     // If the device is off and light settings change, turn it on (if user settings apply)
     if(append){
-        return settings.powerOnBrightnessChange ? ( [0x71, 0x23, 0x0F, 0xA3] ) : null
+        return settings.powerOnBrightnessChange ? ( [0x71, 0x23, 0x0F, 0xA3] ) : ([])
     }
     else{
         settings.powerOnBrightnessChange ? ( device.currentValue("status") != "on" ? on() : null ) : null
