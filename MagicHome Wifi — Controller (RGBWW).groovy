@@ -212,17 +212,16 @@ def setColor( parameters ){
     // Register that presets are disabled
     sendEvent( name: "currentPreset", value: 0 )
 
-    powerOnWithChanges()
     
     if( newParameters.hue == 100 ) {
         data =   appendChecksum( [ 0x31, 0, 0, 0, 0x00, 0x00, 0xf0, 0x0f ] ) + appendChecksum( [0x31, 0x00, 0x00, 0x00, newParameters.Level * 2.55, 0, 0x0f, 0x0f] )
     }
     else if( newParameters.hue == 101 ) {
-        data =   appendChecksum( [ 0x31, 0, 0, 0, 0x00, 0x00, 0xf0, 0x0f ] ) + appendChecksum( [0x31, 0x00, 0x00, 0x00, 0, newParameters.Level * 2.55, 0x0f, 0x0f] )
+        data =  powerOnWithChanges(true) + appendChecksum( [ 0x31, 0, 0, 0, 0x00, 0x00, 0xf0, 0x0f ] ) + appendChecksum( [0x31, 0x00, 0x00, 0x00, 0, newParameters.Level * 2.55, 0x0f, 0x0f] )
     }
     else{
         rgbColors = hsvToRGB( newParameters.hue, newParameters.saturation, newParameters.level )
-        data = appendChecksum( [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0x00, 0xf0, 0x0f ] ) + appendChecksum( [0x31, 0x00, 0x00, 0x00, 0, 0, 0x0f, 0x0f] )
+        data = powerOnWithChanges(true) + appendChecksum( [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0x00, 0xf0, 0x0f ] ) + appendChecksum( [0x31, 0x00, 0x00, 0x00, 0, 0, 0x0f, 0x0f] )
     }
     sendCommand( data ) 
     
@@ -248,8 +247,7 @@ def setColorTemperature( setTemp = getColorTemperature(), transmit=true ){
     setColdWhiteLevel( brightnessCW, false )
 
     if( !transmit ) return setTemp
-    powerOnWithChanges()
-    byte[] data = appendChecksum( [ 0x31, 0, 0, 0, 0x00, 0x00, 0xf0, 0x0f ] ) + appendChecksum( [0x31, 0x00, 0x00, 0x00, brightnessWW * 2.55, brightnessCW * 2.55, 0x0f, 0x0f] )
+    byte[] data = powerOnWithChanges(true) + appendChecksum( [ 0x31, 0, 0, 0, 0x00, 0x00, 0xf0, 0x0f ] ) + appendChecksum( [0x31, 0x00, 0x00, 0x00, brightnessWW * 2.55, brightnessCW * 2.55, 0x0f, 0x0f] )
     sendCommand( data )
 }
 
@@ -275,12 +273,11 @@ def sendPreset( turnOn, preset = 1, speed = 100, transmit = true ){
         preset += 36
         speed = (100 - speed)
 
-        powerOnWithChanges()
-
         sendEvent( name: "currentPreset", value: preset )
         sendEvent( name: "presetSpeed", value: speed )
 
-        sendCommand( appendChecksum(  [ 0x61, preset, speed, 0x0F ] ) ) 
+        byte[] data = powerOnWithChanges(true) + appendChecksum(  [ 0x61, preset, speed, 0x0F ] )
+        sendCommand( data ) 
     }
     else{
         // Return the color back to its normal state
