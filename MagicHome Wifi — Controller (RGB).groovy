@@ -181,10 +181,9 @@ def setColor( parameters ){
   	// Register that presets are disabled
   	sendEvent( name: "currentPreset", value: 0 )
 
-    powerOnWithChanges()
 	
 	rgbColors = hsvToRGB( checkIfInMap( parameters?.hue, "hue"), checkIfInMap( parameters?.saturation, "saturation"), checkIfInMap( parameters?.level, "level") )
-	byte[] data = appendChecksum(  [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0x00, 0x0f ] )
+	byte[] data = powerOnWithChanges(true) + appendChecksum(  [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0x00, 0x0f ] )
 	sendCommand( data ) 
 	
 }
@@ -232,12 +231,11 @@ def sendPreset( turnOn, preset = 1, speed = 100, transmit = true ){
         preset += 36
         speed = (100 - speed)
 
-        powerOnWithChanges()
-
         sendEvent( name: "currentPreset", value: preset )
         sendEvent( name: "presetSpeed", value: speed )
 
-        sendCommand( appendChecksum(  [ 0x61, preset, speed, 0x0F ] ) ) 
+	byte[] data = powerOnWithChanges(true) + appendChecksum(  [ 0x61, preset, speed, 0x0F ] )
+        sendCommand( data ) 
     }
     else{
         // Return the color back to its normal state
