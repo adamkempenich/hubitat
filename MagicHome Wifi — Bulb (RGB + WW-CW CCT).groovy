@@ -536,20 +536,20 @@ def parse( response ) {
         // Does the device say it's on?
         
         responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
-        double warmWhite = responseArray[ 9 ] / 2.55
-        double coldWhite = responseArray[ 11 ] / 2.55
-        hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
-
-        // If values differ from HE, change them
-        setWarmWhiteLevel( warmWhite, false ) 
-        setColdWhiteLevel( coldWhite, false ) 
-        setLevel( hsvMap.value, false )
-        setSaturation( hsvMap.saturation, false )
-        setHue( hsvMap.hue, false )
+      //  double warmWhite = responseArray[ 9 ] / 2.55
+      //  double coldWhite = responseArray[ 11 ] / 2.55
+      //  hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
+//
+      //  // If values differ from HE, change them
+      //  setWarmWhiteLevel( warmWhite, false ) 
+      //  setColdWhiteLevel( coldWhite, false ) 
+      //  setLevel( hsvMap.value, false )
+      //  setSaturation( hsvMap.saturation, false )
+      //  setHue( hsvMap.hue, false )
         
         // Calculate the color temperature, based on what data was received
-        setTemp = settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))
-        sendEvent( name: "colorTemperature", value: setTemp.toInteger() )
+        //setTemp = settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))
+        //sendEvent( name: "colorTemperature", value: setTemp.toInteger() )
     }
     else if( response == null ){
         log.debug "${settings.deviceIP}: No response received from device" 
