@@ -85,7 +85,7 @@ def setLevel(level, transmit=true) {
     logDebug( "Level set to ${level}")
     
     if( !transmit ) return level
-    data = powerOnWithChanges(true) + appendChecksum( [ 0x31, level * 2.55, 0, 0, 0x03, 0x01, 0x0f ] 
+    data = powerOnWithChanges(true) + appendChecksum( [ 0x31, level * 2.55, 0, 0, 0x03, 0x01, 0x0f ] )
     sendCommand( data ) 
 }
 
