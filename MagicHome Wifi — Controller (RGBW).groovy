@@ -560,7 +560,7 @@ def socketStatus( status ) {
     if(status == "send error: Broken pipe (Write failed)") {
         // Cannot reach device
         logDebug "Cannot reach device. Attempting to reconnect."
-        runin(10, initialize)
+        runIn(10, initialize)
     }   
 }
 
