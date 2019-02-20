@@ -150,7 +150,8 @@ def setColorTemperature( setTemp = device.currentValue('colorTemperature'), devi
     sendEvent(name: "coldWhiteLevel", value: brightnessCW)
 
     if( !transmit ) return setTemp	
-    byte[] data = powerOnWithChanges( true ) + appendChecksum( [ 0x31, brightnessWW * 2.55, brightnessCW * 2.55, 0x00, 0x03, 0x01, 0x0f ] )
+    powerOnWithChanges()
+    byte[] data =  appendChecksum( [ 0x31, brightnessWW * 2.55, brightnessCW * 2.55, 0x00, 0x03, 0x01, 0x0f ] )
     sendCommand( data )
 }
 
