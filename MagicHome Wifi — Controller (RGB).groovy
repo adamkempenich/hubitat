@@ -8,6 +8,10 @@
  *
  *  Changelog:
  *
+ *    0.81 (Feb 19 2019)
+ *      - Added try/catch to initialize() method
+ *      - removed extraneous code
+ *      - lots of little fixes
  *    0.8 (Feb 11 2019)
  *      - Initial Release
  *      - Cannot set device time, yet.
@@ -136,12 +140,6 @@ def setHue(hue, transmit=true){
 
 }
 
-def getHue(){
-    // Get the brightness of a device (0 - 100)
-
-    return device.currentValue( "hue" ) == null ? ( setHue( 99, false ) ) : ( device.currentValue( "hue" ) )
-}
-
 def setSaturation(saturation, transmit=true){
     // Set the saturation of a device (0-100)
 
@@ -151,11 +149,6 @@ def setSaturation(saturation, transmit=true){
     
     if( !transmit ) return saturation
     setColor( saturation: saturation )
-}
-def getSaturation(){
-    // Get the brightness of a device (0 - 100)
-
-    return device.currentValue( "saturation" ) == null ? ( setSaturation( 100, false ) ) : ( device.currentValue( "saturation" ) )
 }
 
 def setLevel(level, transmit=true) {
@@ -169,12 +162,6 @@ def setLevel(level, transmit=true) {
     setColor( level: level )
 }
 
-def getLevel(){
-    // Get the brightness of a device (0 - 100)
-
-    return device.currentValue( "level" ) == null ? ( setLevel( 100, false ) ) : ( device.currentValue( "level" ) )
-}
-
 def setColor( parameters ){
 	// Set the color of a device. Hue (0 - 99), Saturation (0 - 100), Level (0 - 100). If Hue is 16.6, use the white LEDs.
     
@@ -183,12 +170,13 @@ def setColor( parameters ){
 
 	
 	rgbColors = hsvToRGB( checkIfInMap( parameters?.hue, "hue"), checkIfInMap( parameters?.saturation, "saturation"), checkIfInMap( parameters?.level, "level") )
-	byte[] data = powerOnWithChanges(true) + appendChecksum(  [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0x00, 0x0f ] )
+	powerOnWithChanges()
+	byte[] data =  appendChecksum(  [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0x00, 0x0f ] )
 	sendCommand( data ) 
 	
 }
 
-def setColorTemperature( setTemp = getColorTemperature(), transmit=true ){
+def setColorTemperature( setTemp = device.currentValue('colorTemperature'), transmit=true ){
 	// Using RGB, adjust the color temperature of a device	
     
 	// Set the colorTemperature's value between the device's maximum range, if it's out of bounds
@@ -206,13 +194,7 @@ def setColorTemperature( setTemp = getColorTemperature(), transmit=true ){
 	}
 	
     sendEvent( name: "colorTemperature", value: setTemp )
-	setColor( [ hue:newHue, saturation:newSaturation ]  )
-}
-
-def getColorTemperature(){
-    // Get the color temperature of a device ( ~2000-7000 )
-
-    return device.currentValue( "colorTemperature" ) == null ? ( sendEvent( name: "colorTemperature", value: 2700 ) ) : ( device.currentValue( "colorTemperature" ) )
+	setColor( [ hue:newHue, saturation:newSaturation, level: device.currentValue('level') ]  )
 }
 
 def sendPreset( turnOn, preset = 1, speed = 100, transmit = true ){
@@ -225,7 +207,7 @@ def sendPreset( turnOn, preset = 1, speed = 100, transmit = true ){
 
     if(turnOn){
         normalizePercent( preset, 1, 20 )
-        normalizePercent( speed )
+        normalizePercent( speed, 1, 99 )
         
         // Hex range of presets is (int) 37 - (int) 57. Add the preset number to get that range.
         preset += 36
@@ -233,8 +215,8 @@ def sendPreset( turnOn, preset = 1, speed = 100, transmit = true ){
 
         sendEvent( name: "currentPreset", value: preset )
         sendEvent( name: "presetSpeed", value: speed )
-
-	byte[] data = powerOnWithChanges(true) + appendChecksum(  [ 0x61, preset, speed, 0x0F ] )
+	powerOnWithChanges(true)
+	byte[] data = appendChecksum(  [ 0x61, preset, speed, 0x0F ] )
         sendCommand( data ) 
     }
     else{
@@ -245,64 +227,64 @@ def sendPreset( turnOn, preset = 1, speed = 100, transmit = true ){
     }
 }
 
-def presetSevenColorDissolve( speed = 100 ){
+def presetSevenColorDissolve( speed = 99 ){
     sendPreset( true, 1, speed )
 }
-def presetRedFade( speed = 100 ){
+def presetRedFade( speed = 99 ){
     sendPreset( true, 2, speed )
 }
-def presetGreenFade( speed = 100 ){
+def presetGreenFade( speed = 99 ){
     sendPreset( true, 3, speed )
 }
-def presetBlueFade( speed = 100 ){
+def presetBlueFade( speed = 99 ){
     sendPreset( true, 4, speed )
 }
-def presetYellowFade( speed = 100 ){
+def presetYellowFade( speed = 99 ){
     sendPreset( true, 5, speed )
 }
-def presetCyanFade( speed = 100 ){
+def presetCyanFade( speed = 99 ){
     sendPreset( true, 6, speed )
 }
-def presetPurpleFade( speed = 100 ){
+def presetPurpleFade( speed = 99 ){
     sendPreset( true, 7, speed )
 }
-def presetWhiteFade( speed = 100 ){
+def presetWhiteFade( speed = 99 ){
     sendPreset( true, 8, speed )
 }
-def presetRedGreenDissolve( speed = 100 ){
+def presetRedGreenDissolve( speed = 99 ){
     sendPreset( true, 9, speed )
 }
-def presetRedBlueDissolve( speed = 100 ){
+def presetRedBlueDissolve( speed = 99 ){
     sendPreset( true, 10, speed )
 }
-def presetGreenBlueDissolve( speed = 100 ){
+def presetGreenBlueDissolve( speed = 99 ){
     sendPreset( true, 11, speed )
 }
-def presetSevenColorStrobe( speed = 100 ){
+def presetSevenColorStrobe( speed = 99 ){
     sendPreset( true, 12, speed )
 }
-def presetRedStrobe( speed = 100 ){
+def presetRedStrobe( speed = 99 ){
     sendPreset( true, 19, speed )
 }
-def presetGreenStrobe( speed = 100 ){
+def presetGreenStrobe( speed = 99 ){
     sendPreset( true, 14, speed )
 }
-def presetBlueStrobe( speed = 100 ){
+def presetBlueStrobe( speed = 99 ){
     sendPreset( true, 15, speed )
 }
-def presetYellowStrobe( speed = 100 ){
+def presetYellowStrobe( speed = 99 ){
     sendPreset( true, 16, speed )
 }
-def presetCyanStrobe( speed = 100 ){
+def presetCyanStrobe( speed = 99 ){
     sendPreset( true, 17, speed )
 }
-def presetPurpleStrobe( speed = 100 ){
+def presetPurpleStrobe( speed = 99 ){
     sendPreset( true, 18, speed )
 }
-def presetWhiteStrobe( speed = 100 ){
+def presetWhiteStrobe( speed = 99 ){
     sendPreset( true, 19, speed )
 }
-def presetSevenColorJump( speed = 100 ){
+def presetSevenColorJump( speed = 99 ){
     sendPreset( true, 20, speed )
 }
 
@@ -311,10 +293,10 @@ def presetSevenColorJump( speed = 100 ){
 def powerOnWithChanges( append=false ){
     // If the device is off and light settings change, turn it on (if user settings apply)
 	if(append){
-		return settings.powerOnBrightnessChange ? ( [0x71, 0x23, 0x0F, 0xA3] ) : ([])
+		return settings.powerOnWithChanges ? ( [0x71, 0x23, 0x0F, 0xA3] ) : ([])
 	}
 	else{
-		settings.powerOnBrightnessChange ? ( device.currentValue("status") != "on" ? on() : null ) : null
+		settings.powerOnWithChanges ? ( device.currentValue("status") != "on" ? on() : null ) : null
 	}
 }
 
@@ -487,9 +469,9 @@ def parse( response ) {
 		
 		// Assign Returned Power, Hue, Saturation, Level
 		responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
-		setHue( hsvMap.hue, false )
-		setSaturation( hsvMap.saturation, false )
-		setLevel( hsvMap.value, false )
+		sendEvent( name: "level", value: hsvMap.value )
+		sendEvent( name: "saturation", value: hsvMap.saturation )
+		sendEvent( name: "hue", value: hsvMap.hue )
 	    //hsvMap.hue == settings.wwHue || hsvMap.hue == settings.cwHue ? ( setColorTemperature( null, false ) ) : ( null )
 
 	}
@@ -541,18 +523,27 @@ def updated(){
 	initialize()
 }
 def initialize() {
-	// Establish a connection to the device
-	
-  logDebug "Initializing device."
-	InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
-	unschedule()
+    // Establish a connection to the device
+    
+    logDebug "Initializing device."
+	telnetClose()
+	try {
+		logDebug("Opening TCP-Telnet Connection.")
+	    InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
+		
+		pauseExecution(1000)
+		logDebug("Connection successfully established")
+	} catch(e) {
+		logDebug("Error attempting to establish TCP-Telnet connection to device.")
+	}
+    unschedule()
 
-	runIn(20, keepAlive)
+    runIn(20, keepAlive)
 }
-
 def keepAlive(){
 	// Poll the device every 250 seconds, or it will lose connection.
 	
 	refresh()
-	runIn(150, keepAlive)
+	unschedule()
+    runIn(150, keepAlive)
 }
