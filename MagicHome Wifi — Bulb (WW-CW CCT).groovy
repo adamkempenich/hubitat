@@ -106,7 +106,7 @@ def setLevel(level, transmit=true) {
     logDebug( "Level set to ${level}")
     
     if( !transmit ) return level
-    setColorTemperature(device.currentValue( 'colorTemperature', level ) )
+    setColorTemperature(device.currentValue( 'colorTemperature'), level )
 }
 
 def setWarmWhiteLevel(warmWhiteLevel, transmit=true){
