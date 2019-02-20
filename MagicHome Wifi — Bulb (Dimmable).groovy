@@ -7,12 +7,13 @@
  *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
  *
  *  Changelog:
- *
+ *	  0.81 (Feb 19 2019) 
+ *      - Added try/catch to initialize() method
+ * 
  *    0.8 (Feb 11 2019)
  *      - Initial Release
  *      - Cannot set device time, yet.
  *      - Auto-discovery not yet implemented
- *      - Custom functions not yet implemented
  *      - On-device scheduling not yet implemented
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -37,12 +38,12 @@ metadata {
         namespace: "MagicHome", 
         author: "Adam Kempenich") {
         
-        capability "Switch Level"
         capability "Actuator"
-        capability "Switch"
+        capability "Initialize"
         capability "Polling"
         capability "Refresh"
-        capability "Initialize"
+        capability "Switch"
+        capability "Switch Level"
 
     }
     
@@ -88,12 +89,6 @@ def setLevel(level, transmit=true) {
     sendCommand( data ) 
 }
 
-def getLevel(){
-    // Get the brightness of a device (0 - 100)
-
-    return device.currentValue( "level" ) == null ? ( setLevel( 100, false ) ) : ( device.currentValue( "level" ) )
-}
-
 // ------------------- Helper Functions ------------------------- //
 
 def powerOnWithChanges( append=false ){
@@ -126,22 +121,24 @@ def parse( response ) {
     // Parse data received back from this device
 
     def responseArray = HexUtils.hexStringToIntArray(response)
+	logDebug "Received ${response} with length of ${responseArray.length}"
     if( responseArray.length == 4 ) {
         // Does the device say it's on?
         
-        responseArray[ 2 ] == 35 ? sendEvent(name: "switch", value: "on") : sendEvent(name: "switch", value: "off")
+        responseArray[ 2 ] == 35 ? sendEvent(name: "switch", value: "on") : sendEvent( name: "switch", value: "off" )
     }
     else if( responseArray.length == 14 ) {
         // Does the device say it's on?
         
-        responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
-         
+        responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent( name: "switch", value: "off" ) )
+		def level = ( responseArray[ 6 ].toInteger() / 2.55 ).toInteger()
+        sendEvent( name: "level", value: level )
     }
     else if( response == null ){
-        log.debug "${settings.deviceIP}: No response received from device" 
+        logDebug "No response received from device" 
     }
     else{
-        log.debug "${settings.deviceIP}: Received a response with an unexpected length of " + responseArray.length
+		logDebug "Received a response with an unexpected length of ${responseArray.length}"
     }
 }
 
@@ -157,7 +154,7 @@ def sendCommand( data ) {
     // Sends commands to the device
     
     String stringBytes = HexUtils.byteArrayToHexString(data)
-    logDebug "${data} was converted. Transmitting: ${stringBytes}"
+    logDebug "Transmitting: ${stringBytes}"
     InterfaceUtils.sendSocketMessage(device, stringBytes)
 }
 def refresh( ) {
@@ -183,11 +180,21 @@ def poll() {
 def updated(){
     initialize()
 }
+
 def initialize() {
     // Establish a connection to the device
     
     logDebug "Initializing device."
-    InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
+	telnetClose()
+	try {
+		logDebug("Opening TCP-Telnet connection.")
+	    InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
+		
+		pauseExecution(1000)
+		logDebug("Connection successfully established")
+	} catch(e) {
+		logDebug("Error establishing TCP-Telnet connection.")
+	}
     unschedule()
 
     runIn(20, keepAlive)
@@ -197,5 +204,6 @@ def keepAlive(){
     // Poll the device every 250 seconds, or it will lose connection.
     
     refresh()
+	unschedule()
     runIn(150, keepAlive)
 }
