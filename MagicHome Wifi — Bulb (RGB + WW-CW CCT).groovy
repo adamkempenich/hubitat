@@ -8,6 +8,12 @@
  *
  *  Changelog:
  *
+ *    0.81 (Feb 19 2019)
+ *      - Added try/catch and telnetClose on initialize()
+ *      - Fixed a parse issue with numerical values
+ * 		- Fixed an issue with setLevel not adjusting CCT level
+ * 		- Added colorMode
+ * 
  *    0.8 (Feb 11 2019)
  *      - Initial Release
  *      - Cannot set device time, yet.
@@ -37,16 +43,17 @@ metadata {
         namespace: "MagicHome", 
         author: "Adam Kempenich") {
         
-        capability "Switch Level"
         capability "Actuator"
-        capability "Switch"
+        capability "Color Control"
+		capability "Color Mode"
+        capability "Color Temperature"
+		capability "Initialize"
         capability "Polling"
         capability "Refresh"
-        capability "Sensor"
-        capability "Color Temperature"
-        capability "Color Control"
-        capability "Initialize"
-
+		capability "Sensor"
+		capability "Switch"
+		capability "Switch Level"        
+		
         command "setWhiteLevel", [ "number" ] // 0 - 100
         command "sendPreset",               ["number", "number"]       // 0 (off), 1-20 (other presets)
         command "presetSevenColorDissolve", [ "number" ] // 0 - 100 (speed)
@@ -130,12 +137,6 @@ def setHue(hue, transmit=true){
 
 }
 
-def getHue(){
-    // Get the brightness of a device (0 - 99)
-
-    return device.currentValue( "hue" ) == null ? ( setHue( 20, false ) ) : ( device.currentValue( "hue" ) )
-}
-
 def setSaturation(saturation, transmit=true){
     // Set the saturation of a device (0-100)
 
@@ -145,11 +146,6 @@ def setSaturation(saturation, transmit=true){
     
     if( !transmit ) return saturation
     setColor( saturation: saturation )
-}
-def getSaturation(){
-    // Get the brightness of a device (0 - 100)
-
-    return device.currentValue( "saturation" ) == null ? ( setSaturation( 100, false ) ) : ( device.currentValue( "saturation" ) )
 }
 
 def setLevel(level, transmit=true) {
@@ -163,27 +159,15 @@ def setLevel(level, transmit=true) {
     setColor( level: level )
 }
 
-def getLevel(){
-    // Get the brightness of a device (0 - 100)
-
-    return device.currentValue( "level" ) == null ? ( setLevel( 100, false ) ) : ( device.currentValue( "level" ) )
-}
-
 def setWarmWhiteLevel(warmWhiteLevel, transmit=true){
     // Set the warm white level of a device (0-100)
 
     normalizePercent(warmWhiteLevel)
     sendEvent(name: "warmWhiteLevel", value: warmWhiteLevel)
-    log.debug "${settings.deviceIP}: MagicHome - Warm White Level set to " + warmWhiteLevel
+	logDebug "Warm White Level set to ${warmWhiteLevel}"
     
     if( !transmit ) return warmWhiteLevel
-    setColorTemperature(null)
-}
-
-def getWarmWhiteLevel(){
-    // Get the brightness of a device (0 - 100)
-
-    return device.currentValue( "warmWhiteLevel" ) == null ? ( setWarmWhiteLevel( 100, false ) ) : ( device.currentValue( "warmWhiteLevel" ) )
+    setColorTemperature( settings.deviceCWTemperature, warmWhiteLevel)
 }
 
 def setColdWhiteLevel(coldWhiteLevel, transmit=true){
@@ -191,16 +175,10 @@ def setColdWhiteLevel(coldWhiteLevel, transmit=true){
 
     normalizePercent(coldWhiteLevel)
     sendEvent(name: "coldWhiteLevel", value: coldWhiteLevel)
-    log.debug "${settings.deviceIP}: MagicHome - Cold White Level set to " + coldWhiteLevel
+	logDebug "Cold White Level set to ${coldWhiteLevel}"
     
     if( !transmit ) return coldWhiteLevel
-    setColorTemperature(null)
-}
-
-def getColdWhiteLevel(){
-    // Get the warm white level of a device (0 - 100)
-
-    return device.currentValue( "coldWhiteLevel" ) == null ? ( setColdWhiteLevel( 100, false ) ) : ( device.currentValue( "coldWhiteLevel" ) )
+    setColorTemperature( settings.deviceCWTemperature, coldWhiteLevel)
 }
 
 def setColor( parameters ){
@@ -213,17 +191,15 @@ def setColor( parameters ){
     // Register that presets are disabled
     sendEvent( name: "currentPreset", value: 0 )
 
+	setColorMode( "RGB" )
     rgbColors = hsvToRGB( newParameters.hue, newParameters.saturation, newParameters.level )
     data = powerOnWithChanges(true) + appendChecksum( [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0x00, 0xf0, 0x0f ] )
-    
     sendCommand( data ) 
     
 }
-
-def setColorTemperature( setTemp = getColorTemperature(), transmit=true ){
+	
+def setColorTemperature( setTemp = device.currentValue('colorTemperature'), deviceLevel = device.currentValue('level'), transmit=true ){
     // Adjust the color temperature of a device  
-    
-    deviceLevel = roundUpBetweenZeroAndOne( normalizePercent( getLevel( ) ) )
     
     sendEvent(name: "colorTemperature", value: setTemp)
     logDebug "Color Temperature set to ${setTemp}"
@@ -236,18 +212,20 @@ def setColorTemperature( setTemp = getColorTemperature(), transmit=true ){
         brightnessCW = brightnessCW / (( brightnessWW + brightnessCW ) / 100 )
     }
 
-    sendEvent(name: "warmWhiteLevel", value: brightnessWW)
-    sendEvent(name: "coldWhiteLevel", value: brightnessCW)
+    endEvent( name: "warmWhiteLevel", value: brightnessWW )
+    sendEvent( name: "coldWhiteLevel", value: brightnessCW )
     
+	setColorMode( "CT" )
     if( !transmit ) return setTemp
     byte[] data = powerOnWithChanges(true) + appendChecksum( [0x31, 0x00, 0x00, 0x00, brightnessWW * 2.55, brightnessCW * 2.55, 0x0f, 0x0f] )
     sendCommand( data )
 }
 
-def getColorTemperature(){
-    // Get the color temperature of a device ( ~2000-7000 )
-
-    return device.currentValue( "colorTemperature" ) == null ? ( sendEvent( name: "colorTemperature", value: 2700 ) ) : ( device.currentValue( "colorTemperature" ) )
+def setColorMode( rgb = "RGB" ){
+	// Sets Color Mode to RGB or CT
+	
+	logDebug "Set colorMode to ${rgb}"
+	rgb ? sendEvent( name: "colorMode", value: "${rgb}" ) : sendEvent( name: "colorMode", value: "${rgb}" )
 }
 
 def sendPreset( turnOn, preset = 1, speed = 100, transmit = true ){
@@ -363,7 +341,7 @@ def invertLinearValue( neutralValue, value1, value2 ){
 def proportionalToDeviceLevel( value ){
     // Returns the value of a number proportionally to the device's brightness
     
-    return roundUpBetweenZeroAndOne( normalizePercent( value * getLevel( ) / 100 ) )
+    return roundUpBetweenZeroAndOne( normalizePercent( value * device.currentValue('level') / 100 ) )
 }
 
 def roundUpBetweenZeroAndOne(number){
@@ -527,6 +505,8 @@ def appendChecksum( data ){
 def parse( response ) {
     // Parse data received back from this device
 
+	logDebug "Received ${response}"
+
     def responseArray = HexUtils.hexStringToIntArray(response)
     if( responseArray.length == 4 ) {
         // Does the device say it's on?
@@ -537,26 +517,35 @@ def parse( response ) {
         // Does the device say it's on?
         
         responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
-      //  double warmWhite = responseArray[ 9 ] / 2.55
-      //  double coldWhite = responseArray[ 11 ] / 2.55
-      //  hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
-//
-      //  // If values differ from HE, change them
-      //  setWarmWhiteLevel( warmWhite, false ) 
-      //  setColdWhiteLevel( coldWhite, false ) 
-      //  setLevel( hsvMap.value, false )
-      //  setSaturation( hsvMap.saturation, false )
-      //  setHue( hsvMap.hue, false )
-        
-        // Calculate the color temperature, based on what data was received
-        //setTemp = settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))
-        //sendEvent( name: "colorTemperature", value: setTemp.toInteger() )
+ 		def warmWhite = ( responseArray[ 9 ].toDouble() / 2.55 ).round()
+		def coldWhite = ( responseArray[ 11 ].toDouble() / 2.55 ).round()
+        hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
+
+		if( warmWhite + coldWhite > 0) {
+			// Calculate the color temperature, based on what data was received
+			
+			sendEvent( name: "colorMode", value: "CT" )
+			sendEvent( name: "level", value: normalizePercent( warmWhite + coldWhite ))
+			sendEvent( name: "warmWhiteLevel", value: warmWhite )
+			sendEvent( name: "coldWhiteLevel", value: coldWhite )
+			setTemp = settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))
+			sendEvent( name: "colorTemperature", value: setTemp.toInteger() )
+		}
+		else{
+			// Or, set the color
+			sendEvent( name: "colorMode", value: "RGB" )
+			sendEvent( name: "warmWhiteLevel", value: 0 )
+			sendEvent( name: "coldWhiteLevel", value: 0 )
+			sendEvent( name: "level", value: hsvMap.value )
+			sendEvent( name: "saturation", value: hsvMap.saturation )
+			sendEvent( name: "hue", value: hsvMap.hue )
+		}
     }
     else if( response == null ){
-        log.debug "${settings.deviceIP}: No response received from device" 
+        logDebug "No response received from device" 
     }
     else{
-        log.debug "${settings.deviceIP}: Received a response with an unexpected length of " + responseArray.length
+		logDebug "Received a response with an unexpected length of ${responseArray.length}"
     }
 }
 
@@ -575,6 +564,7 @@ def sendCommand( data ) {
     logDebug "${data} was converted. Transmitting: ${stringBytes}"
     InterfaceUtils.sendSocketMessage(device, stringBytes)
 }
+
 def refresh( ) {
     
     byte[] data =  [ 0x81, 0x8A, 0x8B, 0x96 ]
@@ -598,11 +588,21 @@ def poll() {
 def updated(){
     initialize()
 }
+
 def initialize() {
     // Establish a connection to the device
     
     logDebug "Initializing device."
-    InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
+	telnetClose()
+	try {
+		logDebug("Opening TCP-Telnet Connection.")
+	    InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
+		
+		pauseExecution(1000)
+		logDebug("Connection successfully established")
+	} catch(e) {
+		logDebug("Error attempting to establish TCP-Telnet connection to device.")
+	}
     unschedule()
 
     runIn(20, keepAlive)
@@ -612,5 +612,6 @@ def keepAlive(){
     // Poll the device every 250 seconds, or it will lose connection.
     
     refresh()
+	unschedule()
     runIn(150, keepAlive)
 }
