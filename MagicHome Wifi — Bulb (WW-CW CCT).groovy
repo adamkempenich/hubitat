@@ -106,7 +106,7 @@ def setLevel(level, transmit=true) {
     logDebug( "Level set to ${level}")
     
     if( !transmit ) return level
-    setColor( level: level )
+    setColorTemperature(device.currentValue( 'colorTemperature', level ) )
 }
 
 def setWarmWhiteLevel(warmWhiteLevel, transmit=true){
@@ -117,7 +117,7 @@ def setWarmWhiteLevel(warmWhiteLevel, transmit=true){
     logDebug( "Warm White Level set to ${warmWhiteLevel}")
     
     if( !transmit ) return warmWhiteLevel
-    setColorTemperature(null)
+    setColorTemperature()
 }
 
 def setColdWhiteLevel(coldWhiteLevel, transmit=true){
@@ -127,7 +127,7 @@ def setColdWhiteLevel(coldWhiteLevel, transmit=true){
     sendEvent(name: "coldWhiteLevel", value: coldWhiteLevel)
     logDebug("Cold White Level set to ${coldWhiteLevel}")
     if( !transmit ) return coldWhiteLevel
-    setColorTemperature(null)
+    setColorTemperature()
 }
 
 
