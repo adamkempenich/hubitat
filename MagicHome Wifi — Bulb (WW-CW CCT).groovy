@@ -78,7 +78,7 @@ def on() {
     // Turn on the device
 
     sendEvent(name: "switch", value: "on")
-    log.debug "${settings.deviceIP}: MagicHome - Switch set to on"
+    logDebug "Switch set to on"
     byte[] data = [0x71, 0x23,  0x0F, 0xA3]
     sendCommand(data)
 }
@@ -87,7 +87,7 @@ def off() {
     // Turn off the device
 
     sendEvent(name: "switch", value: "off")
-    log.debug "${settings.deviceIP}: MagicHome - Switch set to off"
+    logDebug "Switch set to off"
     byte[] data = [0x71, 0x24,  0x0F, 0xA4]
     sendCommand(data)
 }
@@ -108,7 +108,7 @@ def setWarmWhiteLevel(warmWhiteLevel, transmit=true){
 
     normalizePercent(warmWhiteLevel)
     sendEvent(name: "warmWhiteLevel", value: warmWhiteLevel)
-    log.debug "${settings.deviceIP}: MagicHome - Warm White Level set to " + warmWhiteLevel
+	logDebug "Warm White Level set to ${warmWhiteLevel}"
 	
 	if( !transmit ) return warmWhiteLevel
     setColorTemperature(null)
@@ -119,7 +119,7 @@ def setColdWhiteLevel(coldWhiteLevel, transmit=true){
 
     normalizePercent(coldWhiteLevel)
     sendEvent(name: "coldWhiteLevel", value: coldWhiteLevel)
-    log.debug "${settings.deviceIP}: MagicHome - Cold White Level set to " + coldWhiteLevel
+	logDebug "Cold White Level set to ${coldWhiteLevel}"
     if( !transmit ) return coldWhiteLevel
     setColorTemperature(null)
 }
@@ -202,73 +202,43 @@ def calculateChecksum(bytes){
     return sum & 255
 }
 
-def sendCommand(data) {
-    // Sends commands to the device
-    String stringBytes = HexUtils.byteArrayToHexString(data)
-
-	InterfaceUtils.sendSocketMessage(device, stringBytes)
+private logDebug( debugText ){
+    // If debugging is enabled in settings, pass text to the logs
+    
+    if( settings.logDebug ) { 
+        log.info "MagicHome (${settings.deviceIP}): ${debugText}"
+    }
 }
 
-def refresh( parameters ) {
-    byte[] msg =  [ 0x81, 0x8A, 0x8B ]
-    byte[] data = [ 0x81, 0x8A, 0x8B, calculateChecksum( msg )]
-
+def sendCommand( data ) {
+    // Sends commands to the device
+    
+    String stringBytes = HexUtils.byteArrayToHexString(data)
+    logDebug "${data} was converted. Transmitting: ${stringBytes}"
+    InterfaceUtils.sendSocketMessage(device, stringBytes)
+}
+def refresh( ) {
+    
+    byte[] data =  [ 0x81, 0x8A, 0x8B, 0x96 ]
     sendCommand( data )
 }
 
-def telnetStatus(status) { log.debug "telnetStatus:${status}" }
-def socketStatus(status) { 
-	log.debug "socketStatus:${status}"
-	if(status == "send error: Broken pipe (Write failed)") {
-		// Cannot reach device
-		log.debug "Cannot reach ${settings.deviceIP}, attempting to reconnect in 10s..."
-		runIn( 10, initialize )
-	}
-	
+def telnetStatus( status ) { logDebug "telnetStatus: ${status}" }
+def socketStatus( status ) { 
+    logDebug "socketStatus: ${status}"
+    if(status == "send error: Broken pipe (Write failed)") {
+        // Cannot reach device
+        logDebug "Cannot reach device. Attempting to reconnect."
+        runIn(10, initialize)
+    }   
 }
 
 def poll() {
-	// Poll this device 
-	
-    parent.poll(this)
-}
-
-def parse( response ) {
-	// Parse data received back from this device
-
-	def responseArray = HexUtils.hexStringToIntArray(response)
-	if( responseArray.length == 4 ) {
-		// Does the device say it's on?
-		
-		responseArray[ 2 ] == 35 ? sendEvent(name: "switch", value: "on") : sendEvent(name: "switch", value: "off")
-	}
-	else if( responseArray.length == 14 ) {
-		// Does the device say it's on?
-		
-		responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
-		
-		// Convert integers to percentages
-		def warmWhite = ( responseArray[ 6 ].toDouble() / 2.55 ).round()
-		def coldWhite = ( responseArray[ 7 ].toDouble() / 2.55 ).round()
-		
-		// If values differ from HE, change them
-		sendEvent( name: 'warmWhiteLevel', value: warmWhite )
-		sendEvent( name: 'coldWhiteLevel', value: coldWhite )
-		sendEvent( name: 'level', value: ( warmWhite + coldWhite ) )
-		sendEvent(name: "colorTemperature", value: ( settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))).toInteger())
-	}
-	else if( response == null ){
-		logDebug "No response received from device" 
-	}
-	else{
-		logDebug "Received a response with an unexpected length of ${responseArray.length}"
-	}
+    refresh()
 }
 
 def updated(){
-	// If any settings were changed, re-initialize the device in HE
-	
-	initialize()
+    initialize()
 }
 def initialize() {
     // Establish a connection to the device
@@ -290,9 +260,9 @@ def initialize() {
 }
 
 def keepAlive(){
-	// Poll the device every 250 seconds, or it will lose connection.
-	
-	refresh()
+    // Poll the device every 250 seconds, or it will lose connection.
+    
+    refresh()
 	unschedule()
-    runIn(150, keepAlive)
+    runIn(10, keepAlive)
 }
