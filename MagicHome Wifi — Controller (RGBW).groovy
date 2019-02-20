@@ -7,6 +7,10 @@
  *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
  *
  *  Changelog:
+ *   
+ *    0.81 (Feb 19 2019) 
+ *      - Added try/catch to initialize() method
+ * 		- Removed extraneous code
  *
  *    0.8 (Feb 11 2019)
  *      - Initial Release
@@ -138,12 +142,6 @@ def setHue(hue, transmit=true){
 
 }
 
-def getHue(){
-    // Get the brightness of a device (0 - 100)
-
-    return device.currentValue( "hue" ) == null ? ( setHue( 100, false ) ) : ( device.currentValue( "hue" ) )
-}
-
 def setSaturation(saturation, transmit=true){
     // Set the saturation of a device (0-100)
 
@@ -153,11 +151,6 @@ def setSaturation(saturation, transmit=true){
     
     if( !transmit ) return saturation
     setColor( saturation: saturation )
-}
-def getSaturation(){
-    // Get the brightness of a device (0 - 100)
-
-    return device.currentValue( "saturation" ) == null ? ( setSaturation( 100, false ) ) : ( device.currentValue( "saturation" ) )
 }
 
 def setLevel(level, transmit=true) {
@@ -171,11 +164,6 @@ def setLevel(level, transmit=true) {
     setColor( level: level )
 }
 
-def getLevel(){
-    // Get the brightness of a device (0 - 100)
-
-    return device.currentValue( "level" ) == null ? ( setLevel( 100, false ) ) : ( device.currentValue( "level" ) )
-}
 
 def setWhiteLevel( whiteLevel, transmit=true){
     // Set the saturation of a device (0-100)
@@ -198,19 +186,20 @@ def setColor( parameters ){
     // Register that presets are disabled
     sendEvent( name: "currentPreset", value: 0 )
 
+    powerOnWithChanges()
     
     if( newParameters.hue == 100 ) {
-        data = powerOnWithChanges(true) + appendChecksum(  [ 0x31, 0, 0, 0, newParameters.level * 2.55, 0x00, 0x0f ] )
+        data = appendChecksum(  [ 0x31, 0, 0, 0, newParameters.level * 2.55, 0x00, 0x0f ] )
     }
     else{
         rgbColors = hsvToRGB( newParameters.hue, newParameters.saturation, newParameters.level )
-        data = powerOnWithChanges(true) + appendChecksum(  [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0, 0x00, 0x0f ] )
+        data = appendChecksum(  [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0, 0x00, 0x0f ] )
     }
     sendCommand( data ) 
     
 }
 
-def setColorTemperature( setTemp = getColorTemperature(), transmit=true ){
+def setColorTemperature( setTemp = device.currentValue('colorTemperature'), transmit=true ){
     // Using RGB, adjust the color temperature of a device  
     
     // Set the colorTemperature's value between the device's maximum range, if it's out of bounds
@@ -231,12 +220,6 @@ def setColorTemperature( setTemp = getColorTemperature(), transmit=true ){
     setColor( [ hue:newHue, saturation:newSaturation ]  )
 }
 
-def getColorTemperature(){
-    // Get the color temperature of a device ( ~2000-7000 )
-
-    return device.currentValue( "colorTemperature" ) == null ? ( sendEvent( name: "colorTemperature", value: 2700 ) ) : ( device.currentValue( "colorTemperature" ) )
-}
-
 def sendPreset( turnOn, preset = 1, speed = 100, transmit = true ){
     // Turn on preset mode (true), turn off preset mode (false). Preset (1 - 20), Speed (1 (slow) - 100 (fast)).
 
@@ -253,12 +236,12 @@ def sendPreset( turnOn, preset = 1, speed = 100, transmit = true ){
         preset += 36
         speed = (100 - speed)
 
+        powerOnWithChanges()
 
         sendEvent( name: "currentPreset", value: preset )
         sendEvent( name: "presetSpeed", value: speed )
 
-        byte[] data = powerOnWithChanges(true) + appendChecksum(  [ 0x61, preset, speed, 0x0F ] )
-        sendCommand( data )     
+        sendCommand( appendChecksum(  [ 0x61, preset, speed, 0x0F ] ) ) 
     }
     else{
         // Return the color back to its normal state
@@ -334,7 +317,7 @@ def presetSevenColorJump( speed = 100 ){
 def powerOnWithChanges( append=false ){
     // If the device is off and light settings change, turn it on (if user settings apply)
     if(append){
-        return settings.powerOnBrightnessChange ? ( [0x71, 0x23, 0x0F, 0xA3] ) : ([])
+        return settings.powerOnBrightnessChange ? ( [0x71, 0x23, 0x0F, 0xA3] ) : null
     }
     else{
         settings.powerOnBrightnessChange ? ( device.currentValue("status") != "on" ? on() : null ) : null
@@ -574,8 +557,17 @@ def updated(){
 def initialize() {
     // Establish a connection to the device
     
-  logDebug "Initializing device."
-    InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
+    logDebug "Initializing device."
+	telnetClose()
+	try {
+		logDebug("Opening TCP-Telnet Connection.")
+	    InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
+		
+		pauseExecution(1000)
+		logDebug("Connection successfully established")
+	} catch(e) {
+		logDebug("Error attempting to establish TCP-Telnet connection to device.")
+	}
     unschedule()
 
     runIn(20, keepAlive)
@@ -585,5 +577,6 @@ def keepAlive(){
     // Poll the device every 250 seconds, or it will lose connection.
     
     refresh()
+	unschedule()
     runIn(150, keepAlive)
 }
