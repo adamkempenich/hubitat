@@ -147,7 +147,7 @@ def setColorTemperature( setTemp = device.currentValue('colorTemperature'), devi
     }
 
     sendEvent(name: "warmWhiteLevel", value: brightnessWW)
-    sendEvent(name: "warmWhiteLevel", value: brightnessCW)
+    sendEvent(name: "coldWhiteLevel", value: brightnessCW)
 
     if( !transmit ) return setTemp
 	powerOnWithChanges()
