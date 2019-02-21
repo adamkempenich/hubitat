@@ -212,7 +212,7 @@ def setColorTemperature( setTemp = device.currentValue('colorTemperature'), devi
         brightnessCW = brightnessCW / (( brightnessWW + brightnessCW ) / 100 )
     }
 
-    endEvent( name: "warmWhiteLevel", value: brightnessWW )
+    sendEvent( name: "warmWhiteLevel", value: brightnessWW )
     sendEvent( name: "coldWhiteLevel", value: brightnessCW )
     
 	setColorMode( "CT" )
