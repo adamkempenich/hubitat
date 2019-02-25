@@ -1,5 +1,5 @@
 /**
- *  MagicHome Wifi - Bulb (RGBW) 0.8
+ *  MagicHome Wifi - Bulb (RGBW) 0.82
  *
  *  Author: 
  *    Adam Kempenich 
