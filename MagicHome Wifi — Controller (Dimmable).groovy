@@ -1,5 +1,5 @@
 /**
- *  MagicHome Wifi - Controller (Dimmable) 0.81
+ *  MagicHome Wifi - Controller (Dimmable) 0.82
  *
  *  Author: 
  *    Adam Kempenich 
@@ -7,6 +7,8 @@
  *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
  *
  *  Changelog:
+ *  	0.82 (Feb 25 2019)
+ *	  - Commented out parse() contents, since I think they are causing slowdown...
  *	  0.81 (Feb 19 2019) 
  *      - Added try/catch to initialize() method
  * 
@@ -118,28 +120,28 @@ def appendChecksum( data ){
 }
 
 def parse( response ) {
-    // Parse data received back from this device
-
-    def responseArray = HexUtils.hexStringToIntArray(response)
-	logDebug "Received ${response} with length of ${responseArray.length}"
-    if( responseArray.length == 4 ) {
-        // Does the device say it's on?
-        
-        responseArray[ 2 ] == 35 ? sendEvent(name: "switch", value: "on") : sendEvent( name: "switch", value: "off" )
-    }
-    else if( responseArray.length == 14 ) {
-        // Does the device say it's on?
-        
-        responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent( name: "switch", value: "off" ) )
-		def level = ( responseArray[ 6 ].toInteger() / 2.55 ).toInteger()
-        sendEvent( name: "level", value: level )
-    }
-    else if( response == null ){
-        logDebug "No response received from device" 
-    }
-    else{
-		logDebug "Received a response with an unexpected length of ${responseArray.length}"
-    }
+//    // Parse data received back from this device
+//
+//    def responseArray = HexUtils.hexStringToIntArray(response)
+//	logDebug "Received ${response} with length of ${responseArray.length}"
+//    if( responseArray.length == 4 ) {
+//        // Does the device say it's on?
+//        
+//        responseArray[ 2 ] == 35 ? sendEvent(name: "switch", value: "on") : sendEvent( name: "switch", value: "off" )
+//    }
+//    else if( responseArray.length == 14 ) {
+//        // Does the device say it's on?
+//        
+//        responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent( name: "switch", value: "off" ) )
+//		def level = ( responseArray[ 6 ].toInteger() / 2.55 ).toInteger()
+//        sendEvent( name: "level", value: level )
+//    }
+//    else if( response == null ){
+//        logDebug "No response received from device" 
+//    }
+//    else{
+//		logDebug "Received a response with an unexpected length of ${responseArray.length}"
+//    }
 }
 
 private logDebug( debugText ){
@@ -197,13 +199,13 @@ def initialize() {
 	}
     unschedule()
 
-//    runIn(20, keepAlive)
+    runIn(20, keepAlive)
 }
 
-//def keepAlive(){
-//    // Poll the device every 250 seconds, or it will lose connection.
-//    
-//    refresh()
-//	unschedule()
-//    runIn(150, keepAlive)
-//}
+def keepAlive(){
+    // Poll the device every 250 seconds, or it will lose connection.
+    
+    refresh()
+	unschedule()
+    runIn(150, keepAlive)
+}
