@@ -1,5 +1,5 @@
 /**
- *  MagicHome Wifi - Controller (RGB) 0.8
+ *  MagicHome Wifi - Controller (RGB) 0.82
  *
  *  Author: 
  *    Adam Kempenich 
@@ -7,6 +7,8 @@
  *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
  *
  *  Changelog:
+ *  	0.82 (Feb 25 2019)
+ *	  - Commented out parse() contents, since I think they are causing slowdown...
  *
  *    0.81 (Feb 19 2019)
  *      - Added try/catch to initialize() method
@@ -452,36 +454,36 @@ def appendChecksum( data ){
 }
 
 def parse( response ) {
-	// Parse data received back from this device
-
-	logDebug "Device responded with ${response}"
-	def responseArray = HexUtils.hexStringToIntArray(response)
-	if( responseArray.length == 4 ) {
-		// Device has responded with a power status packet
-		
-		responseArray[ 2 ] == 35 ? sendEvent(name: "switch", value: "on") : sendEvent(name: "switch", value: "off")
-	}
-	else if( responseArray.length == 14 ) {
-		// Device responded with full color info set
-		
-		double white = responseArray[ 9 ] / 2.55
-		hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
-		
-		// Assign Returned Power, Hue, Saturation, Level
-		responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
-		sendEvent( name: "level", value: hsvMap.value )
-		sendEvent( name: "saturation", value: hsvMap.saturation )
-		sendEvent( name: "hue", value: hsvMap.hue )
-	    //hsvMap.hue == settings.wwHue || hsvMap.hue == settings.cwHue ? ( setColorTemperature( null, false ) ) : ( null )
-
-	}
-	else if( response == null ){
-		logDebug "No response received from device."
-		initialize()
-	}
-	else{
-		logDebug "Received a response with an unexpected length of ${responseArray.length}"
-	}
+//	// Parse data received back from this device
+//
+//	logDebug "Device responded with ${response}"
+//	def responseArray = HexUtils.hexStringToIntArray(response)
+//	if( responseArray.length == 4 ) {
+//		// Device has responded with a power status packet
+//		
+//		responseArray[ 2 ] == 35 ? sendEvent(name: "switch", value: "on") : sendEvent(name: "switch", value: "off")
+//	}
+//	else if( responseArray.length == 14 ) {
+//		// Device responded with full color info set
+//		
+//		double white = responseArray[ 9 ] / 2.55
+//		hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
+//		
+//		// Assign Returned Power, Hue, Saturation, Level
+//		responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
+//		sendEvent( name: "level", value: hsvMap.value )
+//		sendEvent( name: "saturation", value: hsvMap.saturation )
+//		sendEvent( name: "hue", value: hsvMap.hue )
+//	    //hsvMap.hue == settings.wwHue || hsvMap.hue == settings.cwHue ? ( setColorTemperature( null, false ) ) : ( null )
+//
+//	}
+//	else if( response == null ){
+//		logDebug "No response received from device."
+//		initialize()
+//	}
+//	else{
+//		logDebug "Received a response with an unexpected length of ${responseArray.length}"
+//	}
 }
 
 private logDebug( debugText ){
