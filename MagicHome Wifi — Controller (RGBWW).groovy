@@ -1,5 +1,5 @@
 /**
- *  MagicHome Wifi - Controller (RGB + WW/CW CCT) 0.82
+ *  MagicHome Wifi - Controller (RGB + WW/CW CCT) 0.83
  *
  *  Author: 
  *    Adam Kempenich 
@@ -7,6 +7,12 @@
  *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
  *
  *  Changelog:
+ *
+ *  Changelog:
+ *
+ *	0.83 (Feb 27 2019) 
+ *	  - Un-did the parse() removal. Added Data checking for parse()
+ *
  *  	0.82 (Feb 25 2019)
  *	  - Commented out parse() contents, since I think they are causing slowdown...
  *
@@ -515,49 +521,62 @@ def appendChecksum( data ){
 }
 
 def parse( response ) {
-//    // Parse data received back from this device
-//	logDebug "Received ${response}"
-//
-//    def responseArray = HexUtils.hexStringToIntArray(response)
-//    if( responseArray.length == 4 ) {
-//        // Does the device say it's on?
-//        
-//        responseArray[ 2 ] == 35 ? sendEvent(name: "switch", value: "on") : sendEvent(name: "switch", value: "off")
-//    }
-//    else if( responseArray.length == 14 ) {
-//        // Does the device say it's on?
-//        
-//        responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
-// 		def warmWhite = ( responseArray[ 9 ].toDouble() / 2.55 ).round()
-//		def coldWhite = ( responseArray[ 11 ].toDouble() / 2.55 ).round()
-//        hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
-//
-//		if( (warmWhite + coldWhite) > 0) {
-//			// Calculate the color temperature, based on what data was received
-//			
-//			sendEvent( name: "colorMode", value: "CT" )
-//			sendEvent( name: "level", value: normalizePercent( warmWhite + coldWhite ))
-//			sendEvent( name: "warmWhiteLevel", value: warmWhite )
-//			sendEvent( name: "coldWhiteLevel", value: coldWhite )
-//			setTemp = settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))
-//			sendEvent( name: "colorTemperature", value: setTemp.toInteger() )
-//		}
-//		else{
-//			// Or, set the color
-//			sendEvent( name: "colorMode", value: "RGB" )
-//			sendEvent( name: "warmWhiteLevel", value: 0 )
-//			sendEvent( name: "coldWhiteLevel", value: 0 )
-//			sendEvent( name: "level", value: hsvMap.value )
-//			sendEvent( name: "saturation", value: hsvMap.saturation )
-//			sendEvent( name: "hue", value: hsvMap.hue )
-//		}
-//    }
-//    else if( response == null ){
-//        logDebug "No response received from device" 
-//    }
-//    else{
-//		logDebug "Received a response with an unexpected length of ${responseArray.length}"
-//    }
+    // Parse data received back from this device
+	logDebug "Received ${response}"
+
+    def responseArray = HexUtils.hexStringToIntArray(response)
+	
+	switch(responseArray.length) {
+		case 4:
+			if( responseArray[2] == 35 ){
+				device.currentValue( 'status' ) != 'on' ? sendEvent(name: "switch", value: "on") : null
+			}
+			else{
+				device.currentValue( 'status' ) != 'off' ? sendEvent(name: "switch", value: "off") : null
+			}
+			break;
+		case 14:
+			if( responseArray[2] == 35 ){
+				device.currentValue( 'status' ) != 'on' ? sendEvent(name: "switch", value: "on") : null
+			}
+			else{
+				device.currentValue( 'status' ) != 'off' ? sendEvent(name: "switch", value: "off") : null
+			}
+			def warmWhite = ( responseArray[ 9 ].toDouble() / 2.55 ).round()
+			def coldWhite = ( responseArray[ 11 ].toDouble() / 2.55 ).round()
+			hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
+
+			if( (warmWhite + coldWhite) > 0) {
+				// Calculate the color temperature, based on what data was received
+				device.currentValue( 'colorMode' ) != 'CT' ? sendEvent(name: "colorMode", value: "CT") : null
+				device.currentValue( 'level' ) != normalizePercent( warmWhite + coldWhite ) ? sendEvent(name: "level", value: normalizePercent( warmWhite + coldWhite )) : null
+				if(device.currentValue('warmWhiteLevel' ) != warmWhite && device.currentValue* 'coldWhiteLevel' != coldWhite ){
+					setTemp = settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))
+					device.currentValue( 'colorTemperature' ) != setTemp.toInteger() ? sendEvent(name: "colorTemperature", value: setTemp.toInteger()) : null
+				}
+				device.currentValue( 'warmWhiteLevel' ) != warmWhite ? sendEvent(name: "warmWhiteLevel", value: warmWhite) : null
+				device.currentValue( 'coldWhiteLevel' ) != coldWhite ? sendEvent(name: "coldWhiteLevel", value: coldWhite) : null
+
+				
+			}
+			else{
+				// Or, set the color
+
+				device.currentValue( 'colorMode' ) != 'RGB' ? sendEvent(name: "colorMode", value: "RGB") : null
+				device.currentValue( 'warmWhiteLevel' ) != 0 ? sendEvent(name: "warmWhiteLevel", value: 0) : null
+				device.currentValue( 'coldWhiteLevel' ) != 0 ? sendEvent(name: "coldWhiteLevel", value: 0) : null
+				device.currentValue( 'level' ) != hsvMap.value ? sendEvent(name: "level", value: hsvMap.value) : null
+				device.currentValue( 'saturation' ) != hsvMap.saturation ? sendEvent(name: "saturation", value: hsvMap.saturation) : null
+				device.currentValue( 'hue' ) != hsvMap.hue ? sendEvent(name: "hue", value: hsvMap.hue) : null
+			}
+			break;
+		case null:
+			logDebug "No response received from device" 
+			break;
+		default:
+			logDebug "Received a response with an unexpected length of ${responseArray.length}"
+			break;
+	}
 }
 
 private logDebug( debugText ){
@@ -622,5 +641,5 @@ def keepAlive(){
     
     refresh()
 	unschedule()
-    runIn(10, keepAlive)
+    runIn(150, keepAlive)
 }
