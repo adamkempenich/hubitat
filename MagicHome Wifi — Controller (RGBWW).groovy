@@ -8,10 +8,9 @@
  *
  *  Changelog:
  *
- *  Changelog:
- *
  *	0.83 (Feb 27 2019) 
  *	  - Un-did the parse() removal. Added Data checking for parse()
+ *	  - Added a setting for time-to-refresh
  *
  *  	0.82 (Feb 25 2019)
  *	  - Commented out parse() contents, since I think they are causing slowdown...
@@ -103,6 +102,10 @@ metadata {
         
         input(name:"powerOnWithChanges", type:"bool", title: "Turn on this light when values change?",
               defaultValue: true, required: true, displayDuringSetup: true)
+		
+		input(name:"refreshTime", type:"number", title: "Time to refresh (seconds)",
+            description: "Interval between refreshing a device for its current value. Default: 60. Recommended: Under 200", defaultValue: 60,
+            required: false, displayDuringSetup: true)
 
         input(name:"deviceWWTemperature", type:"number", title: "Warm White rating of this light",
             description: "Temp in K (default 2700)", defaultValue: 2700,
@@ -525,9 +528,16 @@ def parse( response ) {
 	logDebug "Received ${response}"
 
     def responseArray = HexUtils.hexStringToIntArray(response)
+//	def test1 =device.currentValue( 'colorMode' )
+//	def	test2 = device.currentValue( 'warmWhiteLevel' )
+//	def	test3 = device.currentValue( 'coldWhiteLevel' )
+//	def	test4 = device.currentValue( 'level' )
+//	def	test5 = device.currentValue( 'saturation' )
+//	def	test6 = device.currentValue( 'hue' ) 
 	
 	switch(responseArray.length) {
 		case 4:
+			logDebug( "Received power-status packet" )
 			if( responseArray[2] == 35 ){
 				device.currentValue( 'status' ) != 'on' ? sendEvent(name: "switch", value: "on") : null
 			}
@@ -535,7 +545,10 @@ def parse( response ) {
 				device.currentValue( 'status' ) != 'off' ? sendEvent(name: "switch", value: "off") : null
 			}
 			break;
+		
 		case 14:
+			logDebug( "Received general-status packet" )
+		
 			if( responseArray[2] == 35 ){
 				device.currentValue( 'status' ) != 'on' ? sendEvent(name: "switch", value: "on") : null
 			}
@@ -548,31 +561,36 @@ def parse( response ) {
 
 			if( (warmWhite + coldWhite) > 0) {
 				// Calculate the color temperature, based on what data was received
-				device.currentValue( 'colorMode' ) != 'CT' ? sendEvent(name: "colorMode", value: "CT") : null
-				device.currentValue( 'level' ) != normalizePercent( warmWhite + coldWhite ) ? sendEvent(name: "level", value: normalizePercent( warmWhite + coldWhite )) : null
+				device.currentValue( 'colorMode' ) != 'CT' ? sendEvent(name: "colorMode", value: "CT") : logDebug("Did not update colorMode")
+				device.currentValue( 'level' ) != normalizePercent( warmWhite + coldWhite ) ? sendEvent(name: "level", value: normalizePercent( warmWhite + coldWhite )) : logDebug("Did not update Level")
 				if(device.currentValue('warmWhiteLevel' ) != warmWhite && device.currentValue* 'coldWhiteLevel' != coldWhite ){
 					setTemp = settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))
 					device.currentValue( 'colorTemperature' ) != setTemp.toInteger() ? sendEvent(name: "colorTemperature", value: setTemp.toInteger()) : null
 				}
-				device.currentValue( 'warmWhiteLevel' ) != warmWhite ? sendEvent(name: "warmWhiteLevel", value: warmWhite) : null
-				device.currentValue( 'coldWhiteLevel' ) != coldWhite ? sendEvent(name: "coldWhiteLevel", value: coldWhite) : null
+				else{
+					logDebug("Did not update CCT")
+				}
+				device.currentValue( 'warmWhiteLevel' ) != warmWhite ? sendEvent(name: "warmWhiteLevel", value: warmWhite) : logDebug("Did not update warmWhite")
+				device.currentValue( 'coldWhiteLevel' ) != coldWhite ? sendEvent(name: "coldWhiteLevel", value: coldWhite) : logDebug("Did not update coldWhite")
 
 				
 			}
 			else{
 				// Or, set the color
 
-				device.currentValue( 'colorMode' ) != 'RGB' ? sendEvent(name: "colorMode", value: "RGB") : null
-				device.currentValue( 'warmWhiteLevel' ) != 0 ? sendEvent(name: "warmWhiteLevel", value: 0) : null
-				device.currentValue( 'coldWhiteLevel' ) != 0 ? sendEvent(name: "coldWhiteLevel", value: 0) : null
-				device.currentValue( 'level' ) != hsvMap.value ? sendEvent(name: "level", value: hsvMap.value) : null
-				device.currentValue( 'saturation' ) != hsvMap.saturation ? sendEvent(name: "saturation", value: hsvMap.saturation) : null
-				device.currentValue( 'hue' ) != hsvMap.hue ? sendEvent(name: "hue", value: hsvMap.hue) : null
+				device.currentValue( 'colorMode' ) != 'RGB' ? sendEvent(name: "colorMode", value: "RGB") : logDebug("Did not update colorMode to RGB")
+				device.currentValue( 'warmWhiteLevel' ) != 0 ? sendEvent(name: "warmWhiteLevel", value: 0) : logDebug("Did not update wwLevel")
+				device.currentValue( 'coldWhiteLevel' ) != 0 ? sendEvent(name: "coldWhiteLevel", value: 0) : logDebug("Did not update cwLevel")
+				device.currentValue( 'level' ) != hsvMap.value ? sendEvent(name: "level", value: hsvMap.value) : logDebug("Did not update Level")
+				device.currentValue( 'saturation' ) != hsvMap.saturation ? sendEvent(name: "saturation", value: hsvMap.saturation) : logDebug("Did not update sat")
+				device.currentValue( 'hue' ) != hsvMap.hue ? sendEvent(name: "hue", value: hsvMap.hue) : logDebug("Did not update hue")
 			}
 			break;
+		
 		case null:
 			logDebug "No response received from device" 
 			break;
+		
 		default:
 			logDebug "Received a response with an unexpected length of ${responseArray.length}"
 			break;
@@ -606,7 +624,7 @@ def socketStatus( status ) {
     if(status == "send error: Broken pipe (Write failed)") {
         // Cannot reach device
         logDebug "Cannot reach device. Attempting to reconnect."
-        runIn(10, initialize)
+        runIn(2, initialize)
     }   
 }
 
@@ -633,7 +651,7 @@ def initialize() {
 	}
     unschedule()
 
-    runIn(20, keepAlive)
+    runIn(5, keepAlive)
 }
 
 def keepAlive(){
@@ -641,5 +659,5 @@ def keepAlive(){
     
     refresh()
 	unschedule()
-    runIn(150, keepAlive)
+    runIn(settings.refreshTime, keepAlive)
 }
