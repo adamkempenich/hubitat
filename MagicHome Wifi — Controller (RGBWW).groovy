@@ -527,14 +527,7 @@ def parse( response ) {
     // Parse data received back from this device
 	logDebug "Received ${response}"
 
-    def responseArray = HexUtils.hexStringToIntArray(response)
-//	def test1 =device.currentValue( 'colorMode' )
-//	def	test2 = device.currentValue( 'warmWhiteLevel' )
-//	def	test3 = device.currentValue( 'coldWhiteLevel' )
-//	def	test4 = device.currentValue( 'level' )
-//	def	test5 = device.currentValue( 'saturation' )
-//	def	test6 = device.currentValue( 'hue' ) 
-	
+    def responseArray = HexUtils.hexStringToIntArray(response)	
 	switch(responseArray.length) {
 		case 4:
 			logDebug( "Received power-status packet" )
@@ -588,7 +581,8 @@ def parse( response ) {
 			break;
 		
 		case null:
-			logDebug "No response received from device" 
+			logDebug "No response received from device"
+			initialize()
 			break;
 		
 		default:
@@ -659,6 +653,5 @@ def keepAlive(){
     
     refresh()
 	unschedule()
-	settings.refreshTime == null ? runIn(60, keepAlive) : runIn(settings.refreshTime, keepAlive)
-    
+	settings.refreshTime == null ? runIn(60, keepAlive) : runIn(settings.refreshTime, keepAlive)   
 }
