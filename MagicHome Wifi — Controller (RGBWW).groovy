@@ -554,29 +554,25 @@ def parse( response ) {
 
 			if( (warmWhite + coldWhite) > 0) {
 				// Calculate the color temperature, based on what data was received
-				device.currentValue( 'colorMode' ) != 'CT' ? sendEvent(name: "colorMode", value: "CT") : logDebug("Did not update colorMode")
-				device.currentValue( 'level' ) != normalizePercent( warmWhite + coldWhite ) ? sendEvent(name: "level", value: normalizePercent( warmWhite + coldWhite )) : logDebug("Did not update Level")
+				device.currentValue( 'colorMode' ) != 'CT' ? sendEvent(name: "colorMode", value: "CT") : null
+				device.currentValue( 'level' ) != normalizePercent( warmWhite + coldWhite ) ? sendEvent(name: "level", value: normalizePercent( warmWhite + coldWhite )) : null
 				if(device.currentValue('warmWhiteLevel' ) != warmWhite && device.currentValue* 'coldWhiteLevel' != coldWhite ){
 					setTemp = settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))
 					device.currentValue( 'colorTemperature' ) != setTemp.toInteger() ? sendEvent(name: "colorTemperature", value: setTemp.toInteger()) : null
 				}
-				else{
-					logDebug("Did not update CCT")
-				}
-				device.currentValue( 'warmWhiteLevel' ) != warmWhite ? sendEvent(name: "warmWhiteLevel", value: warmWhite) : logDebug("Did not update warmWhite")
-				device.currentValue( 'coldWhiteLevel' ) != coldWhite ? sendEvent(name: "coldWhiteLevel", value: coldWhite) : logDebug("Did not update coldWhite")
+				device.currentValue( 'warmWhiteLevel' ) != warmWhite ? sendEvent(name: "warmWhiteLevel", value: warmWhite) : null
+				device.currentValue( 'coldWhiteLevel' ) != coldWhite ? sendEvent(name: "coldWhiteLevel", value: coldWhite) : null
 
 				
 			}
 			else{
 				// Or, set the color
-
-				device.currentValue( 'colorMode' ) != 'RGB' ? sendEvent(name: "colorMode", value: "RGB") : logDebug("Did not update colorMode to RGB")
-				device.currentValue( 'warmWhiteLevel' ) != 0 ? sendEvent(name: "warmWhiteLevel", value: 0) : logDebug("Did not update wwLevel")
-				device.currentValue( 'coldWhiteLevel' ) != 0 ? sendEvent(name: "coldWhiteLevel", value: 0) : logDebug("Did not update cwLevel")
-				device.currentValue( 'level' ) != hsvMap.value ? sendEvent(name: "level", value: hsvMap.value) : logDebug("Did not update Level")
-				device.currentValue( 'saturation' ) != hsvMap.saturation ? sendEvent(name: "saturation", value: hsvMap.saturation) : logDebug("Did not update sat")
-				device.currentValue( 'hue' ) != hsvMap.hue ? sendEvent(name: "hue", value: hsvMap.hue) : logDebug("Did not update hue")
+				device.currentValue( 'colorMode' ) != 'RGB' ? sendEvent(name: "colorMode", value: "RGB") : null
+				device.currentValue( 'warmWhiteLevel' ) != 0 ? sendEvent(name: "warmWhiteLevel", value: 0) : null
+				device.currentValue( 'coldWhiteLevel' ) != 0 ? sendEvent(name: "coldWhiteLevel", value: 0) : null
+				device.currentValue( 'level' ) != hsvMap.value ? sendEvent(name: "level", value: hsvMap.value) : null
+				device.currentValue( 'saturation' ) != hsvMap.saturation ? sendEvent(name: "saturation", value: hsvMap.saturation) : null
+				device.currentValue( 'hue' ) != hsvMap.hue ? sendEvent(name: "hue", value: hsvMap.hue) : null
 			}
 			break;
 		
