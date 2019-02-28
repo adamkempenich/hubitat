@@ -525,12 +525,11 @@ def appendChecksum( data ){
 
 def parse( response ) {
     // Parse data received back from this device
-	logDebug "Received ${response}"
 
     def responseArray = HexUtils.hexStringToIntArray(response)	
 	switch(responseArray.length) {
 		case 4:
-			logDebug( "Received power-status packet" )
+			logDebug( "Received power-status packet of ${response}" )
 			if( responseArray[2] == 35 ){
 				device.currentValue( 'status' ) != 'on' ? sendEvent(name: "switch", value: "on") : null
 			}
@@ -540,7 +539,7 @@ def parse( response ) {
 			break;
 		
 		case 14:
-			logDebug( "Received general-status packet" )
+			logDebug( "Received general-status packet of ${response}" )
 		
 			if( responseArray[2] == 35 ){
 				device.currentValue( 'status' ) != 'on' ? sendEvent(name: "switch", value: "on") : null
@@ -582,7 +581,7 @@ def parse( response ) {
 			break;
 		
 		default:
-			logDebug "Received a response with an unexpected length of ${responseArray.length}"
+			logDebug "Received a response with an unexpected length of ${responseArray.length} containing ${response}"
 			break;
 	}
 }
