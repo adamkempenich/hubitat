@@ -1,5 +1,5 @@
 /**
- *  MagicHome Wifi - Bulb (RGBW) 0.82
+ *  MagicHome Wifi - Bulb (RGBW) 0.83
  *
  *  Author: 
  *    Adam Kempenich 
@@ -8,7 +8,7 @@
  *
  *  Changelog:
  *
- *	0.83 (Feb 27 2019) 
+ *	0.83 (Feb 28 2019) 
  *	  - Un-did the parse() removal. Added Data checking for parse()
  *	  - Added a setting for time-to-re
  *
