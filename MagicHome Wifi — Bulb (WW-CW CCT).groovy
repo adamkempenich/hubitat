@@ -1,5 +1,5 @@
 /**
- *  MagicHome Wifi - Bulb (WW/CW CCT) 0.82
+ *  MagicHome Wifi - Bulb (WW/CW CCT) 0.83
  *
  *  Author: 
  *    Adam Kempenich 
@@ -7,7 +7,7 @@
  *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
  *
  *
- *	0.83 (Feb 27 2019) 
+ *	0.83 (Feb 28 2019) 
  *	  - Un-did the parse() removal. Added Data checking for parse()
  *	  - Added a setting for time-to-re
  *
