@@ -1,5 +1,5 @@
 /**
- *  MagicHome Wifi - Controller (RGB) 0.82
+ *  MagicHome Wifi - Controller (RGB) 0.83
  *
  *  Author: 
  *    Adam Kempenich 
@@ -7,6 +7,11 @@
  *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
  *
  *  Changelog:
+ *
+ *	0.83 (Feb 28 2019) 
+ *	  - Un-did the parse() removal. Added Data checking for parse()
+ *	  - Added a setting for time-to-re
+ *
  *  	0.82 (Feb 25 2019)
  *	  - Commented out parse() contents, since I think they are causing slowdown...
  *
@@ -94,6 +99,10 @@ metadata {
             description: "Temp in K (Default: 4000)", defaultValue: 4000,
             required: false, displayDuringSetup: true)
 
+	input(name:"refreshTime", type:"number", title: "Time to refresh (seconds)",
+            description: "Interval between refreshing a device for its current value. Default: 60. Recommended: Under 200", defaultValue: 60,
+            required: true, displayDuringSetup: true)
+	    
 		input(name:"cwHue", type:"number", title: "Hue that Cold White (bluish light) uses",
 			description: "Hue (0 - 100). Default 55", defaultValue: 55)
 		input(name:"cwSaturationLowPoint", type:"number", title: "Cold White Saturation closest 4000k (or the neutral white point).",
@@ -456,34 +465,45 @@ def appendChecksum( data ){
 def parse( response ) {
 //	// Parse data received back from this device
 //
-//	logDebug "Device responded with ${response}"
-//	def responseArray = HexUtils.hexStringToIntArray(response)
-//	if( responseArray.length == 4 ) {
-//		// Device has responded with a power status packet
-//		
-//		responseArray[ 2 ] == 35 ? sendEvent(name: "switch", value: "on") : sendEvent(name: "switch", value: "off")
-//	}
-//	else if( responseArray.length == 14 ) {
-//		// Device responded with full color info set
-//		
-//		double white = responseArray[ 9 ] / 2.55
-//		hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
-//		
-//		// Assign Returned Power, Hue, Saturation, Level
-//		responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
-//		sendEvent( name: "level", value: hsvMap.value )
-//		sendEvent( name: "saturation", value: hsvMap.saturation )
-//		sendEvent( name: "hue", value: hsvMap.hue )
-//	    //hsvMap.hue == settings.wwHue || hsvMap.hue == settings.cwHue ? ( setColorTemperature( null, false ) ) : ( null )
-//
-//	}
-//	else if( response == null ){
-//		logDebug "No response received from device."
-//		initialize()
-//	}
-//	else{
-//		logDebug "Received a response with an unexpected length of ${responseArray.length}"
-//	}
+	
+	
+	def responseArray = HexUtils.hexStringToIntArray(response)	
+	switch(responseArray.length) {
+		case 4:
+			logDebug( "Received power-status packet of ${response}" )
+			if( responseArray[2] == 35 ){
+				device.currentValue( 'status' ) != 'on' ? sendEvent(name: "switch", value: "on") : null
+			}
+			else{
+				device.currentValue( 'status' ) != 'off' ? sendEvent(name: "switch", value: "off") : null
+			}
+			break;
+		
+		case 14:
+			logDebug( "Received general-status packet of ${response}" )
+		
+			if( responseArray[2] == 35 ){
+				device.currentValue( 'status' ) != 'on' ? sendEvent(name: "switch", value: "on") : null
+			}
+			else{
+				device.currentValue( 'status' ) != 'off' ? sendEvent(name: "switch", value: "off") : null
+			}
+			hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
+			device.currentValue( 'level' ) != hsvMap.value ? sendEvent(name: "level", value: hsvMap.value) : null
+			device.currentValue( 'saturation' ) != hsvMap.saturation ? sendEvent(name: "saturation", value: hsvMap.saturation) : null
+			device.currentValue( 'hue' ) != hsvMap.hue ? sendEvent(name: "hue", value: hsvMap.hue) : null
+			// color temperature
+			break;
+		
+		case null:
+			logDebug "No response received from device"
+			initialize()
+			break;
+		
+		default:
+			logDebug "Received a response with an unexpected length of ${responseArray.length} containing ${response}"
+			break;
+	}
 }
 
 private logDebug( debugText ){
@@ -513,7 +533,7 @@ def socketStatus( status ) {
 	if(status == "send error: Broken pipe (Write failed)") {
 		// Cannot reach device
 		logDebug "Cannot reach device. Attempting to reconnect."
-		runIn(10, initialize)
+		runIn(2, initialize)
 	}	
 }
 
@@ -540,12 +560,12 @@ def initialize() {
 	}
     unschedule()
 
-    runIn(20, keepAlive)
+    runIn(5, keepAlive)
 }
 def keepAlive(){
 	// Poll the device every 250 seconds, or it will lose connection.
 	
 	refresh()
 	unschedule()
-    runIn(150, keepAlive)
+	settings.refreshTime == null ? runIn(60, keepAlive) : runIn(settings.refreshTime, keepAlive)
 }
