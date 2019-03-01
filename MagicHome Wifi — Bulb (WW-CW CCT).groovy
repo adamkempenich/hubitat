@@ -6,11 +6,16 @@
  *
  *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
  *
+ *
+ *	0.83 (Feb 27 2019) 
+ *	  - Un-did the parse() removal. Added Data checking for parse()
+ *	  - Added a setting for time-to-re
+ *
  *  Changelog:
  *  	0.82 (Feb 25 2019)
  *	  - Commented out parse() contents, since I think they are causing slowdown...
  *
-*     0.81 (Feb 19 2019)
+ *     0.81 (Feb 19 2019)
  *      - Added try/catch to intialize() method
  *      - Cleaned up a bunch of extraneous code
  *      - Fixed a rounding error in parse
@@ -72,6 +77,10 @@ metadata {
         input(name:"powerOnWithChanges", type:"bool", title: "Turn on this light when values change?",
               defaultValue: true, required: true, displayDuringSetup: true)
 
+	       input(name:"refreshTime", type:"number", title: "Time to refresh (seconds)",
+            description: "Interval between refreshing a device for its current value. Default: 60. Recommended: Under 200", defaultValue: 60,
+            required: true, displayDuringSetup: true)
+        
         input(name:"deviceWWTemperature", type:"number", title: "Warm White rating of this light",
             description: "Temp in K (default 2700)", defaultValue: 2700,
             required: false, displayDuringSetup: true)
@@ -267,33 +276,51 @@ def appendChecksum( data ){
 def parse( response ) {
 //    // Parse data received back from this device
 //
-//    def responseArray = HexUtils.hexStringToIntArray(response)
-//    if( responseArray.length == 4 ) {
-//        // Does the device say it's on?
-//        
-//        responseArray[ 2 ] == 35 ? sendEvent(name: "switch", value: "on") : sendEvent(name: "switch", value: "off")
-//    }
-//    else if( responseArray.length == 14 ) {
-//        // Does the device say it's on?
-//        
-//        responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
-//        
-//        // Convert integers to percentages
-//        def warmWhite = ( responseArray[ 6 ].toDouble() / 2.55 ).round()
-//        def coldWhite = ( responseArray[ 7 ].toDouble() / 2.55 ).round()
-//        
-//        // If values differ from HE, change them
-//        sendEvent( name: 'warmWhiteLevel', value: warmWhite  )
-//        sendEvent( name: 'coldWhiteLevel', value: coldWhite  )
-//        sendEvent( name: 'level', value: warmWhite + coldWhite )
-//        sendEvent( name: "colorTemperature", value: (settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))).toInteger() )
-//    }
-//    else if( response == null ){
-//        logDebug "No response received from device" 
-//    }
-//    else{
-//        logDebug "Received a response with an unexpected length of " + responseArray.length
-//    }
+    def responseArray = HexUtils.hexStringToIntArray(response)	
+	switch(responseArray.length) {
+		case 4:
+			logDebug( "Received power-status packet of ${response}" )
+			if( responseArray[2] == 35 ){
+				device.currentValue( 'status' ) != 'on' ? sendEvent(name: "switch", value: "on") : null
+			}
+			else{
+				device.currentValue( 'status' ) != 'off' ? sendEvent(name: "switch", value: "off") : null
+			}
+			break;
+		
+		case 14:
+			logDebug( "Received general-status packet of ${response}" )
+		
+			if( responseArray[2] == 35 ){
+				device.currentValue( 'status' ) != 'on' ? sendEvent(name: "switch", value: "on") : null
+			}
+			else{
+				device.currentValue( 'status' ) != 'off' ? sendEvent(name: "switch", value: "off") : null
+			}
+            def warmWhite = ( responseArray[ 6 ].toDouble() / 2.55 ).round()
+            def coldWhite = ( responseArray[ 7 ].toDouble() / 2.55 ).round()
+			
+			if( (warmWhite + coldWhite) > 0) {
+				// Calculate the color temperature, based on what data was received
+				device.currentValue( 'level' ) != normalizePercent( warmWhite + coldWhite ) ? sendEvent(name: "level", value: normalizePercent( warmWhite + coldWhite )) : null
+				if(device.currentValue('warmWhiteLevel' ) != warmWhite && device.currentValue('coldWhiteLevel' != coldWhite ){
+					setTemp = settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))
+					device.currentValue( 'colorTemperature' ) != setTemp.toInteger() ? sendEvent(name: "colorTemperature", value: setTemp.toInteger()) : null
+				}
+				device.currentValue( 'warmWhiteLevel' ) != warmWhite ? sendEvent(name: "warmWhiteLevel", value: warmWhite) : null
+				device.currentValue( 'coldWhiteLevel' ) != coldWhite ? sendEvent(name: "coldWhiteLevel", value: coldWhite) : null
+			}
+			break;
+		
+		case null:
+			logDebug "No response received from device"
+			initialize()
+			break;
+		
+		default:
+			logDebug "Received a response with an unexpected length of ${responseArray.length} containing ${response}"
+			break;
+	}
 }
 
 private logDebug( debugText ){
@@ -323,7 +350,7 @@ def socketStatus( status ) {
     if(status == "send error: Broken pipe (Write failed)") {
         // Cannot reach device
         logDebug "Cannot reach device. Attempting to reconnect."
-        runIn(10, initialize)
+        runIn(2, initialize)
     }   
 }
 
@@ -351,12 +378,12 @@ def initialize() {
     }
     unschedule()
 
-    runIn(20, keepAlive)
+    runIn(5, keepAlive)
 }
 
 def keepAlive(){
     // Poll the device every 250 seconds, or it will lose connection.
     
     refresh()
-    runIn(150, keepAlive)
+	settings.refreshTime == null ? runIn(60, keepAlive) : runIn(settings.refreshTime, keepAlive)
 }
