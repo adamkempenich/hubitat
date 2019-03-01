@@ -7,6 +7,11 @@
  *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
  *
  *  Changelog:
+ *
+ *	0.83 (Feb 27 2019) 
+ *	  - Un-did the parse() removal. Added Data checking for parse()
+ *	  - Added a setting for time-to-re
+ *
  *  	0.82 (Feb 25 2019)
  *	  - Commented out parse() contents, since I think they are causing slowdown...
  *
@@ -91,8 +96,11 @@ metadata {
         
         input(name:"powerOnWithChanges", type:"bool", title: "Turn on this light when values change?",
               defaultValue: true, required: true, displayDuringSetup: true)
-
-        input(name:"neutralWhite", type:"number", title: "Point where the light changes between cold and warm white hues",
+	input(name:"refreshTime", type:"number", title: "Time to refresh (seconds)",
+            description: "Interval between refreshing a device for its current value. Default: 60. Recommended: Under 200", defaultValue: 60,
+            required: true, displayDuringSetup: true)
+	    
+    input(name:"neutralWhite", type:"number", title: "Point where the light changes between cold and warm white hues",
             description: "Temp in K (Default: 4000)", defaultValue: 4000,
             required: false, displayDuringSetup: true)
 
@@ -467,43 +475,53 @@ def appendChecksum( data ){
 }
 
 def parse( response ) {
-//    // Parse data received back from this device
-//
-//    logDebug "Device responded with ${response}"
-//    def responseArray = HexUtils.hexStringToIntArray(response)
-//    if( responseArray.length == 4 ) {
-//        // Device has responded with a power status packet
-//        
-//        responseArray[ 2 ] == 35 ? sendEvent(name: "switch", value: "on") : sendEvent(name: "switch", value: "off")
-//    }
-//    else if( responseArray.length == 14 ) {
-//        // Device responded with full color info set
-//        
-//        double white = responseArray[ 9 ] / 2.55
-//        hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
-//        
-//        // Assign Returned Power, Hue, Saturation, Level
-//        responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
-//        
-//        if( white > 0 ) { 
-//            setHue( 100, false )
-//            setLevel( white, false )
-//        }
-//        else{
-//            setHue( hsvMap.hue, false )
-//        }
-//        setSaturation( hsvMap.saturation, false )
-//        setLevel( hsvMap.value, false )
-//        //hsvMap.hue == settings.wwHue || hsvMap.hue == settings.cwHue ? ( setColorTemperature( null, false ) ) : ( null )
-//
-//    }
-//    else if( response == null ){
-//        logDebug "No response received from device."
-//        initialize()
-//    }
-//    else{
-//        logDebug "Received a response with an unexpected length of ${responseArray.length}"
-//    }
+   // Parse data received back from this device
+
+    def responseArray = HexUtils.hexStringToIntArray(response)	
+	switch(responseArray.length) {
+		case 4:
+			logDebug( "Received power-status packet of ${response}" )
+			if( responseArray[2] == 35 ){
+				device.currentValue( 'status' ) != 'on' ? sendEvent(name: "switch", value: "on") : null
+			}
+			else{
+				device.currentValue( 'status' ) != 'off' ? sendEvent(name: "switch", value: "off") : null
+			}
+			break;
+		
+		case 14:
+			logDebug( "Received general-status packet of ${response}" )
+		
+			if( responseArray[2] == 35 ){
+				device.currentValue( 'status' ) != 'on' ? sendEvent(name: "switch", value: "on") : null
+			}
+			else{
+				device.currentValue( 'status' ) != 'off' ? sendEvent(name: "switch", value: "off") : null
+			}
+			double white = responseArray[ 9 ] / 2.55
+			def hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
+		
+			if( white > 0 ) { 
+				device.currentValue( 'hue' ) != 100 ? sendEvent(name: "hue", value: 100) : null
+				device.currentValue( 'level' ) != white ? sendEvent(name: "level", value: white ) : null
+			}		
+			else{
+				device.currentValue( 'hue' ) != hsvMap.hue ? sendEvent(name: "hue", value: hsvMap.hue) : null
+			}
+				device.currentValue( 'saturation' ) != hsvMap.saturation ? sendEvent(name: "saturation", value: hsvMap.saturation) : null
+				device.currentValue( 'level' ) != hsvMap.value ? sendEvent(name: "level", value: hsvMap.value) : null
+        		//hsvMap.hue == settings.wwHue || hsvMap.hue == settings.cwHue ? ( setColorTemperature( null, false ) ) : ( null )
+			break;
+		
+		case null:
+			logDebug "No response received from device"
+			initialize()
+			break;
+		
+		default:
+			logDebug "Received a response with an unexpected length of ${responseArray.length} containing ${response}"
+			break;
+	}
 }
 
 private logDebug( debugText ){
@@ -569,5 +587,5 @@ def keepAlive(){
     
     refresh()
     unschedule()
-    runIn(150, keepAlive)
+	settings.refreshTime == null ? runIn(60, keepAlive) : runIn(settings.refreshTime, keepAlive)
 }
