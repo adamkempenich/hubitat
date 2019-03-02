@@ -555,7 +555,7 @@ def parse( response ) {
 				// Calculate the color temperature, based on what data was received
 				device.currentValue( 'colorMode' ) != 'CT' ? sendEvent(name: "colorMode", value: "CT") : null
 				device.currentValue( 'level' ) != normalizePercent( warmWhite + coldWhite ) ? sendEvent(name: "level", value: normalizePercent( warmWhite + coldWhite )) : null
-				if(device.currentValue('warmWhiteLevel' ) != warmWhite && device.currentValue('coldWhiteLevel' != coldWhite )){
+				if(device.currentValue('warmWhiteLevel' ) != warmWhite && device.currentValue('coldWhiteLevel') != coldWhite ){
 					setTemp = settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))
 					device.currentValue( 'colorTemperature' ) != setTemp.toInteger() ? sendEvent(name: "colorTemperature", value: setTemp.toInteger()) : null
 				}
