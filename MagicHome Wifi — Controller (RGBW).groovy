@@ -565,7 +565,7 @@ def refresh( ) {
 def telnetStatus( status ) { logDebug "telnetStatus: ${status}" }
 def socketStatus( status ) { 
     logDebug "socketStatus: ${status}"
-    if(status == "send error: Broken pipe (Write failed)") {
+    if(status == "send error: Broken pipe (Write failed)" || status == "send error: Connection timed out (Write failed)") {
         // Cannot reach device
         logDebug "Cannot reach device. Attempting to reconnect."
         runIn(2, initialize)
