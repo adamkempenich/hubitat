@@ -65,7 +65,7 @@ def sendCommand( data ) {
 		def transmission = new HubAction(stringBytes, Protocol.TELNET)
      	sendHubCommand(transmission)
 	}
-	runIn(60, initialize)
+	runIn(20, initialize)
 }
 
 def refresh( ) {
