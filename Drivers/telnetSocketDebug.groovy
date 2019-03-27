@@ -122,8 +122,8 @@ def initialize() {
 	    runIn(2, refresh)
 	} catch(e) {
 		log.debug("Error attempting to establish TCP-Telnet connection to device.")
-		log.debug("Next initialization attempt in ${settings.refreshtime} seconds.")
+		log.debug("Next initialization attempt in 60 seconds.")
 		sendEvent(name: "switch", value: "off")
-		settings.refreshTime == null ? runIn(60, initialize) : runIn(settings.refreshTime, initialize)
+		runIn(60, initialize)
 	}
 }
