@@ -48,7 +48,7 @@ def parse( response ) {
 	runIn(60, refresh)
 	
 	def responseArray = HexUtils.hexStringToIntArray(response)	
-	log.debug "Parsed ${response}, length is ${responseArray.length}"
+	logDebug "Parsed ${response}, length is ${responseArray.length}"
 
 }
 
