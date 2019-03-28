@@ -48,7 +48,7 @@ def parse( response ) {
 	runIn(60, refresh)
 	
 	def responseArray = HexUtils.hexStringToIntArray(response)	
-	logDebug "Parsed ${response}, length is ${responseArray.length}"
+	log.Debug "Parsed ${response}, length is ${responseArray.length}"
 
 }
 
@@ -78,14 +78,14 @@ def refresh( ) {
 }
 
 def telnetStatus( status ) { 
-	log.debug "telnetStatus: ${status}" 
-	log.debug "Attempting to reconnect."
+	log.Debug "telnetStatus: ${status}" 
+	log.Debug "Attempting to reconnect."
 	runIn(2, initialize)
 }
 
 def socketStatus( status ) { 
-	log.debug "socketStatus: ${status}"
-	log.debug "Attempting to reconnect."
+	log.Debug "socketStatus: ${status}"
+	log.Debug "Attempting to reconnect."
 	runIn(2, initialize) 
 }
 
