@@ -57,7 +57,7 @@ def sendCommand( data ) {
     // Sends commands to the device
     
 	String stringBytes = HexUtils.byteArrayToHexString(data)
-        log.Debug "${data} was converted. Transmitting: ${stringBytes}"
+        log.debug "${data} was converted. Transmitting: ${stringBytes}"
 	if(settings.telnet == false || settings.telnet == null){
 		InterfaceUtils.sendSocketMessage(device, stringBytes)
 	}
@@ -78,14 +78,14 @@ def refresh( ) {
 }
 
 def telnetStatus( status ) { 
-	log.Debug "telnetStatus: ${status}" 
-	log.Debug "Attempting to reconnect."
+	log.debug "telnetStatus: ${status}" 
+	log.debug "Attempting to reconnect."
 	runIn(2, initialize)
 }
 
 def socketStatus( status ) { 
 	log.debug "socketStatus: ${status}"
-	log.Debug "Attempting to reconnect."
+	log.debug "Attempting to reconnect."
 	runIn(2, initialize) 
 }
 
