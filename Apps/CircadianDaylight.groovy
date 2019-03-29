@@ -1,5 +1,5 @@
 /**
-*	Hubitat Circadian Daylight 0.70
+*	Hubitat Circadian Daylight 0.71
 *
 *	Author: 
 *		Adam Kempenich 
@@ -11,6 +11,9 @@
 *		https://github.com/KristopherKubicki/smartapp-circadian-daylight/
 *
 *  Changelog:
+*	
+*	0.71 (Mar 29 2019) 
+*		- Added fix for modes and switches not 
 *
 *	0.70 (Mar 28 2019) 
 *		- Initial (official) release
@@ -157,10 +160,10 @@ def scheduleTurnOn() {
         }
     }
     
-    log.debug "checking... ${runTime.time} : $runTime"
+	log.debug "checking... ${runTime.time} : $runTime. state.nextTime is ${state.nextTime}"
     if(state.nextTime != runTime.time) {
-        state.nextTimer = runTime.time
-        log.debug "Scheduling next step at: $runTime (sunset is $sunsetTime) :: ${state.nextTimer}"
+        state.nextTime = runTime.time
+        log.debug "Scheduling next step at: $runTime (sunset is $sunsetTime) :: ${state.nextTime}"
         runOnce(runTime, modeHandler)
     }
 }
@@ -214,9 +217,10 @@ def modeHandler(evt) {
     scheduleTurnOn()
 }
 
-def getCTBright() {
-    def after = getSunriseAndSunset()
-    def midDay = after.sunrise.time + ((after.sunset.time - after.sunrise.time) / 2)
+def getCTBright() {	
+	def sunriseTime = getSunriseTime()
+    def sunsetTime = getSunsetTime()
+    def midDay = sunriseTime.time + ((sunsetTime.time - sunriseTime.time) / 2)
     
     def currentTime = now()
     def float brightness = 1
@@ -226,15 +230,15 @@ def getCTBright() {
 	def int warmCT = settings.warmCTOverride == null || settings.warmCTOverride == "" ? 2700 : settings.warmCTOverride
 	def int midCT = coldCT - warmCT
 	
-    if(currentTime > after.sunrise.time && currentTime < after.sunset.time) {
+    if(currentTime > sunriseTime.time && currentTime < sunsetTime.time) {
         if(currentTime < midDay) {
     		
-            colorTemp = warmCT + ((currentTime - after.sunrise.time) / (midDay - after.sunrise.time) * midCT)
-            brightness = ((currentTime - after.sunrise.time) / (midDay - after.sunrise.time))
+            colorTemp = warmCT + ((currentTime - sunriseTime.time) / (midDay - sunriseTime.time) * midCT)
+            brightness = ((currentTime - sunriseTime.time) / (midDay - sunriseTime.time))
         }
         else {
-            colorTemp = coldCT - ((currentTime - midDay) / (after.sunset.time - midDay) * midCT)
-            brightness = 1 - ((currentTime - midDay) / (after.sunset.time - midDay))
+            colorTemp = coldCT - ((currentTime - midDay) / (sunsetTime.time - midDay) * midCT)
+            brightness = 1 - ((currentTime - midDay) / (sunsetTime.time - midDay))
             
         }
     }
@@ -244,7 +248,7 @@ def getCTBright() {
     }
     
 	if(location.mode in settings.smodes) {
-		if(currentTime > after.sunset.time) {
+		if(currentTime > sunsetTime.time) {
 			if(settings.dcamp == true) {
 				colorTemp = coldCT
 			}
