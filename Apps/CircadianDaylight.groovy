@@ -19,7 +19,6 @@
 *		- Add number verification
 *		- Add logDebug method
 *		- Add brightness max/min overrides
-*		- Add sunrise/set offsets
 * 		- Add custom zip code
 */
 
@@ -60,6 +59,10 @@ preferences {
     section("Sunset/sunrise Overrides") {
         input "sunriseOverride", "time", title: "Sunrise Override", required: false
         input "sunsetOverride", "time", title: "Sunset Override", required: false
+    }
+	section("Sunrise/Sunset Offsets"){
+        input "sunriseOffset", "decimal", title: "Sunrise Offset (+/-)", required: false
+        input "sunsetOffset", "decimal", title: "Sunset Offset (+/-)", required: false
     }
     section("Color Temperature Overrides"){
         input "coldCTOverride", "number", title: "Cold White Temperature", required: false
@@ -107,6 +110,9 @@ private def getSunriseTime(){
 	if(settings.sunriseOverride != null && settings.sunriseOverride != ""){
 		 sunriseTime = new Date().parse("yyyy-MM-dd'T'HH:mm:ss.SSSZ", settings.sunriseOverride)
 	}
+	else if(settings.sunriseOffset != null && settings.sunriseOffset != ""){
+		sunriseTime = sunRiseSet.sunrise.plusMinutes(settings.sunriseOffset)
+	}
 	else{
 	    sunriseTime = sunRiseSet.sunrise
 	}
@@ -117,6 +123,9 @@ private def getSunsetTime(){
 	def sunsetTime
 	if(settings.sunsetOverride != null && settings.sunsetOverride != ""){
 		sunsetTime = new Date().parse("yyyy-MM-dd'T'HH:mm:ss.SSSZ", settings.sunsetOverride)
+	}
+	else if(settings.sunsetOffset != null && settings.sunsetOffset != ""){
+		sunriseTime = sunRiseSet.sunrise.plusMinutes(settings.sunsetOffset)
 	}
 	else{
 	    sunsetTime = sunRiseSet.sunset
