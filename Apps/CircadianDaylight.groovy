@@ -1,55 +1,26 @@
 /**
-* Circadian Daylight 2.6
+*	Hubitat Circadian Daylight 0.70
 *
-* This SmartApp synchronizes your color changing lights with local perceived color
-* temperature of the sky throughout the day. This gives your environment a more
-* natural feel, with cooler whites during the midday and warmer tints near twilight
-* and dawn.
+*	Author: 
+*		Adam Kempenich 
 *
-* In addition, the SmartApp sets your lights to a nice cool white at 1% in
-* "Sleep" mode, which is far brighter than starlight but won't reset your
-* circadian rhythm or break down too much rhodopsin in your eyes.
+*	Documentation:  https://community.hubitat.com/t/release-app-circadian-daylight-port/
+*	
+*	Forked from:
+*  		SmartThings Circadian Daylight v. 2.6
+*		https://github.com/KristopherKubicki/smartapp-circadian-daylight/
 *
-* Human circadian rhythms are heavily influenced by ambient light levels and
-* hues. Hormone production, brainwave activity, mood and wakefulness are
-* just some of the cognitive functions tied to cyclical natural light.
-* http://en.wikipedia.org/wiki/Zeitgeber
+*  Changelog:
 *
-* Here's some further reading:
+*	0.70 (Mar 28 2019) 
+*		- Initial (official) release
 *
-* http://www.cambridgeincolour.com/tutorials/sunrise-sunset-calculator.htm
-* http://en.wikipedia.org/wiki/Color_temperature
-*
-* Technical notes: I had to make a lot of assumptions when writing this app
-* * The Hue bulbs are only capable of producing a true color spectrum from
-* 2700K to 6000K. The Hue Pro application indicates the range is
-* a little wider on each side, but I stuck with the Philips
-*  documentation
-* * I aligned the color space to CIE with white at D50. I suspect "true"
-* white for this application might actually be D65, but I will have
-* to recalculate the color temperature if I move it.
-* * There are no considerations for weather or altitude, but does use your
-* hub's zip code to calculate the sun position.
-* * The app doesn't calculate a true "Blue Hour" -- it just sets the lights to
-* 2700K (warm white) until your hub goes into Night mode
-*
-* Version 2.6: March 26, 2016 - Fixes issue with hex colors.  Move your color changing bulbs to Color Temperature instead
-* Version 2.5: March 14, 2016 - Add "disabled" switch
-* Version 2.4: February 18, 2016 - Mode changes
-* Version 2.3: January 23, 2016 - UX Improvements for publication, makes Campfire default instead of Moonlight
-* Version 2.2: January 2, 2016 - Add better handling for off() schedules
-* Version 2.1: October 27, 2015 - Replace motion sensors with time
-* Version 2.0: September 19, 2015 - Update for Hub 2.0
-* Version 1.5: June 26, 2015 - Merged with SANdood's optimizations, breaks unofficial LIGHTIFY support
-* Version 1.4: May 21, 2015 - Clean up mode handling
-* Version 1.3: April 8, 2015 - Reduced Hue IO, increased robustness
-* Version 1.2: April 7, 2015 - Add support for LIGHTIFY bulbs, dimmers and user selected "Sleep"
-* Version 1.1: April 1, 2015 - Add support for contact sensors
-* Version 1.0: March 30, 2015 - Initial release
-*
-* The latest version of this file can be found at
-* https://github.com/KristopherKubicki/smartapp-circadian-daylight/
-*
+* 	To-Do:
+*		- Add number verification
+*		- Add logDebug method
+*		- Add brightness max/min overrides
+*		- Add sunrise/set offsets
+* 		- Add custom zip code
 */
 
 definition(
@@ -58,8 +29,8 @@ definition(
 	author: "Adam Kempenich",
 	description: "Sync your color changing lights and dimmers with natural daylight hues to improve your cognitive functions and restfulness.",
 	category: "Green Living",
-	iconUrl: "https://s3.amazonaws.com/smartapp-icons/MiscHacking/mindcontrol.png",
-	iconX2Url: "https://s3.amazonaws.com/smartapp-icons/MiscHacking/mindcontrol@2x.png"
+	iconUrl: "",
+	iconX2Url: ""
 )
 
 preferences {
@@ -130,18 +101,41 @@ private def initialize() {
     scheduleTurnOn()
 }
 
+private def getSunriseTime(){
+	def sunRiseSet = getSunriseAndSunset()
+	def sunriseTime
+	if(settings.sunriseOverride != null && settings.sunriseOverride != ""){
+		 sunriseTime = new Date().parse("yyyy-MM-dd'T'HH:mm:ss.SSSZ", settings.sunriseOverride)
+	}
+	else{
+	    sunriseTime = sunRiseSet.sunrise
+	}
+	return sunriseTime
+}
+private def getSunsetTime(){
+	def sunRiseSet = getSunriseAndSunset()
+	def sunsetTime
+	if(settings.sunsetOverride != null && settings.sunsetOverride != ""){
+		sunsetTime = new Date().parse("yyyy-MM-dd'T'HH:mm:ss.SSSZ", settings.sunsetOverride)
+	}
+	else{
+	    sunsetTime = sunRiseSet.sunset
+	}
+	return sunsetTime
+}
+
 def scheduleTurnOn() {
     def int iterRate = 20
     
     // get sunrise and sunset times
-    def sunRiseSet = getSunriseAndSunset()
-    def sunriseTime = settings.sunriseOverride == null || settings.sunriseOverride == "" ? sunRiseSet.sunrise : settings.sunriseOverride
+    def sunriseTime = getSunriseTime()
     log.debug("sunrise time ${sunriseTime}")
-    def sunsetTime = settings.sunsetOverride == null || settings.sunsetOverride == "" ? sunRiseSet.sunset : settings.sunsetOverride
+	
+    def sunsetTime = getSunsetTime()
     log.debug("sunset time ${sunsetTime}")
     
-    if(sunriseTime.time > sunsetTime.time) {
-        sunriseTime = new Date(sunriseTime.time - (24 * 60 * 60 * 1000))
+    if(sunriseTime > sunsetTime) {
+        sunriseTime = new Date(sunriseTime - (24 * 60 * 60 * 1000))
     }
     
     def runTime = new Date(now() + 60*15*1000)
