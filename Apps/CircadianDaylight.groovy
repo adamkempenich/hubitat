@@ -11,9 +11,12 @@
 *		https://github.com/KristopherKubicki/smartapp-circadian-daylight/
 *
 *  Changelog:
-*	
+*	0.72 (Apr 01 2019)
+*		- Added fix for sunset offset issues
+*		- Added zip code override
+*
 *	0.71 (Mar 29 2019) 
-*		- Added fix for modes and switches not 
+*		- Added fix for modes and switches not overriding
 *
 *	0.70 (Mar 28 2019) 
 *		- Initial (official) release
@@ -75,6 +78,9 @@ preferences {
         input "maxBrightnessOverride","number", title: "Max Brightness Override", required: false
         input "minBrightnessOverride","number", title: "Min Brightness Override", required: false
     }
+	section("Zipcode override") {
+        input "zipCodeOverride","number", title: "Zip Code Override", required: false
+	}
 }
 
 def installed() {
@@ -108,8 +114,15 @@ private def initialize() {
 }
 
 private def getSunriseTime(){
-	def sunRiseSet = getSunriseAndSunset()
+	def sunRiseSet 
 	def sunriseTime
+	
+	if(settings.zipCodeOverride == null || settings.zipCodeOverride == ""){
+		sunRiseSet = getSunriseAndSunset()
+	}
+	else{
+		sunRiseSet = getSunriseAndSunset(zipCode: $settings.zipCodeOverride)
+	}
 	if(settings.sunriseOverride != null && settings.sunriseOverride != ""){
 		 sunriseTime = new Date().parse("yyyy-MM-dd'T'HH:mm:ss.SSSZ", settings.sunriseOverride)
 	}
@@ -122,13 +135,20 @@ private def getSunriseTime(){
 	return sunriseTime
 }
 private def getSunsetTime(){
-	def sunRiseSet = getSunriseAndSunset()
-	def sunsetTime
+	def sunRiseSet 
+	def sunriseTime
+	
+	if(settings.zipCodeOverride == null || settings.zipCodeOverride == ""){
+		sunRiseSet = getSunriseAndSunset()
+	}
+	else{
+		sunRiseSet = getSunriseAndSunset(zipCode: $settings.zipCodeOverride)
+	}
 	if(settings.sunsetOverride != null && settings.sunsetOverride != ""){
 		sunsetTime = new Date().parse("yyyy-MM-dd'T'HH:mm:ss.SSSZ", settings.sunsetOverride)
 	}
 	else if(settings.sunsetOffset != null && settings.sunsetOffset != ""){
-		sunriseTime = sunRiseSet.sunrise.plusMinutes(settings.sunsetOffset)
+		sunsetTime = sunRiseSet.sunset.plusMinutes(settings.sunsetOffset)
 	}
 	else{
 	    sunsetTime = sunRiseSet.sunset
