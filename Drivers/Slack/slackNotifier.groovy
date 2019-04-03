@@ -19,7 +19,8 @@ metadata {
 	definition (
         name: "Slack Notifier", 
         namespace: "slacknotifier", 
-        author: "Adam Kempenich") {
+        author: "Adam Kempenich",
+	importUrl: "https://github.com/adamkempenich/hubitat/raw/master/Drivers/Slack/slackNotifier.groovy") {
         
 		capability "Notification"
     }
