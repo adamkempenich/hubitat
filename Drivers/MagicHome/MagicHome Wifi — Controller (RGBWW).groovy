@@ -1,5 +1,5 @@
 /**
-*  MagicHome Wifi - Controller (RGB + WW/CW CCT) 0.83
+*  MagicHome Wifi - Controller (RGB + WW/CW CCT) 0.85
 *
 *  Author: 
 *    Adam Kempenich 
