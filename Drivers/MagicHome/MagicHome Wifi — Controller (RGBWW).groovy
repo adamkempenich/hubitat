@@ -61,7 +61,7 @@ metadata {
         name: "MagicHome Wifi — Controller (RGB + WW/CW CCT)", 
         namespace: "MagicHome", 
         author: "Adam Kempenich",
-		importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/MagicHome/MagicHome%20Wifi%20—%20Controller%20(RGBWW).groovy)" {
+		importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/MagicHome/MagicHome%20Wifi%20—%20Controller%20(RGBWW).groovy" {
         
         capability "Actuator"
         capability "Color Control"
