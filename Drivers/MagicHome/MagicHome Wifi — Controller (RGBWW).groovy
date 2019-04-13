@@ -407,46 +407,6 @@ def hsvToRGB(float conversionHue = 0, float conversionSaturation = 100, float co
     return rgbMap
 }
 
-def rgbToHSV( r = 255, g = 255, b = 255, resolution = "low" ) {
-    // Takes RGB (0-255) and returns HSV in 0-360, 0-100, 0-100
-    // resolution ("low", "high") will return a hue between 0-100, or 0-360, respectively.
-  
-    r /= 255
-    g /= 255
-    b /= 255
-
-    float h
-    float s
-    
-    float max =   Math.max( Math.max( r, g ), b )
-    float min = Math.min( Math.min( r, g ), b )
-    float delta = ( max - min )
-    float v = ( max * 100.0 )
-
-    max != 0.0 ? ( s = delta / max * 100.0 ) : ( s = 0 )
-
-    if (s == 0.0) {
-        h = 0.0
-    }
-    else{
-        if (r == max){
-                h = ((g - b) / delta)
-        }
-        else if(g == max) {
-                h = (2 + (b - r) / delta)
-        }
-        else if (b == max) {
-                h = (4 + (r - g) / delta)
-        }
-    }
-
-    h *= 60.0
-        h < 0 ? ( h += 360 ) : null
-  
-    resolution == "low" ? h /= 3.6 : null
-    return [ hue: h, saturation: s, value: v ]
-}
-
 def calculateChecksum( data ){
     // Totals an array of bytes
     
@@ -491,41 +451,6 @@ def parse( response ) {
 			else{
 				sendEvent(name: "switch", value: "off")
 			}
-			//def warmWhite = ( responseArray[ 9 ].toDouble() / 2.55 ).round()
-			//def coldWhite = ( responseArray[ 11 ].toDouble() / 2.55 ).round()
-			//hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
-//
-		//
-			//if( (warmWhite + coldWhite) > 0) {
-			//	if((warmWhite + coldWhite) >= (device.currentValue("level") + 0.4) && (warmWhite + coldWhite) <= (device.currentValue("level") - 0.4)){
-			//		sendEvent(name: "level", value: warmWhite + coldWhite )
-			//	}
-//
-			//	// Only change the CT if it's not close to the returned value
-			//	// and only change it if the device's value isn't going to lose the data.
-			//	// Since going below 5 won't retain the CT accurately
-			//	if(device.currentValue('warmWhiteLevel' ) >= (warmWhite + 0.4) && device.currentValue('warmWhiteLevel' ) <= (warmWhite - 0.4)  && device.currentValue('coldWhiteLevel' ) >= (coldWhite + 0.4) && device.currentValue('coldWhiteLevel' ) <= (coldWhite - 0.4) && (warmWhite + coldWhite) > 5){
-			//		setTemp = settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))
-			//		device.currentValue( 'colorTemperature' ) != setTemp.toInteger() ? sendEvent(name: "colorTemperature", value: setTemp.toInteger()) : null
-			//	}
-			//	if(device.currentValue('warmWhiteLevel' ) >= (warmWhite + 0.4) && device.currentValue('warmWhiteLevel' ) <= (warmWhite - 0.4)){
-			//		sendEvent(name: "warmWhiteLevel", value: warmWhite)
-			//	}
-			//	if(device.currentValue('coldWhiteLevel' ) >= (coldWhite + 0.4) && device.currentValue('coldWhiteLevel' ) <= (coldWhite - 0.4)){
-			//		sendEvent(name: "coldWhiteLevel", value: coldWhite)
-			//	}
-			//} 
-			//else{
-			//	// Or, set the color
-			//	device.currentValue( 'colorMode' ) != 'RGB' ? sendEvent(name: "colorMode", value: "RGB") : null
-			//	device.currentValue( 'warmWhiteLevel' ) != 0 ? sendEvent(name: "warmWhiteLevel", value: 0) : null
-			//	device.currentValue( 'coldWhiteLevel' ) != 0 ? sendEvent(name: "coldWhiteLevel", value: 0) : null
-			//	if(level > 5){
-			//	device.currentValue( 'hue' ) >= (hsvMap.hue + 0.4) && device.currentValue( 'hue' ) <= (hsvMap.hue - 0.4) ? sendEvent(name: "hue", value: hsvMap.hue) : null
-			//	device.currentValue( 'saturation' ) >= (hsvMap.saturation + 0.4) && device.currentValue( 'saturation' ) <= (hsvMap.saturation - 0.4) ? sendEvent(name: "saturation", value: hsvMap.saturation) : null
-			//	}
-			//device.currentValue( 'level' ) >= (hsvMap.value + 0.4) && device.currentValue( 'level' ) <= (hsvMap.value - 0.4) ? sendEvent(name: "level", value: hsvMap.value) : null
-			//}
 			break;
 		
 		case null:
