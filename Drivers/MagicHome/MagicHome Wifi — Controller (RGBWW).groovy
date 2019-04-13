@@ -596,3 +596,9 @@ def initialize() {
 		runIn(20, initialize)
 	}
 }
+def installed(){
+	sendEvent(name: "hue", value: 0)
+	sendEvent(name: "saturation", value: 100)
+	sendEvent(name: "level", value: 99)
+	sendEvent(name: "switch", value: "off")
+}
