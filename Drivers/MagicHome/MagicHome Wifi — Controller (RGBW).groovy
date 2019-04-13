@@ -322,46 +322,6 @@ def hsvToRGB(float conversionHue = 0, float conversionSaturation = 100, float co
     return rgbMap
 }
 
-def rgbToHSV( r = 255, g = 255, b = 255, resolution = "low" ) {
-    // Takes RGB (0-255) and returns HSV in 0-360, 0-100, 0-100
-    // resolution ("low", "high") will return a hue between 0-100, or 0-360, respectively.
-  
-    r /= 255
-    g /= 255
-    b /= 255
-
-    float h
-    float s
-    
-    float max =   Math.max( Math.max( r, g ), b )
-    float min = Math.min( Math.min( r, g ), b )
-    float delta = ( max - min )
-    float v = ( max * 100.0 )
-
-    max != 0.0 ? ( s = delta / max * 100.0 ) : ( s = 0 )
-
-    if (s == 0.0) {
-        h = 0.0
-    }
-    else{
-        if (r == max){
-                h = ((g - b) / delta)
-        }
-        else if(g == max) {
-                h = (2 + (b - r) / delta)
-        }
-        else if (b == max) {
-                h = (4 + (r - g) / delta)
-        }
-    }
-
-    h *= 60.0
-        h < 0 ? ( h += 360 ) : null
-  
-    resolution == "low" ? h /= 3.6 : null
-    return [ hue: h, saturation: s, value: v ]
-}
-
 def calculateChecksum( data ){
     // Totals an array of bytes
     
@@ -406,23 +366,6 @@ def parse( response ) {
 			else{
 				sendEvent(name: "switch", value: "off")
 			}
-//            double white = responseArray[ 9 ] / 2.55
-//            
-//            hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
-//            // Assign Returned Power, Hue, Saturation, Level
-//            responseArray[ 2 ] == 35 ? ( sendEvent(name: "switch", value: "on") ) : ( sendEvent(name: "switch", value: "off") )
-//            if( white > 0 ) {
-//		device.currentValue( 'hue' ) != 100 ? sendEvent(name: "hue", value:100) : null
-//		device.currentValue( 'saturation' ) != white ? sendEvent(name: "saturation", value: white ) : null
-//		device.currentValue( 'whiteLevel' ) != white ? sendEvent(name: "whiteLEvel", value: white ) : null
-//            }
-//            else{
-//		device.currentValue( 'hue' ) != hsvMap.hue ? sendEvent(name: "hue", value:hsvMap.hue) : null
-//            }
-//
-//		device.currentValue( 'saturation' ) != hsvMap.saturation ? sendEvent(name: "saturation", value:hsvMap.saturation) : null
-//		device.currentValue( 'level' ) != hsvMap.value ? sendEvent(name: "level", value:hsvMap.value) : null
-//            	//hsvMap.hue == settings.wwHue || hsvMap.hue == settings.cwHue ? ( setColorTemperature( null, false ) ) : ( null )
 		break;	
 	case null:
 			logDebug "No response received from device"
