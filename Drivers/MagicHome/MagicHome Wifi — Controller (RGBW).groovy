@@ -1,5 +1,5 @@
 /**
-*  MagicHome Wifi - Controller (RGB + WW/CW CCT) 0.85
+*  MagicHome Wifi - Controller (RGB + W) 0.85
 *
 *  Author: 
 *    Adam Kempenich 
@@ -14,7 +14,8 @@
 *		- Removed most of parse() while I simplify it further. Only power reports.
 *		- Continued to enhance self-healing. Devices that are physically powered off report as off.
 *		- Reworked powerOnWithChanges.
-*		- Corrected all function parameters except for setColorTemperature() which is mostly corrected
+*		- Corrected all function parameters
+*		- Removed setColorTemperature()
 * 		- Added import URL
 *
 *	0.84 (Mar 28 2019) 
@@ -69,7 +70,6 @@ metadata {
         capability "Polling"
         capability "Refresh"
         capability "Sensor"
-        capability "Color Temperature"
         capability "Color Control"
         capability "Initialize"
         
@@ -112,29 +112,9 @@ metadata {
         input(name:"powerOnWithChanges", type:"bool", title: "Turn on this light when values change?",
               defaultValue: true, required: true, displayDuringSetup: true)
 
-	    
-	input(name:"refreshTime", type:"number", title: "Time to refresh (seconds)",
+		input(name:"refreshTime", type:"number", title: "Time to refresh (seconds)",
             description: "Interval between refreshing a device for its current value. Default: 60. Recommended: Under 200", defaultValue: 60,
             required: true, displayDuringSetup: true)
-	    
-        input(name:"neutralWhite", type:"number", title: "Point where the light changes between cold and warm white hues",
-            description: "Temp in K (Default: 4000)", defaultValue: 4000,
-            required: false, displayDuringSetup: true)
-
-        input(name:"cwHue", type:"number", title: "Hue that Cold White (bluish light) uses",
-            description: "Hue (0 - 100). Default 55", defaultValue: 55)
-        input(name:"cwSaturationLowPoint", type:"number", title: "Cold White Saturation closest 4000k (or the neutral white point).",
-            description: "Saturation: (0-100) Default: 0", defaultValue: 0)
-        input(name:"cwSaturationHighPoint", type:"number", title: "Cold White Saturation at ~6000k.",
-            description: "Saturation: (0-100) Default: 50", defaultValue: 50)
-
-        input(name:"wwHue", type:"number", title: "Hue that Warm White (orangeish light) uses",
-            description: "Hue (0 - 100). Default 100 (Bulb's White LEDs)", defaultValue: 100)
-        input(name:"wwSaturationLowPoint", type:"number", title: "Warm White Saturation closest 4000k (or the neutral white point).",
-            description: "Saturation: (0-100) Default: 0", defaultValue: 0)
-        input(name:"wwSaturationHighPoint", type:"number", title: "Warm White Saturation at ~2700k.",
-            description: "Saturation: (0-100) Default: 80 <style>#tileContainter-presetBlueFade-4:hover{ animation: presetBlue-fade 3s infinite } @keyframes presetBlue-fade { 0% { color: blue } 50% { color: black } 100% { color: blue } } #tileContainter-presetBlueStrobe-5:hover{ animation: presetBlue-strobe 3s infinite } @keyframes presetBlue-strobe { 0% { color: blue } 49% { color: blue } 50% { color: black } 100% { color: black } } #tileContainter-presetCyanFade-6:hover{ animation: presetCyan-fade 3s infinite } @keyframes presetCyan-fade { 0% { color: cyan } 50% { color: black } 100% { color: cyan } } #tileContainter-presetCyanStrobe-7:hover{ animation: presetCyan-strobe 3s infinite } @keyframes presetCyan-strobe { 0% { color: cyan } 25% { color: cyan } 26% { color: black } 100% { color: black } } #tileContainter-presetGreenBlueDissolve-8:hover{ animation: presetGreenBlue-dissolve 3s infinite } @keyframes presetGreenBlue-dissolve { 0% { color: green } 50% { color: blue } 100% { color: green } } #tileContainter-presetGreenFade-9:hover{ animation: presetGreen-fade 3s infinite } @keyframes presetGreen-fade { 0% { color: green } 50% { color: black } 100% { color: green } } #tileContainter-presetGreenStrobe-10:hover{ animation: presetGreen-strobe 3s infinite } @keyframes presetGreen-strobe { 0% { color: green } 25% { color: green } 26% { color: black } 100% { color: black } } #tileContainter-presetPurpleFade-11:hover{ animation: presetPurple-fade 3s infinite } @keyframes presetPurple-fade { 0% { color: purple } 50% { color: black } 100% { color: purple } } #tileContainter-presetPurpleStrobe-12:hover{ animation: presetPurple-strobe 3s infinite } @keyframes presetPurple-strobe { 0% { color: purple } 25% { color: purple } 26% { color: black } 100% { color: black } } #tileContainter-presetRedBlueDissolve-13:hover{ animation: presetRedBlue-dissolve 3s infinite } @keyframes presetRedBlue-dissolve { 0% { color: red } 50% { color: blue } 100% { color: red } } #tileContainter-presetRedFade-14:hover{ animation: presetRed-fade 3s infinite } @keyframes presetRed-fade { 0% { color: red } 50% { color: black } 100% { color: red } } #tileContainter-presetRedGreenDissolve-15:hover{ animation: presetRedGreen-dissolve 3s infinite } @keyframes presetRedGreen-dissolve { 0% { color: red } 50% { color: green } 100% { color: red } } #tileContainter-presetRedStrobe-16:hover{ animation: presetRed-strobe 3s infinite } @keyframes presetRed-strobe { 0% { color: red } 25% { color: red } 26% { color: black } 100% { color: black } } #tileContainter-presetSevenColorDissolve-17:hover{ animation: presetSevenColor-dissolve 3s infinite } @keyframes presetSevenColor-dissolve { 0% { color: red } 12.5% { color: orange } 25% { color: yellow } 37.5% { color: green } 50% { color: blue } 62.5% { color: indigo } 75% { color: violet } 87.5% { color: white } 100% { color: red } } #tileContainter-presetSevenColorJump-18:hover{ animation: presetSevenColor-jump 3s infinite } @keyframes presetSevenColor-jump { 0% { color: red } 12% { color: red } 12.5% { color: orange } 24% { color: orange } 25% { color: yellow } 37% { color: yellow } 37.5% { color: green } 49% { color: green } 50% { color: blue } 62% { color: blue } 62.5% { color: indigo } 74% { color: indigo } 75% { color: violet } 87% { color: violet } 87.5% { color: white } 99% { color: white } 100% { color: red } } #tileContainter-presetSevenColorStrobe-19:hover{ animation: presetSevenColor-strobe 3s infinite } @keyframes presetSevenColor-strobe {  0% { color: black } 11% { color: black }  12% { color: red } 16% { color: red }  17% { color: black } 30% { color: black }  31% { color: orange } 38% { color: orange }  39% { color: black } 49% { color: black }  50% { color: yellow } 62% { color: yellow }  63% { color: black } 70% { color: black }  71% { color: green } 79% { color: green }  80% { color: black } 88% { color: black }  89% { color: blue } 99% { color: blue }  99% { color: black } } #tileContainter-presetWhiteFade-20:hover{ animation: presetWhite-fade 3s infinite } @keyframes presetWhite-fade { 0% { color: White } 50% { color: black } 100% { color: White } } #tileContainter-presetWhiteStrobe-21:hover{ animation: presetWhite-strobe 3s infinite } @keyframes presetWhite-strobe { 0% { color: White } 49% { color: White } 50% { color: black } 100% { color: black } } #tileContainter-presetYellowFade-22:hover{ animation: presetYellow-fade 3s infinite } @keyframes presetYellow-fade { 0% { color: Yellow } 50% { color: black } 100% { color: Yellow } } #tileContainter-presetYellowStrobe-23:hover{ animation: presetYellow-strobe 3s infinite } @keyframes presetYellow-strobe { 0% { color: Yellow } 49% { color: Yellow } 50% { color: black } 100% { color: black } } </style>", 
-              defaultValue: 80)
     }
 }
 def on() {
@@ -181,7 +161,7 @@ def setLevel(level) {
     sendEvent(name: "level", value: level)
     logDebug "Level set to ${level}"
     
-    device.currentValue("colorMode") == "RGB" ? setColor(hue: device.currentValue("hue"), saturation: device.currentValue("saturation"), level: level) : setColorTemperature(device.currentValue('colorTemperature'), level)
+    setColor(hue: device.currentValue("hue"), saturation: device.currentValue("saturation"), level: level)
 }
 
 def setWhiteLevel(whiteLevel){
@@ -198,7 +178,10 @@ def setWhiteLevel(whiteLevel){
 def setColor( parameters ){
    
     // Register that presets are disabled
-    sendEvent( name: "currentPreset", value: 0 )
+    sendEvent(name: "currentPreset", value: 0)
+	sendEvent(name: "hue", value: parameters.hue)
+	sendEvent(name: "saturation", value: parameters.saturation)
+	sendEvent(name: "level", value: parameters.level)
 	powerOnWithChanges()
 
     if( parameters.hue == 100 ) {
@@ -211,28 +194,6 @@ def setColor( parameters ){
         sendCommand( data ) 
 	}
 }
-
-def setColorTemperature( setTemp = device.currentValue('colorTemperature') ){
-    // Using RGB, adjust the color temperature of a device  
-    
-    // Set the colorTemperature's value between the device's maximum range, if it's out of bounds
-    setTemp = normalizePercent( setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature )
-    def newSaturation
-    def newHue
-    
-    if(setTemp >= neutralWhite){
-        newSaturation = setSaturation( calculateCTSaturation( true, setTemp - settings.neutralWhite ), false ).toFloat()
-        newHue = setHue( settings.cwHue.toFloat(), false ) 
-    }
-    else{
-        newSaturation = setSaturation( calculateCTSaturation( false, settings.neutralWhite - setTemp ), false ).toFloat()
-        newHue = setHue( settings.wwHue.toFloat(), false ) 
-    }
-    
-    sendEvent( name: "colorTemperature", value: setTemp )
-    setColor( [ hue:newHue, saturation:newSaturation, level: device.currentValue("level") ]  )
-}
-
 
 def sendPreset(preset = 1, speed = 100){
     // Turn on preset mode (true), turn off preset mode (false). Preset (1 - 20), Speed (1 (slow) - 100 (fast)).
@@ -327,37 +288,12 @@ def powerOnWithChanges( ){
         settings.powerOnWithChanges ? ( device.currentValue("status") != "on" ? on() : null ) : null
 }
 
-def calculateCTSaturation( coldWhite = true, offset ) {
-        
-    def CURVE
-    def lowPoint
-    def highPoint
-    
-    if( coldWhite ) {
-        lowPoint = settings.cwSaturationLowPoint < settings.cwSaturationHighPoint ? settings.cwSaturationLowPoint : settings.cwSaturationHighPoint
-        highPoint = settings.cwSaturationHighPoint > settings.cwSaturationLowPoint ? settings.cwSaturationHighPoint : settings.cwSaturationLowPoint
-        CURVE = 1.8
-    }
-    else{ 
-        lowPoint = settings.wwSaturationLowPoint < settings.wwSaturationHighPoint ? settings.wwSaturationLowPoint : settings.wwSaturationHighPoint
-        highPoint = settings.wwSaturationHighPoint > settings.wwSaturationLowPoint ? settings.wwSaturationHighPoint : settings.wwSaturationLowPoint
-        CURVE = 2.16666
-    }
-    
-    return (((( 100 - lowPoint  ) / 100 ) * ( CURVE * Math.sqrt( offset ))) + lowPoint  ) * highPoint / 100
-}      
-
-def hslToCT(){
-
-}
-
 def hsvToRGB(float conversionHue = 0, float conversionSaturation = 100, float conversionValue = 100, resolution = "low"){
     // Accepts conversionHue (0-100 or 0-360), conversionSaturation (0-100), and converstionValue (0-100), resolution ("low", "high")
     // If resolution is low, conversionHue accepts 0-100. If resolution is high, conversionHue accepts 0-360
     // Returns RGB map ([ red: 0-255, green: 0-255, blue: 0-255 ])
     
     // Check HSV limits
-    hue = hue > 100 ? normalizePercent( hue, 0, 99 ) : normalizePercent( hue, 0, 359 )
     resolution == "low" ? ( hueMax = 100 ) : ( hueMax = 360 ) 
     conversionHue > hueMax ? ( conversionHue = 1 ) : ( conversionHue < 0 ? ( conversionHue = 0 ) : ( conversionHue /= hueMax ) )
     conversionSaturation > 100 ? ( conversionSaturation = 1 ) : ( conversionSaturation < 0 ? ( conversionSaturation = 0 ) : ( conversionSaturation /= 100 ) )
@@ -509,11 +445,12 @@ private logDebug( debugText ){
 def sendCommand( data ) {
     // Sends commands to the device
 	unschedule()
-	
+	runIn(60, initialize)
+
+
 	String stringBytes = HexUtils.byteArrayToHexString(data)
 	logDebug "${data} was converted. Transmitting: ${stringBytes}"
 	InterfaceUtils.sendSocketMessage(device, stringBytes)
-	runIn(60, initialize)
 }
 
 def refresh( ) {
@@ -554,4 +491,11 @@ def initialize() {
 		sendEvent(name: "switch", value: "off") // If we didn't hear back, the device is likely physically powered off
 		runIn(20, initialize)
 	}
+}
+
+def installed(){
+	sendEvent(name: "hue", value: 0)
+	sendEvent(name: "saturation", value: 100)
+	sendEvent(name: "level", value: 99)
+	sendEvent(name: "switch", value: "off")
 }
