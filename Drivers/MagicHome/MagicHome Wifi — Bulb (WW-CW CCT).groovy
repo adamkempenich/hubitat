@@ -64,7 +64,6 @@ metadata {
 		importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/MagicHome/MagicHome%20Wifi%20—%20Bulb%20(RGBWW).groovy") {
         
         capability "Actuator"
-        capability "Color Control"
         capability "Color Temperature"
 		capability "Initialize"
         capability "Polling"
@@ -72,29 +71,6 @@ metadata {
 		capability "Sensor"
 		capability "Switch"
 		capability "Switch Level"
-
-        command "sendPreset",               ["number", "number"]       // 0 (off), 1-20 (other presets)
-        command "presetSevenColorDissolve", [ "number" ] // 0 - 100 (speed)
-        command "presetRedFade",            [ "number" ] // 0 - 100 (speed)
-        command "presetGreenFade",          [ "number" ] // 0 - 100 (speed)
-        command "presetBlueFade",           [ "number" ] // 0 - 100 (speed)
-        command "presetYellowFade",         [ "number" ] // 0 - 100 (speed)
-        command "presetCyanFade",           [ "number" ] // 0 - 100 (speed)
-        command "presetPurpleFade",         [ "number" ] // 0 - 100 (speed)
-        command "presetWhiteFade",          [ "number" ] // 0 - 100 (speed)
-        command "presetRedGreenDissolve",   [ "number" ] // 0 - 100 (speed)
-        command "presetRedBlueDissolve",    [ "number" ] // 0 - 100 (speed)
-        command "presetGreenBlueDissolve",  [ "number" ] // 0 - 100 (speed)
-        command "presetSevenColorStrobe",   [ "number" ] // 0 - 100 (speed)
-        command "presetRedStrobe",          [ "number" ] // 0 - 100 (speed)
-        command "presetGreenStrobe",        [ "number" ] // 0 - 100 (speed)
-        command "presetBlueStrobe",         [ "number" ] // 0 - 100 (speed)
-        command "presetYellowStrobe",       [ "number" ] // 0 - 100 (speed)
-        command "presetCyanStrobe",         [ "number" ] // 0 - 100 (speed)
-        command "presetPurpleStrobe",       [ "number" ] // 0 - 100 (speed)
-        command "presetWhiteStrobe",        [ "number" ] // 0 - 100 (speed)
-        command "presetSevenColorJump",     [ "number" ] // 0 - 100 (speed)
-
     }
     
     preferences {  
