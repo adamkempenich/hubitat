@@ -61,7 +61,7 @@ metadata {
         name: "MagicHome Wifi — Controller (RGB + WW/CW CCT)", 
         namespace: "MagicHome", 
         author: "Adam Kempenich",
-		importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/MagicHome/MagicHome%20Wifi%20—%20Controller%20(RGBWW).groovy" {
+		importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/MagicHome/MagicHome%20Wifi%20—%20Controller%20(RGBWW).groovy") {
         
         capability "Actuator"
         capability "Color Control"
@@ -200,8 +200,10 @@ def setColdWhiteLevel(coldWhiteLevel){
 def setColor( parameters ){
    
     // Register that presets are disabled
-    sendEvent( name: "currentPreset", value: 0 )
-	sendEvent(name: "colorMode", value: "RGB")
+    sendEvent(name: "currentPreset", value: 0)
+	sendEvent(name: "hue", value: parameters.hue)
+	sendEvent(name: "saturation", value: parameters.saturation)
+	sendEvent(name: "level", value: parameters.level)
 	powerOnWithChanges()
 
     if( parameters.hue == 100 ) {
