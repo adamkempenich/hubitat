@@ -8,7 +8,7 @@ metadata {
         name: "MagicHome Universal Debug", 
         namespace: "Development", 
         author: "Adam Kempenich",
-        importURL: "") {
+        importURL: "https://github.com/adamkempenich/hubitat/raw/master/Drivers/MagicHome/MagicHome-Universal-Debug.groovy") {
         
 		capability "Switch"
 		capability "Initialize"
