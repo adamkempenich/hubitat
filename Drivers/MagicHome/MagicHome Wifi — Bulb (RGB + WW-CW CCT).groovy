@@ -1,5 +1,5 @@
 /**
-*  MagicHome Wifi - Bulb (RGB + WW/CW CCT) 0.85
+*  MagicHome Wifi - Bulb (RGB + WW/CW CCT) 0.86
 *
 *  Author: 
 *    Adam Kempenich 
@@ -7,6 +7,9 @@
 *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
 *
 *  Changelog:
+*
+*	0.86 (April 14 2019)
+*		- Fixed parse()
 *
 *	0.85 (April 12 2019)
 *		- Simplified most of the code
@@ -446,10 +449,14 @@ def parse( response ) {
 		case 4:
 			logDebug( "Received power-status packet of ${response}" )
 			if( responseArray[2] == 35 ){
-				sendEvent(name: "switch", value: "on")
+				if(device.currentValue("switch") != "on"){
+					sendEvent(name: "switch", value: "on")
+				}
 			}
 			else{
-				sendEvent(name: "switch", value: "off")
+				if(device.currentValue("switch") != "off"){
+					sendEvent(name: "switch", value: "off")
+				}
 			}
 			break;
 		
@@ -457,46 +464,15 @@ def parse( response ) {
 			logDebug( "Received general-status packet of ${response}" )
 		
 			if( responseArray[2] == 35 ){
-				sendEvent(name: "switch", value: "on")
+				if(device.currentValue("switch") != "on"){
+					sendEvent(name: "switch", value: "on")
+				}
 			}
 			else{
-				sendEvent(name: "switch", value: "off")
+				if(device.currentValue("switch") != "off"){
+					sendEvent(name: "switch", value: "off")
+				}
 			}
-			//def warmWhite = ( responseArray[ 9 ].toDouble() / 2.55 ).round()
-			//def coldWhite = ( responseArray[ 11 ].toDouble() / 2.55 ).round()
-			//hsvMap = rgbToHSV( responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ] )
-//
-		//
-			//if( (warmWhite + coldWhite) > 0) {
-			//	if((warmWhite + coldWhite) >= (device.currentValue("level") + 0.4) && (warmWhite + coldWhite) <= (device.currentValue("level") - 0.4)){
-			//		sendEvent(name: "level", value: warmWhite + coldWhite )
-			//	}
-//
-			//	// Only change the CT if it's not close to the returned value
-			//	// and only change it if the device's value isn't going to lose the data.
-			//	// Since going below 5 won't retain the CT accurately
-			//	if(device.currentValue('warmWhiteLevel' ) >= (warmWhite + 0.4) && device.currentValue('warmWhiteLevel' ) <= (warmWhite - 0.4)  && device.currentValue('coldWhiteLevel' ) >= (coldWhite + 0.4) && device.currentValue('coldWhiteLevel' ) <= (coldWhite - 0.4) && (warmWhite + coldWhite) > 5){
-			//		setTemp = settings.deviceCWTemperature - (( settings.deviceCWTemperature - settings.deviceWWTemperature ) * ( warmWhite / 100 ))
-			//		device.currentValue( 'colorTemperature' ) != setTemp.toInteger() ? sendEvent(name: "colorTemperature", value: setTemp.toInteger()) : null
-			//	}
-			//	if(device.currentValue('warmWhiteLevel' ) >= (warmWhite + 0.4) && device.currentValue('warmWhiteLevel' ) <= (warmWhite - 0.4)){
-			//		sendEvent(name: "warmWhiteLevel", value: warmWhite)
-			//	}
-			//	if(device.currentValue('coldWhiteLevel' ) >= (coldWhite + 0.4) && device.currentValue('coldWhiteLevel' ) <= (coldWhite - 0.4)){
-			//		sendEvent(name: "coldWhiteLevel", value: coldWhite)
-			//	}
-			//} 
-			//else{
-			//	// Or, set the color
-			//	device.currentValue( 'colorMode' ) != 'RGB' ? sendEvent(name: "colorMode", value: "RGB") : null
-			//	device.currentValue( 'warmWhiteLevel' ) != 0 ? sendEvent(name: "warmWhiteLevel", value: 0) : null
-			//	device.currentValue( 'coldWhiteLevel' ) != 0 ? sendEvent(name: "coldWhiteLevel", value: 0) : null
-			//	if(level > 5){
-			//	device.currentValue( 'hue' ) >= (hsvMap.hue + 0.4) && device.currentValue( 'hue' ) <= (hsvMap.hue - 0.4) ? sendEvent(name: "hue", value: hsvMap.hue) : null
-			//	device.currentValue( 'saturation' ) >= (hsvMap.saturation + 0.4) && device.currentValue( 'saturation' ) <= (hsvMap.saturation - 0.4) ? sendEvent(name: "saturation", value: hsvMap.saturation) : null
-			//	}
-			//device.currentValue( 'level' ) >= (hsvMap.value + 0.4) && device.currentValue( 'level' ) <= (hsvMap.value - 0.4) ? sendEvent(name: "level", value: hsvMap.value) : null
-			//}
 			break;
 		
 		case null:
