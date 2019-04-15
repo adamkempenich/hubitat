@@ -1,5 +1,5 @@
 /**
-*  MagicHome Wifi - Bulb (RGB + W) 0.85
+*  MagicHome Wifi - Bulb (RGB + W) 0.86
 *
 *  Author: 
 *    Adam Kempenich 
@@ -7,6 +7,9 @@
 *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
 *
 *  Changelog:
+*
+*	0.86 (April 14 2019)
+*		- Fixed parse()
 *
 *	0.85 (April 12 2019)
 *		- Simplified most of the code
