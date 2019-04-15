@@ -1,5 +1,5 @@
 /**
-*  MagicHome Wifi - Controller (RGB + W) 0.85
+*  MagicHome Wifi - Controller (RGB + W) 0.86
 *
 *  Author: 
 *    Adam Kempenich 
@@ -7,6 +7,9 @@
 *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
 *
 *  Changelog:
+*
+*	0.86 (April 14 2019)
+*		- Fixed parse()
 *
 *	0.85 (April 12 2019)
 *		- Simplified most of the code
@@ -350,10 +353,14 @@ def parse( response ) {
 		case 4:
 			logDebug( "Received power-status packet of ${response}" )
 			if( responseArray[2] == 35 ){
-				sendEvent(name: "switch", value: "on")
+				if(device.currentValue("switch") != "on"){
+					sendEvent(name: "switch", value: "on")
+				}
 			}
 			else{
-				sendEvent(name: "switch", value: "off")
+				if(device.currentValue("switch") != "off"){
+					sendEvent(name: "switch", value: "off")
+				}
 			}
 			break;
 		
@@ -361,19 +368,25 @@ def parse( response ) {
 			logDebug( "Received general-status packet of ${response}" )
 		
 			if( responseArray[2] == 35 ){
-				sendEvent(name: "switch", value: "on")
+				if(device.currentValue("switch") != "on"){
+					sendEvent(name: "switch", value: "on")
+				}
 			}
 			else{
-				sendEvent(name: "switch", value: "off")
+				if(device.currentValue("switch") != "off"){
+					sendEvent(name: "switch", value: "off")
+				}
 			}
-		break;	
-	case null:
+			break;
+		
+		case null:
 			logDebug "No response received from device"
 			initialize()
-			break;	
-	default:
-		logDebug "Received a response with an unexpected length of ${responseArray.length} containing ${response}"
-		break;
+			break;
+		
+		default:
+			logDebug "Received a response with an unexpected length of ${responseArray.length} containing ${response}"
+			break;
 	}
 }
 
