@@ -10,7 +10,6 @@
  *  Changelog:
  *	  0.91 (Mar 17 2019)
  * 		- Added child devices for external and magnetic contact
- *		- 
  *
  *    0.9 (Jan 24 2019)
  *      - Initial Release
@@ -33,4 +32,3 @@ definition (name: "Zipato Z-Wave Contact Multi Sensor Child", namespace: "zipato
         capability "Contact Sensor"
 	}
 }
-
