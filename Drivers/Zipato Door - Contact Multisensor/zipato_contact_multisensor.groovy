@@ -31,7 +31,8 @@ metadata {
 	definition (
 		name: "Zipato Z-Wave Contact Multi Sensor", 
 		namespace: "zipato", 
-		author: "Adam Kempenich"
+		author: "Adam Kempenich",
+		importURL: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/Zipato%20Door%20-%20Contact%20Multisensor/zipato_contact_multisensor.groovy"
 	) { 
 		capability "Tamper Alert"
 		capability "Temperature Measurement"
