@@ -99,6 +99,15 @@ def on() {
     sendCommand(data)
 }
 
+def off() {
+    // Turn off the device
+
+    sendEvent(name: "switch", value: "off")
+    logDebug "Switch set to off" 
+    byte[] data = [0x71, 0x24, 0x0F, 0xA4]
+    sendCommand(data)
+}
+
 def setLevel(level) {
     // Set the brightness of a device (0-100)
 	level > 100 ? (level = 100) : null
