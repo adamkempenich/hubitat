@@ -1,5 +1,5 @@
 /**
- *  Zipato Z-Wave Contact Multi Sensor 0.9
+ *  Zipato Z-Wave Contact Multi Sensor 0.91
  *
  *  Author: 
  *    Adam Kempenich
@@ -8,8 +8,8 @@
  *    
  *
  *  Changelog:
- *    0.9.1 (Feb 06 2019)
- *      - Supplemental update w/ bug fixes
+ *	  0.91 (Mar 17 2019)
+ * 		- Added child devices for external and magnetic contact
  *
  *    0.9 (Jan 24 2019)
  *      - Initial Release
@@ -30,20 +30,20 @@
 metadata {
 	definition (
 		name: "Zipato Z-Wave Contact Multi Sensor", 
-		namespace: "adamkempenich", 
+		namespace: "zipato", 
 		author: "Adam Kempenich"
 	) { 
-		capability "Contact Sensor"
 		capability "Tamper Alert"
+		capability "Temperature Measurement"
+		capability "Configuration"
+		fingerprint deviceId: "0x4101", inClusters: "0x71,0x85,0x80,0x70,0x72,0x30,0x86,0x84,0x31", manufacturer: "015D", model: "F51C", prod: "0651", deviceJoinName: "Zipato Z-Wave Multi Sensor"
 		
-		fingerprint deviceId: "0x4482", inClusters: "0x71,0x85,0x80,0x70,0x72,0x30,0x86,0x84,0x31"
+		command "closeExternal"
+		command "openExternal"
+		command "openMagnetic"
+		command "closeMagnetic"
     }
 	preferences {
-		input "externalContact", "bool", 
-			title: "Use external contact instead of magnetic?", 
-			defaultValue: false, 
-			displayDuringSetup: true, 
-			required: false
 		input "debugOutput", "bool", 
 			title: "Enable debug logging?", 
 			defaultValue: true, 
@@ -52,64 +52,52 @@ metadata {
 	}
 }
 
-//@Field Map zwLibType = [
-//	0:"N/A",1:"Static Controller",2:"Controller",3:"Enhanced Slave",4:"Slave",5:"Installer",
-//	6:"Routing Slave",7:"Bridge Controller",8:"Device Under Test (DUT)",9:"N/A",10:"AV Remote",11:"AV Device"
-//]
+def installed() {
+        createChildDevices()
+        //response(refresh() + configure())
+}
+
+def uninstalled(){
+	deleteChildDevice("${device.deviceNetworkId}-external")
+	deleteChildDevice("${device.deviceNetworkId}-magnetic")
+}
+
+def configure(){
+	log.debug "Configuring..."
+    createChildDevices()
+
+}
+
+private void createChildDevices() {
+	// Add child devices
+ 
+	addChildDevice("Zipato Z-Wave Contact Multi Sensor Child", "${device.deviceNetworkId}-external", [isComponent: true, label: "${device.displayName}-external"])
+	addChildDevice("Zipato Z-Wave Contact Multi Sensor Child", "${device.deviceNetworkId}-magnetic", [isComponent: true, label: "${device.displayName}-magnetic"])
+}
 
 def parse(String description) {
 	//log.debug description
     def cmd = zwave.parse(description,[0x85:1,0x86:1])
-    if (cmd) {
+	log.debug "Received ${cmd}"
+	if (cmd) {
         zwaveEvent(cmd)
     }
 }
 
 //Z-Wave responses
-def zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {
-	log.info "VersionReport- zWaveLibraryType:${zwLibType.find{ it.key == cmd.zWaveLibraryType }.value}"
-	log.info "VersionReport- zWaveProtocolVersion:${cmd.zWaveProtocolVersion}.${cmd.zWaveProtocolSubVersion}"
-	log.info "VersionReport- applicationVersion:${cmd.applicationVersion}.${cmd.applicationSubVersion}"
-}
-
-def zwaveEvent(hubitat.zwave.commands.associationv1.AssociationReport cmd) {
-    log.info "AssociationReport- groupingIdentifier:${cmd.groupingIdentifier}, maxNodesSupported:${cmd.maxNodesSupported}, nodes:${cmd.nodeId}"
-}
-
-def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
-    log.info "ConfigurationReport- parameterNumber:${cmd.parameterNumber}, size:${cmd.size}, value:${cmd.scaledConfigurationValue}"
-}
-
-def zwaveEvent(hubitat.zwave.commands.versionv1.VersionCommandClassReport cmd) {
-    log.info "CommandClassReport- class:${ "0x${intToHexStr(cmd.requestedCommandClass)}" }, version:${cmd.commandClassVersion}"		
-}	
-
-def zwaveEvent(hubitat.zwave.commands.securityv1.SecurityMessageEncapsulation cmd) {
-    def encapCmd = cmd.encapsulatedCommand()
-    def result = []
-    if (encapCmd) {
-		result += zwaveEvent(encapCmd)
-    } else {
-        log.warn "Unable to extract encapsulated cmd from ${cmd}"
-    }
-    return result
-}
-
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
-	if ( !settings.externalContact) {
-		// Only assign contact if the magnetic contact is set to be used
-		
-		if ( cmd.value == 0 ) {
-			logDebug("Magnetic contact closed")
-			sendEvent(name: "contact", value: "closed")
-		}
-		else if( cmd.value == 255 ) {
-			logDebug("Magnetic contact opened")
-			sendEvent(name: "contact", value: "open")
-		}
-		else{
-			logDebug("Unexpected result of ${cmd.value} returned")
-		}
+	// Assign child magnetic-contact
+
+	if ( cmd.value == 0 ) {
+		logDebug("Magnetic contact closed")
+		closeMagnetic()
+	}
+	else if( cmd.value == 255 ) {
+		logDebug("Magnetic contact opened")
+		openMagnetic()
+	}
+	else{
+		logDebug("Unexpected result of ${cmd.value} returned")
 	}
 }
 
@@ -131,23 +119,20 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd){
 		}
 	}
 	else if ( cmd.v1AlarmType == 2 ) {
-		// External Contact Report
+		// Assign child external-contact
 		
 		logDebug("Alarm Type is 2")
-		if ( settings.externalContact ) {
-			// Only assign contact if external contact is desired
-			
-			if ( cmd.v1AlarmLevel == 0 ) {
-				logDebug("External contact closed")
-				sendEvent(name: "contact", value: "closed")
-			}
-			else if( cmd.v1AlarmLevel == 255 ) {
-				logDebug("External ontact opened")
-				sendEvent(name: "contact", value: "open")
-			}
-			else {
-				logDebug("Alarm type is ${cmd.v1AlarmType}")
-			}	
+
+		if ( cmd.v1AlarmLevel == 0 ) {
+			logDebug("External contact closed")
+			closeExternal()
+		}
+		else if( cmd.v1AlarmLevel == 255 ) {
+			logDebug("External ontact opened")
+			openExternal()
+		}
+		else {
+			logDebug("Alarm type is ${cmd.v1AlarmType}")
 		}
 	}
 	else {
@@ -156,6 +141,30 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd){
 	
 
 	
+}
+
+def openExternal(){
+	def children = childDevices
+	def childDevice = children.find{it.deviceNetworkId.endsWith("-external")}
+	childDevice.sendEvent(name: "contact", value: "open")
+}
+
+def closeExternal(){
+	def children = childDevices
+	def childDevice = children.find{it.deviceNetworkId.endsWith("-external")}
+	childDevice.sendEvent(name: "contact", value: "closed")
+}
+
+def openMagnetic(){
+	def children = childDevices
+	def childDevice = children.find{it.deviceNetworkId.endsWith("-magnetic")}
+	childDevice.sendEvent(name: "contact", value: "open")
+}
+
+def closeMagnetic(){
+	def children = childDevices
+	def childDevice = children.find{it.deviceNetworkId.endsWith("-magnetic")}
+	childDevice.sendEvent(name: "contact", value: "closed")
 }
 
 def zwaveEvent(hubitat.zwave.Command cmd) {
@@ -211,9 +220,33 @@ def getCommandClassReport(){
     return delayBetween(cmds,500)
 }
 
-def installed(){}
+private handleTemperatureEvent(cmd) {
+	def result = []
+	//def cmdScale = cmd.scale == 1 ? "F" : "C"
+	def cmdScale = "F"
+	
+	def val = convertTemperatureIfNeeded(cmd.scaledSensorValue, cmdScale, cmd.precision)	
+	if ("$val".endsWith(".")) {
+		val = safeToInt("${val}"[0..-2])
+	}
+			
+	result << createEvent(createEventMap("temperature", val, null, "Temperature ${val}°${getTemperatureScale()}", getTemperatureScale()))
+	return result
+}
 
-def configure() {}
+def zwaveEvent(hubitat.zwave.commands.sensormultilevelv5.SensorMultilevelReport cmd) {
+	logTrace "SensorMultilevelReport: ${cmd}"
+	sendLastCheckinEvent()
+	
+	def result = []
+	if (cmd.sensorType == tempSensorType) {
+		result += handleTemperatureEvent(cmd)
+	}
+	else {
+		logDebug "Unknown Sensor Type: ${cmd}"
+	} 
+	return result
+}
 
 def updated() {}
 
