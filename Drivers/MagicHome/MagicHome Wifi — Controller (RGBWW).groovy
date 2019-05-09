@@ -7,7 +7,7 @@
 *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
 *
 *  Changelog:
-*   0.87 (April 20 2019)
+*   0.87 (May 9 2019)
 *       - Added a telnet/socket option. 
 *	- Reworked entire initialization routine for better keepAlive
 *
