@@ -7,9 +7,13 @@
 *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
 *
 *  Changelog:
-*   0.87 (May 9 2019)
-*       - Added a telnet/socket option. 
-*	- Reworked entire initialization routine for better keepAlive
+*	0.87 (May 16, 2019)
+*		- Added an option for telnet/socket
+*		- If you are on firmware before 2.1, use TELNET (does not support parse)
+*		- ---> Otherwise, use SOCKET (supports parse) <----
+*		- Greatly improved scheduling
+*		- Started adding some features back in. Fully tested before release.
+*		- Changed powerOnWithChanges to enablePreStaging — this matches Hubitat's vernacular
 *
 *	0.86 (April 14 2019)
 *		- Fixed parse()
@@ -56,7 +60,6 @@
 *  for the specific language governing permissions and limitations under the License.
 *
 */
-
 
 import hubitat.helper.HexUtils
 import hubitat.device.HubAction
@@ -115,7 +118,7 @@ metadata {
     preferences {  
         input "deviceIP", "text", title: "Server", description: "Device IP (e.g. 192.168.1.X)", required: true, defaultValue: "192.168.1.X"
         input "devicePort", "number", title: "Port", description: "Device Port (Default: 5577)", required: true, defaultValue: 5577
-        input "useTelnet", "bool", title: "Use Telnet?", description: "Telnet - true, socket - false", required: true, defaultValue: true
+		input "useTelnet", "bool", title: "Use Telnet?", description: "Telnet - On, Socket - Off", required: true, defaultValue: false
 		
         input(name:"logDebug", type:"bool", title: "Log debug information?",
               description: "Logs raw data for debugging. (Default: Off)", defaultValue: false,
@@ -123,13 +126,16 @@ metadata {
          input(name:"logDescriptionText", type:"bool", title: "Log descriptionText?",
               description: "Logs when things happen. (Default: On)", defaultValue: true,
               required: true, displayDuringSetup: true)
-
-        
-        input(name:"powerOnWithChanges", type:"bool", title: "Turn on this light when values change?",
-              defaultValue: true, required: true, displayDuringSetup: true)
 		
-		input(name:"refreshTime", type:"number", title: "Time to refresh (seconds)",
-            description: "Interval between refreshing a device for its current value. Default: 60. Recommended: Under 200", defaultValue: 60,
+		input(name:"turnOffWhenDisconnected", type:"bool", title: "Turn off when disconnected?",
+              description: "When a device is unreachable, turn its state off. in Hubitat", defaultValue: true,
+              required: true, displayDuringSetup: true)
+
+        input(name:"enablePreStaging", type:"bool", title: "Enable Color Pre-Staging?",
+              defaultValue: false, required: true, displayDuringSetup: true)
+		
+		input(name:"refreshTime", type:"number", title: "Time to refresh (0-60 seconds)",
+            description: "Interval between refreshing a device for its current value. Default: 40. Use less than 60.", defaultValue: 40,
             required: true, displayDuringSetup: true)
 
         input(name:"deviceWWTemperature", type:"number", title: "Warm White rating of this light",
@@ -139,6 +145,7 @@ metadata {
         input(name:"deviceCWTemperature", type:"number", title: "Cold White Rating of this light",
             description: "Temp in K (default 6500) <style>#tileContainter-presetBlueFade-4:hover{ animation: presetBlue-fade 3s infinite } @keyframes presetBlue-fade { 0% { color: blue } 50% { color: black } 100% { color: blue } } #tileContainter-presetBlueStrobe-5:hover{ animation: presetBlue-strobe 3s infinite } @keyframes presetBlue-strobe { 0% { color: blue } 49% { color: blue } 50% { color: black } 100% { color: black } } #tileContainter-presetCyanFade-6:hover{ animation: presetCyan-fade 3s infinite } @keyframes presetCyan-fade { 0% { color: cyan } 50% { color: black } 100% { color: cyan } } #tileContainter-presetCyanStrobe-7:hover{ animation: presetCyan-strobe 3s infinite } @keyframes presetCyan-strobe { 0% { color: cyan } 25% { color: cyan } 26% { color: black } 100% { color: black } } #tileContainter-presetGreenBlueDissolve-8:hover{ animation: presetGreenBlue-dissolve 3s infinite } @keyframes presetGreenBlue-dissolve { 0% { color: green } 50% { color: blue } 100% { color: green } } #tileContainter-presetGreenFade-9:hover{ animation: presetGreen-fade 3s infinite } @keyframes presetGreen-fade { 0% { color: green } 50% { color: black } 100% { color: green } } #tileContainter-presetGreenStrobe-10:hover{ animation: presetGreen-strobe 3s infinite } @keyframes presetGreen-strobe { 0% { color: green } 25% { color: green } 26% { color: black } 100% { color: black } } #tileContainter-presetPurpleFade-11:hover{ animation: presetPurple-fade 3s infinite } @keyframes presetPurple-fade { 0% { color: purple } 50% { color: black } 100% { color: purple } } #tileContainter-presetPurpleStrobe-12:hover{ animation: presetPurple-strobe 3s infinite } @keyframes presetPurple-strobe { 0% { color: purple } 25% { color: purple } 26% { color: black } 100% { color: black } } #tileContainter-presetRedBlueDissolve-13:hover{ animation: presetRedBlue-dissolve 3s infinite } @keyframes presetRedBlue-dissolve { 0% { color: red } 50% { color: blue } 100% { color: red } } #tileContainter-presetRedFade-14:hover{ animation: presetRed-fade 3s infinite } @keyframes presetRed-fade { 0% { color: red } 50% { color: black } 100% { color: red } } #tileContainter-presetRedGreenDissolve-15:hover{ animation: presetRedGreen-dissolve 3s infinite } @keyframes presetRedGreen-dissolve { 0% { color: red } 50% { color: green } 100% { color: red } } #tileContainter-presetRedStrobe-16:hover{ animation: presetRed-strobe 3s infinite } @keyframes presetRed-strobe { 0% { color: red } 25% { color: red } 26% { color: black } 100% { color: black } } #tileContainter-presetSevenColorDissolve-17:hover{ animation: presetSevenColor-dissolve 3s infinite } @keyframes presetSevenColor-dissolve { 0% { color: red } 12.5% { color: orange } 25% { color: yellow } 37.5% { color: green } 50% { color: blue } 62.5% { color: indigo } 75% { color: violet } 87.5% { color: white } 100% { color: red } } #tileContainter-presetSevenColorJump-18:hover{ animation: presetSevenColor-jump 3s infinite } @keyframes presetSevenColor-jump { 0% { color: red } 12% { color: red } 12.5% { color: orange } 24% { color: orange } 25% { color: yellow } 37% { color: yellow } 37.5% { color: green } 49% { color: green } 50% { color: blue } 62% { color: blue } 62.5% { color: indigo } 74% { color: indigo } 75% { color: violet } 87% { color: violet } 87.5% { color: white } 99% { color: white } 100% { color: red } } #tileContainter-presetSevenColorStrobe-19:hover{ animation: presetSevenColor-strobe 3s infinite } @keyframes presetSevenColor-strobe {  0% { color: black } 11% { color: black }  12% { color: red } 16% { color: red }  17% { color: black } 30% { color: black }  31% { color: orange } 38% { color: orange }  39% { color: black } 49% { color: black }  50% { color: yellow } 62% { color: yellow }  63% { color: black } 70% { color: black }  71% { color: green } 79% { color: green }  80% { color: black } 88% { color: black }  89% { color: blue } 99% { color: blue }  99% { color: black } } #tileContainter-presetWhiteFade-20:hover{ animation: presetWhite-fade 3s infinite } @keyframes presetWhite-fade { 0% { color: White } 50% { color: black } 100% { color: White } } #tileContainter-presetWhiteStrobe-21:hover{ animation: presetWhite-strobe 3s infinite } @keyframes presetWhite-strobe { 0% { color: White } 49% { color: White } 50% { color: black } 100% { color: black } } #tileContainter-presetYellowFade-22:hover{ animation: presetYellow-fade 3s infinite } @keyframes presetYellow-fade { 0% { color: Yellow } 50% { color: black } 100% { color: Yellow } } #tileContainter-presetYellowStrobe-23:hover{ animation: presetYellow-strobe 3s infinite } @keyframes presetYellow-strobe { 0% { color: Yellow } 49% { color: Yellow } 50% { color: black } 100% { color: black } } </style>", defaultValue: 6500,
             required: true, displayDuringSetup: true)
+		
     }
 }
 
@@ -161,9 +168,9 @@ def off() {
 }
 
 def setHue(hue){
-    // Set the hue of a device ( 0-100) 
+    // Set the hue of a device ( 0 - 101 ) 
 
-    hue > 99 ? (hue = 99) : null
+	hue = limit( hue, 0, 101 )
     sendEvent(name: "hue", value: hue )
 	logDebug "Hue set to ${hue}"
 	    
@@ -173,7 +180,7 @@ def setHue(hue){
 def setSaturation(saturation){
     // Set the saturation of a device (0-100)
 
-	saturation > 100 ? (saturation = 100) : null
+	saturation = limit( saturation )
     sendEvent(name: "saturation", value: saturation)
     logDebug "Saturation set to ${saturation}"
     
@@ -182,7 +189,7 @@ def setSaturation(saturation){
 
 def setLevel(level) {
     // Set the brightness of a device (0-100)
-	level > 100 ? (level = 100) : null
+	level = limit( level, 0, 99 )
     sendEvent(name: "level", value: level)
     logDebug "Level set to ${level}"
     
@@ -192,7 +199,7 @@ def setLevel(level) {
 def setWarmWhiteLevel(warmWhiteLevel){
     // Set the warm white level of a device (0-100)
 
-	warmWhiteLevel > 100 ? (warmWhiteLevel = 100) : null
+	warmWhiteLevel = limit( warmWhiteLevel )
 	sendEvent(name: "warmWhiteLevel", value: warmWhiteLevel)
 	logDebug "Warm White Level set to ${warmWhiteLevel}"
     
@@ -203,7 +210,7 @@ def setWarmWhiteLevel(warmWhiteLevel){
 def setColdWhiteLevel(coldWhiteLevel){
     // Set the cold white level of a device (0-100)
 
-	coldWhiteLevel > 100 ? (coldWhiteLevel = 100) : null
+	coldWhiteLevel = limit( coldWhiteLevel )
     sendEvent(name: "coldWhiteLevel", value: coldWhiteLevel)
 	logDebug "Cold White Level set to ${coldWhiteLevel}"
     setColor(hue:101, saturation: device.currentValue("saturation"), level: device.currentValue("level"))
@@ -213,21 +220,21 @@ def setColor( parameters ){
    
     // Register that presets are disabled
     sendEvent(name: "currentPreset", value: 0)
-	sendEvent(name: "hue", value: parameters.hue)
-	sendEvent(name: "saturation", value: parameters.saturation)
-	sendEvent(name: "level", value: parameters.level)
+	sendEvent(name: "hue", value: limit( parameters.hue, 0, 101 ) )
+	sendEvent(name: "saturation", value: limit( parameters.saturation ) )
+	sendEvent(name: "level", value: limit( parameters.level, 0, 99 ) )
 
     if( parameters.hue == 100 ) {
         byte[] data1 =  appendChecksum( [ 0x31, 0, 0, 0, 0x00, 0x00, 0xf0, 0x0f ] ) 
         sendCommand( data1 ) 
-		pauseExecution(1000)
+		pauseExecution(300)
 		byte[] data2 = appendChecksum( [0x31, 0x00, 0x00, 0x00, parameters.level * 2.55, 0, 0x0f, 0x0f] )
 		sendCommand( data2 ) 
 	}
     else if( parameters.hue == 101 ) {
         byte[] data1 =  appendChecksum( [ 0x31, 0, 0, 0, 0x00, 0x00, 0xf0, 0x0f ] )
         sendCommand( data1 ) 
-		pauseExecution(1000)
+		pauseExecution(300)
 		byte[] data2 =  appendChecksum( [0x31, 0x00, 0x00, 0x00, 0, parameters.level * 2.55, 0x0f, 0x0f] )
 		sendCommand( data2 ) 
 	}
@@ -235,11 +242,11 @@ def setColor( parameters ){
 		rgbColors = hsvToRGB( parameters.hue, parameters.saturation, parameters.level )
         byte[] data1 = appendChecksum( [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0x00, 0xf0, 0x0f ] )  
         sendCommand( data1 ) 
-		pauseExecution(1000)
+		pauseExecution(300)
 		byte[] data2 = appendChecksum( [0x31, 0x00, 0x00, 0x00, 0, 0, 0x0f, 0x0f] )
 		sendCommand( data2 ) 
 	}
-	pauseExecution(1000)
+	pauseExecution(300)
 	powerOnWithChanges()
 }
 
@@ -264,10 +271,10 @@ def setColorTemperature( setTemp = device.currentValue("colorTemperature"), devi
 	
 	byte[] data1 = appendChecksum( [ 0x31, 0, 0, 0, 0x00, 0x00, 0xf0, 0x0f ] )
 	sendCommand( data1 )
-	pauseExecution(1000)
+	pauseExecution(300)
 	byte[] data2 = appendChecksum( [0x31, 0x00, 0x00, 0x00, brightnessWW * 2.55, brightnessCW * 2.55, 0x0f, 0x0f] )
 	sendCommand( data2 )
-	pauseExecution(1000)
+	pauseExecution(300)
 	powerOnWithChanges()
 }
 
@@ -362,7 +369,7 @@ def presetSevenColorJump( speed = 100 ){
 def powerOnWithChanges( ){
     // If the device is off and light settings change, turn it on (if user settings apply)
 
-        settings.powerOnWithChanges ? ( device.currentValue("status") != "on" ? on() : null ) : null
+        settings.enablePreStaging ? null : ( device.currentValue("status") != "on" ? on() : null )
 }
 
 def invertLinearValue( neutralValue, value1, value2 ){
@@ -433,6 +440,23 @@ def hsvToRGB(float conversionHue = 0, float conversionSaturation = 100, float co
     else           { rgbMap = [red: 0, green: 0, blue: 0] }
 
     return rgbMap
+}
+
+def limit( value, lowerBound = 0, upperBound = 100 ){
+    // Takes a value and ensures it's between two defined thresholds
+
+    value == null ? value = upperBound : null
+
+    if(lowerBound < upperBound){
+        if(value < lowerBound ){ value = lowerBound}
+        if(value > upperBound){ value = upperBound}
+    }
+    else if(upperBound < lowerBound){
+        if(value < upperBound){ value = upperBound}
+        if(value > lowerBound ){ value = lowerBound}
+    }
+
+    return value
 }
 
 def calculateChecksum( data ){
@@ -529,7 +553,7 @@ def sendCommand( data ) {
 def refresh( ) {
 	
 	state.noResponse++
-    state.noResponse >= 3 ? ( initialize() ) : null // if a device hasn't responded twice, reconnect
+    state.noResponse >= 2 ? ( initialize() ) : null // if a device hasn't responded twice, reconnect
 	
     byte[] data =  [0x81, 0x8A, 0x8B, 0x96 ]
     sendCommand(data)
@@ -577,7 +601,7 @@ def connectDevice( data ){
         } catch(e) {
             logDebug("Error attempting to establish TCP connection to device.")
             logDebug("Next initialization attempt in 10 seconds.")
-            sendEvent(name: "switch", value: "off") // If we didn't hear back, the device is likely physically powered off
+			settings.turnOffWhenDisconnected ? sendEvent(name: "switch", value: "off")  : null
 			tryWasGood = false
         }
     }
@@ -591,7 +615,7 @@ def connectDevice( data ){
         } catch(e) {
             logDebug("Error attempting to establish TCP connection to device.")
             logDebug("Next initialization attempt in 10 seconds.")
-            sendEvent(name: "switch", value: "off") // If we didn't hear back, the device is likely physically powered off
+			settings.turnOffWhenDisconnected ? sendEvent(name: "switch", value: "off")  : null
 			tryWasGood = false
         }
     }
@@ -618,3 +642,4 @@ def installed(){
 	sendEvent(name: "switch", value: "off")
     state.noResponse = 0
 }
+
