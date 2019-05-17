@@ -9,7 +9,7 @@
 *  Changelog:
 *	0.87 (May 16, 2019)
 *		- Added an option for telnet/socket
-*		- If you are on firmware before 1.110, use TELNET (does not support parse)
+*		- If you are on firmware before 2.1, use TELNET (does not support parse)
 *		- ---> Otherwise, use SOCKET (supports parse) <----
 *		- Greatly improved scheduling
 *		- Started adding some features back in. Fully tested before release.
