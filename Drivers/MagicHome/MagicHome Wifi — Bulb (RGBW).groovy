@@ -15,8 +15,8 @@
 *		- Started adding some features back in. Fully tested before release.
 *		- Changed powerOnWithChanges to enablePreStaging — this matches Hubitat's vernacular
 *
-*	0.86 (Supplemental)
-*		- Hotfix
+*	0.86 (April 14 2019)
+*		- Fixed parse()
 *
 *	0.85 (April 12 2019)
 *		- Simplified most of the code
@@ -117,7 +117,14 @@ metadata {
         input(name:"logDebug", type:"bool", title: "Log debug information?",
               description: "Logs raw data for debugging. (Default: Off)", defaultValue: false,
               required: false, displayDuringSetup: true)
-        
+        input(name:"logDescriptionText", type:"bool", title: "Log descriptionText?",
+              description: "Logs when things happen. (Default: On)", defaultValue: true,
+              required: true, displayDuringSetup: true)
+		
+		input(name:"turnOffWhenDisconnected", type:"bool", title: "Turn off when disconnected?",
+              description: "When a device is unreachable, turn its state off. in Hubitat", defaultValue: true,
+              required: true, displayDuringSetup: true)
+		
         input(name:"enablePreStaging", type:"bool", title: "Enable Color Pre-Staging?",
               defaultValue: false, required: true, displayDuringSetup: true)
 
@@ -519,7 +526,7 @@ def connectDevice( data ){
         } catch(e) {
             logDebug("Error attempting to establish TCP connection to device.")
             logDebug("Next initialization attempt in 10 seconds.")
-            sendEvent(name: "switch", value: "off") // If we didn't hear back, the device is likely physically powered off
+			settings.turnOffWhenDisconnected ? sendEvent(name: "switch", value: "off")  : null // If we didn't hear back, the device is likely physically powered off
 			tryWasGood = false
         }
     }
@@ -533,7 +540,7 @@ def connectDevice( data ){
         } catch(e) {
             logDebug("Error attempting to establish TCP connection to device.")
             logDebug("Next initialization attempt in 10 seconds.")
-            sendEvent(name: "switch", value: "off") // If we didn't hear back, the device is likely physically powered off
+			settings.turnOffWhenDisconnected ? sendEvent(name: "switch", value: "off")  : null // If we didn't hear back, the device is likely physically powered off
 			tryWasGood = false
         }
     }
