@@ -1,5 +1,5 @@
 /**
-*  MagicHome Wifi - Bulb (RGB + W) 0.86
+*  MagicHome Wifi - Bulb (RGB + W) 0.87
 *
 *  Author: 
 *    Adam Kempenich 
@@ -7,9 +7,16 @@
 *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
 *
 *  Changelog:
+*	0.87 (May 16, 2019)
+*		- Added an option for telnet/socket
+*		- If you are on firmware before 1.110, use TELNET (does not support parse)
+*		- ---> Otherwise, use SOCKET (supports parse) <----
+*		- Greatly improved scheduling
+*		- Started adding some features back in. Fully tested before release.
+*		- Changed powerOnWithChanges to enablePreStaging — this matches Hubitat's vernacular
 *
-*	0.86 (April 14 2019)
-*		- Fixed parse()
+*	0.86 (Supplemental)
+*		- Hotfix
 *
 *	0.85 (April 12 2019)
 *		- Simplified most of the code
@@ -103,15 +110,16 @@ metadata {
     }
     
     preferences {  
-        input "deviceIP", "text", title: "Server", description: "Device IP (e.g. 192.168.1.X)", required: true, defaultValue: "192.168.1.X"
+        input "deviceIP", "text", title: "Device IP", description: "Device IP (e.g. 192.168.1.X)", required: true, defaultValue: "192.168.1.X"
         input "devicePort", "number", title: "Port", description: "Device Port (Default: 5577)", required: true, defaultValue: 5577
-
+		input "useTelnet", "bool", title: "Use Telnet?", description: "Telnet - On, Socket - Off", required: true, defaultValue: false
+		
         input(name:"logDebug", type:"bool", title: "Log debug information?",
               description: "Logs raw data for debugging. (Default: Off)", defaultValue: false,
               required: false, displayDuringSetup: true)
         
-        input(name:"powerOnWithChanges", type:"bool", title: "Turn on this light when values change?",
-              defaultValue: true, required: true, displayDuringSetup: true)
+        input(name:"enablePreStaging", type:"bool", title: "Enable Color Pre-Staging?",
+              defaultValue: false, required: true, displayDuringSetup: true)
 
 		input(name:"refreshTime", type:"number", title: "Time to refresh (seconds)",
             description: "Interval between refreshing a device for its current value. Default: 60. Recommended: Under 200", defaultValue: 60,
@@ -139,7 +147,7 @@ def off() {
 def setHue(hue){
     // Set the hue of a device ( 0-100) 
 
-    hue > 99 ? (hue = 99) : null
+	hue = limit( hue )
     sendEvent(name: "hue", value: hue )
 	logDebug "Hue set to ${hue}"
 	    
@@ -149,7 +157,7 @@ def setHue(hue){
 def setSaturation(saturation){
     // Set the saturation of a device (0-100)
 
-	saturation > 100 ? (saturation = 100) : null
+	saturation = limit( saturation )
     sendEvent(name: "saturation", value: saturation)
     logDebug "Saturation set to ${saturation}"
     
@@ -158,7 +166,7 @@ def setSaturation(saturation){
 
 def setLevel(level) {
     // Set the brightness of a device (0-100)
-	level > 100 ? (level = 100) : null
+	level = limit( level, 0, 99 )
     sendEvent(name: "level", value: level)
     logDebug "Level set to ${level}"
     
@@ -169,9 +177,9 @@ def setColor( parameters ){
    
     // Register that presets are disabled
     sendEvent(name: "currentPreset", value: 0)
-	sendEvent(name: "hue", value: parameters.hue)
-	sendEvent(name: "saturation", value: parameters.saturation)
-	sendEvent(name: "level", value: parameters.level)
+	sendEvent(name: "hue", value: limit( parameters.hue ))
+	sendEvent(name: "saturation", value: limit( parameters.saturation ))
+	sendEvent(name: "level", value: limit(parameters.level, 0, 99 ))
 	powerOnWithChanges()
 
     if( parameters.hue == 100 ) {
@@ -275,7 +283,7 @@ def presetSevenColorJump( speed = 100 ){
 def powerOnWithChanges( ){
     // If the device is off and light settings change, turn it on (if user settings apply)
 
-        settings.powerOnWithChanges ? ( device.currentValue("status") != "on" ? on() : null ) : null
+        settings.enablePreStaging ? null : ( device.currentValue("status") != "on" ? on() : null )
 }
 
 def hsvToRGB(float conversionHue = 0, float conversionSaturation = 100, float conversionValue = 100, resolution = "low"){
@@ -352,6 +360,23 @@ def rgbToHSV( r = 255, g = 255, b = 255, resolution = "low" ) {
     return [ hue: h, saturation: s, value: v ]
 }
 
+def limit( value, lowerBound = 0, upperBound = 100 ){
+    // Takes a value and ensures it's between two defined thresholds
+
+    value == null ? value = upperBound : null
+
+    if(lowerBound < upperBound){
+        if(value < lowerBound ){ value = lowerBound}
+        if(value > upperBound){ value = upperBound}
+    }
+    else if(upperBound < lowerBound){
+        if(value < upperBound){ value = upperBound}
+        if(value > lowerBound ){ value = lowerBound}
+    }
+
+    return value
+}
+
 def calculateChecksum( data ){
     // Totals an array of bytes
     
@@ -370,71 +395,98 @@ def appendChecksum( data ){
 
 def parse( response ) {
     // Parse data received back from this device
-	
-	unschedule()
-	//settings.refreshTime == null ? runIn(20, refresh) : runIn(settings.refreshTime, refresh)
-	runIn(20, refresh)
-	
-    def responseArray = HexUtils.hexStringToIntArray(response)	
-	switch(responseArray.length) {
-		case 4:
-			logDebug( "Received power-status packet of ${response}" )
-			if( responseArray[2] == 35 ){
-				sendEvent(name: "switch", value: "on")
-			}
-			else{
-				sendEvent(name: "switch", value: "off")
-			}
-			break;
-		
-		case 14:
-			logDebug( "Received general-status packet of ${response}" )
-		
-			if( responseArray[2] == 35 ){
-				sendEvent(name: "switch", value: "on")
-			}
-			else{
-				sendEvent(name: "switch", value: "off")
-			}
-		break;	
-	case null:
-			logDebug "No response received from device"
-			initialize()
-			break;	
-	default:
-		logDebug "Received a response with an unexpected length of ${responseArray.length} containing ${response}"
-		break;
-	}
+    
+    state.noResponse = 0    
+    
+    def responseArray = HexUtils.hexStringToIntArray(response)  
+    switch(responseArray.length) {
+        case 4:
+            logDebug( "Received power-status packet of ${response}" )
+            if( responseArray[2] == 35 ){
+                if(device.currentValue("switch") != "on"){
+                    sendEvent(name: "switch", value: "on")
+                }
+            }
+            else{
+                if(device.currentValue("switch") != "off"){
+                    sendEvent(name: "switch", value: "off")
+                }
+            }
+            break;
+        
+        case 14:
+            logDebug( "Received general-status packet of ${response}" )
+        
+            if( responseArray[2] == 35 ){
+                if(device.currentValue("switch") != "on"){
+                    sendEvent(name: "switch", value: "on")
+                }
+            }
+            else{
+                if(device.currentValue("switch") != "off"){
+                    sendEvent(name: "switch", value: "off")
+                }
+            }
+            break;
+        
+        case null:
+            logDebug "No response received from device"
+            initialize()
+            break;
+        
+        default:
+            logDebug "Received a response with an unexpected length of ${responseArray.length} containing ${response}"
+            break;
+    }
 }
 
 private logDebug( debugText ){
     // If debugging is enabled in settings, pass text to the logs
     
     if( settings.logDebug ) { 
+        log.debug "MagicHome (${settings.deviceIP}): ${debugText}"
+    }
+}
+
+private logDescriptionText( descriptionText ){
+    if( settings.logDescriptionText ) { 
         log.info "MagicHome (${settings.deviceIP}): ${debugText}"
     }
 }
 
 def sendCommand( data ) {
     // Sends commands to the device
-	unschedule()
-	runIn(60, initialize)
-
-
-	String stringBytes = HexUtils.byteArrayToHexString(data)
-	logDebug "${data} was converted. Transmitting: ${stringBytes}"
-	InterfaceUtils.sendSocketMessage(device, stringBytes)
+    
+    String stringBytes = HexUtils.byteArrayToHexString(data)
+    logDebug "${data} was converted. Transmitting: ${stringBytes}"
+    if(settings.useTelnet == false || settings.useTelnet == null){
+        InterfaceUtils.sendSocketMessage(device, stringBytes)
+    }
+    else{
+        def transmission = new HubAction(stringBytes, Protocol.TELNET)
+        sendHubCommand(transmission)
+    }
 }
 
 def refresh( ) {
+	
+	state.noResponse++
+    state.noResponse >= 2 ? ( initialize() ) : null // if a device hasn't responded twice, reconnect
+	
     byte[] data =  [0x81, 0x8A, 0x8B, 0x96 ]
     sendCommand(data)
 }
 
 def socketStatus( status ) { 
-	logDebug "socketStatus: ${status}"
-	logDebug "Attempting to reconnect in 10 seconds."
-	runIn(10, initialize)
+    logDebug "socketStatus: ${status}"
+    logDebug "Attempting to reconnect..."
+    initialize()
+    }
+
+def telnetStatus( status ) { 
+    logDebug "telnetStatus: ${status}"
+    logDebug "Attempting to reconnect..."
+    initialize()
 }
 
 def poll() {
@@ -445,25 +497,60 @@ def updated(){
     initialize()
 }
 
+def connectDevice( data ){
+
+    if(data.firstRun){
+        logDebug "Stopping refresh loop. Starting connectDevice loop"
+        unschedule() // remove the refresh loop
+        schedule("0/10 * * * * ? *", connectDevice, [data: [firstRun: false]])
+    }
+    
+    InterfaceUtils.socketClose(device)
+    telnetClose()
+    def tryWasGood = false
+    if(settings.useTelnet == false || settings.useTelnet == null){
+        try {
+            logDebug "Opening Socket Connection."
+            InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
+            pauseExecution(1000)
+            logDebug "Connection successfully established"
+			tryWasGood = true
+            
+        } catch(e) {
+            logDebug("Error attempting to establish TCP connection to device.")
+            logDebug("Next initialization attempt in 10 seconds.")
+            sendEvent(name: "switch", value: "off") // If we didn't hear back, the device is likely physically powered off
+			tryWasGood = false
+        }
+    }
+    else{
+        try {
+            logDebug "Opening Telnet Connection."
+            telnetConnect([byteInterface: true, termChars:[129]], "${settings.deviceIP}", settings.devicePort.toInteger(), null, null)
+            pauseExecution(1000)
+            logDebug "Connection successfully established" 
+			tryWasGood = true
+        } catch(e) {
+            logDebug("Error attempting to establish TCP connection to device.")
+            logDebug("Next initialization attempt in 10 seconds.")
+            sendEvent(name: "switch", value: "off") // If we didn't hear back, the device is likely physically powered off
+			tryWasGood = false
+        }
+    }
+	
+	if(tryWasGood){
+		unschedule()
+		logDebug "Starting refresh cron"
+		schedule("0/10 * * * * ? *", refresh)
+		state.noResponse = 0
+	}
+}
+
 def initialize() {
     // Establish a connection to the device
     
     logDebug "Initializing device."
-	
-	InterfaceUtils.socketClose(device)
-	unschedule()
-	try {
-		logDebug "Opening Socket Connection."
-		InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
-		pauseExecution(1000)
-		logDebug "Connection successfully established"
-	    runIn(1, refresh)
-	} catch(e) {
-		logDebug("Error attempting to establish TCP connection to device.")
-		logDebug("Next initialization attempt in 20 seconds.")
-		sendEvent(name: "switch", value: "off") // If we didn't hear back, the device is likely physically powered off
-		runIn(20, initialize)
-	}
+    connectDevice([firstRun: true])
 }
 
 def installed(){
@@ -471,5 +558,5 @@ def installed(){
 	sendEvent(name: "saturation", value: 100)
 	sendEvent(name: "level", value: 99)
 	sendEvent(name: "switch", value: "off")
-	sendEvent(name: "currentPreset", value: 0)
+    state.noResponse = 0
 }
