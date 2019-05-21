@@ -1,5 +1,5 @@
 /**
-*  MagicHome Wifi - Controller (Dimmable) 0.86
+*  MagicHome Wifi - Controller (Dimmable) 0.87
 *
 *  Author: 
 *    Adam Kempenich 
