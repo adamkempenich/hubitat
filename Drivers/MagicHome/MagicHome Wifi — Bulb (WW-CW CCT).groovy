@@ -1,5 +1,5 @@
 /**
-*  MagicHome Wifi - Bulb (WW/CW CCT) 0.87
+*  MagicHome Wifi - Bulb (WW/CW CCT) 0.85
 *
 *  Author: 
 *    Adam Kempenich 
@@ -71,7 +71,7 @@ metadata {
         name: "MagicHome Wifi — Bulb (WW/CW CCT)", 
         namespace: "MagicHome", 
         author: "Adam Kempenich",
-		importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/MagicHome/MagicHome%20Wifi%20—%20Bulb%20(RGBWW).groovy") {
+		importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/MagicHome/MagicHome%20Wifi%20—%20Bulb%20(WW-CW%20CCT).groovy") {
         
         capability "Actuator"
         capability "Color Temperature"
@@ -421,3 +421,4 @@ def installed(){
 	state.initializeLoopRunning = false
 	state.noResponse = 0
 }
+
