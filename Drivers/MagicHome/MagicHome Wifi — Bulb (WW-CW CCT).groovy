@@ -1,5 +1,5 @@
 /**
-*  MagicHome Wifi - Bulb (WW/CW CCT) 0.85
+*  MagicHome Wifi - Bulb (WW/CW CCT) 0.87
 *
 *  Author: 
 *    Adam Kempenich 
