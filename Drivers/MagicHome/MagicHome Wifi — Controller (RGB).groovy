@@ -1,5 +1,5 @@
 /**
-*  MagicHome Wifi - Controller (RGB) 0.87
+*  MagicHome Wifi - Controller (RGB) 0.88
 *
 *  Author: 
 *    Adam Kempenich 
@@ -7,6 +7,10 @@
 *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
 *
 *  Changelog:
+*	0.88 (June 12, 2019)
+*		- Added option for failed pings threshold 
+*		- Resolved issue with recursive loops and initializing devices
+*		
 *	0.87 (May 16, 2019)
 *		- Added an option for telnet/socket
 *		- If you are on firmware before 2.1, use TELNET (does not support parse)
@@ -124,12 +128,17 @@ metadata {
 		input(name:"turnOffWhenDisconnected", type:"bool", title: "Turn off when disconnected?",
               description: "When a device is unreachable, turn its state off. in Hubitat", defaultValue: true,
               required: true, displayDuringSetup: true)
+		
+		input(name:"reconnectPings", type:"number", title: "Reconnect after ...",
+            description: "Number of failed pings before reconnecting device.", defaultValue: 3,
+            required: true, displayDuringSetup: true)
+
 
         input(name:"enablePreStaging", type:"bool", title: "Enable Color Pre-Staging?",
               defaultValue: false, required: true, displayDuringSetup: true)
 
 		input(name:"refreshTime", type:"number", title: "Time to refresh (seconds)",
-            description: "Interval between refreshing a device for its current value. Default: 60. Recommended: Under 200", defaultValue: 60,
+            description: "Interval between refreshing a device for its current value. Default: 10. Use number between 0-60", defaultValue: 10,
             required: true, displayDuringSetup: true)
     }
 }
@@ -470,25 +479,23 @@ def sendCommand( data ) {
     }
 }
 
+
 def refresh( ) {
 	
+	logDebug "Number of failed responses: ${state.noResponse}"
 	state.noResponse++
-    state.noResponse >= 2 ? ( initialize() ) : null // if a device hasn't responded twice, reconnect
-	
+    state.noResponse >= settings.reconnectPings ? ( initialize() ) : null // if a device hasn't responded after N attempts, reconnect
     byte[] data =  [0x81, 0x8A, 0x8B, 0x96 ]
     sendCommand(data)
 }
-
 def socketStatus( status ) { 
     logDebug "socketStatus: ${status}"
-    logDebug "Attempting to reconnect..."
-    initialize()
+    logDebug "Attempting to reconnect after ${settings.reconnectPings-state.noResponse} failed attempts."
     }
 
 def telnetStatus( status ) { 
     logDebug "telnetStatus: ${status}"
-    logDebug "Attempting to reconnect..."
-    initialize()
+    logDebug "Attempting to reconnect after ${settings.reconnectPings-state.noResponse} failed attempts."
 }
 
 def poll() {
@@ -504,11 +511,16 @@ def connectDevice( data ){
     if(data.firstRun){
         logDebug "Stopping refresh loop. Starting connectDevice loop"
         unschedule() // remove the refresh loop
-        schedule("0/10 * * * * ? *", connectDevice, [data: [firstRun: false]])
+        schedule("0/${settings.refreshTime} * * * * ? *", connectDevice, [data: [firstRun: false]])
+        state.refreshRunning = false
+        log.debug("${state.refreshRunning}")
     }
     
     InterfaceUtils.socketClose(device)
     telnetClose()
+    
+    pauseExecution(4000)
+    
     def tryWasGood = false
     if(settings.useTelnet == false || settings.useTelnet == null){
         try {
@@ -519,8 +531,8 @@ def connectDevice( data ){
 			tryWasGood = true
             
         } catch(e) {
-            logDebug("Error attempting to establish TCP connection to device.")
-            logDebug("Next initialization attempt in 10 seconds.")
+            logDebug("Error attempting to establish socket connection to device.")
+            logDebug("Next initialization attempt in ${settings.refreshTime} seconds.")
 			settings.turnOffWhenDisconnected ? sendEvent(name: "switch", value: "off")  : null
 			tryWasGood = false
         }
@@ -533,8 +545,8 @@ def connectDevice( data ){
             logDebug "Connection successfully established" 
 			tryWasGood = true
         } catch(e) {
-            logDebug("Error attempting to establish TCP connection to device.")
-            logDebug("Next initialization attempt in 10 seconds.")
+            logDebug("Error attempting to establish telnet connection to device.")
+            logDebug("Next initialization attempt in ${settings.refreshTime} seconds.")
 			settings.turnOffWhenDisconnected ? sendEvent(name: "switch", value: "off")  : null
 			tryWasGood = false
         }
@@ -543,7 +555,8 @@ def connectDevice( data ){
 	if(tryWasGood){
 		unschedule()
 		logDebug "Starting refresh cron"
-		schedule("0/10 * * * * ? *", refresh)
+		schedule("0/${settings.refreshTime} * * * * ? *", refresh)
+        state.refreshRunning = true
 		state.noResponse = 0
 	}
 }
@@ -554,8 +567,6 @@ def initialize() {
     logDebug "Initializing device."
     connectDevice([firstRun: true])
 }
-
-
 
 def installed(){
 	sendEvent(name: "hue", value: 0)
