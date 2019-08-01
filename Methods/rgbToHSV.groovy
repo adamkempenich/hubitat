@@ -1,3 +1,7 @@
+// This file has been deprecated. DO NOT USE THIS UNLESS ABSOLUTELY NECESSARY.
+// Instead, use https://docs.hubitat.com/index.php?title=ColorUtils_Object
+// Feel free to message me on the Hubitat forums if you need any help
+
 def rgbToHSV( r = 255, g = 255, b = 255, resolution = "low" ) {
 	// Takes RGB (0-255) and returns HSV in 0-360, 0-100, 0-100
 	// resolution ("low", "high") will return a hue between 0-100, or 0-360, respectively.
