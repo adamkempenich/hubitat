@@ -15,6 +15,8 @@
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *
 *  Changelog:
+*	0.81 (October 1 2019)
+*		- Fixed default color temp outside of sunrise/set times when CT overridden
 *	0.80 (May 13 2019)
 *		- Added brightness-per-mode
 *		- Added Min/Max brightness
