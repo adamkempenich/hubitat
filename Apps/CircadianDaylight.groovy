@@ -324,10 +324,10 @@ private def getSunriseTime(){
         logDebug "getSunriseTime - System Sunrise time: ${sunRiseSet}"
     }
     else{
-		sunRiseSet = getSunriseAndSunset(zipCode: "${settings.zipCodeOverride}")
-
+	sunRiseSet = getSunriseAndSunset(zipCode: "${settings.zipCodeOverride}")
         logDebug "getSunrisetTime - Zipcode (${settings.zipCodeOverride}). Sunrise time: ${sunRiseSet}"
     }
+	
     if(settings.sunriseOverride != null && settings.sunriseOverride != ""){
         sunriseTime = new Date().parse("yyyy-MM-dd'T'HH:mm:ss.SSSZ", settings.sunriseOverride)
         logDebug "Sunrise overridden to ${sunriseTime}"
@@ -335,7 +335,6 @@ private def getSunriseTime(){
     else if(settings.sunriseOffset != null && settings.sunriseOffset != ""){
         sunriseTime = sunRiseSet.sunrise.plusMinutes(settings.sunriseOffset)
         logDebug "Sunrise offset to ${sunriseTime}"
-
     }
     else{
         sunriseTime = sunRiseSet.sunrise
@@ -345,23 +344,24 @@ private def getSunriseTime(){
 
 private def getSunsetTime(){
     def sunRiseSet
-    def sunriseTime
+    def sunsetTime
 
     if(settings.zipCodeOverride == null || settings.zipCodeOverride == ""){
         sunRiseSet = getSunriseAndSunset()
         logDebug "getSunsetTime - System Sunset time: ${sunRiseSet}"
     }
     else{
-		sunRiseSet = getSunriseAndSunset(zipCode: "${settings.zipCodeOverride}")
+	sunRiseSet = getSunriseAndSunset(zipCode: "${settings.zipCodeOverride}")
         logDebug "getSunsetTime - Zipcode (${settings.zipCodeOverride}). Sunset time: ${sunRiseSet}"
     }
+	
     if(settings.sunsetOverride != null && settings.sunsetOverride != ""){
         sunsetTime = new Date().parse("yyyy-MM-dd'T'HH:mm:ss.SSSZ", settings.sunsetOverride)
-        logDebug "Sunset overridden to ${sunriseTime}"
+        logDebug "Sunset overridden to ${sunsetTime}"
     }
     else if(settings.sunsetOffset != null && settings.sunsetOffset != ""){
         sunsetTime = sunRiseSet.sunset.plusMinutes(settings.sunsetOffset)
-        logDebug "Sunset offset to ${sunriseTime}"
+        logDebug "Sunset offset to ${sunsetTime}"
     }
     else{
         sunsetTime = sunRiseSet.sunset
@@ -441,6 +441,7 @@ def modeHandler(evt) {
     else{
         state.justInitialized = false
     }
+	
     def ct = getCT()
     def hex = getHex()
     def hsv = getHSV()
@@ -528,9 +529,8 @@ def checkCurrentMode(){
 }
 
 def getCTBright() {
-	
-	
-	def brightenStart = settings.brightenTimeStart == null || settings.brightenTimeStart == "" ? null : Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSSZ", settings.brightenTimeStart)
+		
+    def brightenStart = settings.brightenTimeStart == null || settings.brightenTimeStart == "" ? null : Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSSZ", settings.brightenTimeStart)
     def brightenEnd = settings.brightenTimeEnd == null || settings.brightenTimeEnd == "" ? null : Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSSZ", settings.brightenTimeEnd)
     def dimStart = settings.dimTimeStart == null || settings.dimTimeStart == "" ? null : Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSSZ", settings.dimTimeStart)
     def dimEnd = settings.dimTimeEnd == null || settings.dimTimeEnd == "" ? null : Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSSZ", settings.dimTimeEnd)
@@ -545,13 +545,13 @@ def getCTBright() {
     def currentTime = now()
     def float brightness = 1
 
-    def int colorTemp = settings.coldCTOverride == null || settings.coldCTOverride == "" ? 2700 : settings.coldCTOverride
+    def int colorTemp = settings.warmCTOverride == null || settings.warmCTOverride == "" ? 2700 : settings.warmCTOverride
     def int coldCT = settings.coldCTOverride == null || settings.coldCTOverride == "" ? 6500 : settings.coldCTOverride
     def int warmCT = settings.warmCTOverride == null || settings.warmCTOverride == "" ? 2700 : settings.warmCTOverride
     def int midCT = coldCT - warmCT
 
-	def highBrightness = 100
-	def lowBrightness = 1
+    def highBrightness = 100
+    def lowBrightness = 1
     def fullRange = highBrightness - lowBrightness
 
 	if( settings.maxBrightnessOverride < 100 && settings.maxBrightnessOverride != null ){
@@ -607,6 +607,7 @@ def getCTBright() {
 
         }
     }
+	
     if(settings.dynamicBrightness == false) {
         if(settings.maxBrightnessOverride < 100 && settings.maxBrightnessOverride != null){
             brightness = settings.maxBrightnessOverride / 100
