@@ -1,5 +1,5 @@
 /**
-*	Hubitat Circadian Daylight 0.80
+*	Hubitat Circadian Daylight 0.81
 *
 *	Author:
 *		Adam Kempenich
