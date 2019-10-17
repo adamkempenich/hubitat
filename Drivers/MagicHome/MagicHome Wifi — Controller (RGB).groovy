@@ -1,5 +1,5 @@
 /**
-*  MagicHome Wifi - Controller (RGB) 0.88
+*  MagicHome Wifi - Controller (RGB) 0.89
 *
 *  Author: 
 *    Adam Kempenich 
@@ -7,6 +7,17 @@
 *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
 *
 *  Changelog:
+
+*    0.89 (Oct 17, 2019) - The "my friend Tony got a Hubitat" update.
+*        - Removed RGB <> HSV methods
+*        - Added recoverable HS option
+*        - Removed unused state values (only state.noResponse is necessary)
+*        - Removed telnet
+*        - Added hue-in-degrees
+*        - Added CT back in
+*        - Fixed powerOnWithChanges
+*        - Added null 2nd option to setLevel for duration
+*
 *	0.88 (June 12, 2019)
 *		- Added option for failed pings threshold 
 *		- Resolved issue with recursive loops and initializing devices
@@ -70,6 +81,7 @@ import hubitat.helper.HexUtils
 import hubitat.device.HubAction
 import hubitat.helper.InterfaceUtils
 import hubitat.device.Protocol
+import hubitat.helper.ColorUtils
 
 metadata {
     definition (
@@ -78,14 +90,15 @@ metadata {
         author: "Adam Kempenich",
 		importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/MagicHome/MagicHome%20Wifi%20—%20Controller%20(RGB).groovy") {
         
-        capability "Switch Level"
         capability "Actuator"
-        capability "Switch"
+        capability "Color Control"
+        capability "Color Temperature"
+        capability "Initialize"
         capability "Polling"
         capability "Refresh"
         capability "Sensor"
-        capability "Color Control"
-        capability "Initialize"
+        capability "Switch"
+        capability "Switch Level"
         
         command "sendPreset",               ["number", "number"]       // 0 (off), 1-20 (other presets)
         command "presetSevenColorDissolve", [ "number" ] // 0 - 100 (speed)
@@ -116,7 +129,6 @@ metadata {
     preferences {  
         input "deviceIP", "text", title: "Server", description: "Device IP (e.g. 192.168.1.X)", required: true, defaultValue: "192.168.1.X"
         input "devicePort", "number", title: "Port", description: "Device Port (Default: 5577)", required: true, defaultValue: 5577
-		input "useTelnet", "bool", title: "Use Telnet?", description: "Telnet - On, Socket - Off", required: true, defaultValue: false
 		
         input(name:"logDebug", type:"bool", title: "Log debug information?",
               description: "Logs raw data for debugging. (Default: Off)", defaultValue: false,
@@ -125,6 +137,8 @@ metadata {
               description: "Logs when things happen. (Default: On)", defaultValue: true,
               required: true, displayDuringSetup: true)
 		
+         
+        
 		input(name:"turnOffWhenDisconnected", type:"bool", title: "Turn off when disconnected?",
               description: "When a device is unreachable, turn its state off. in Hubitat", defaultValue: true,
               required: true, displayDuringSetup: true)
@@ -137,16 +151,42 @@ metadata {
         input(name:"enablePreStaging", type:"bool", title: "Enable Color Pre-Staging?",
               defaultValue: false, required: true, displayDuringSetup: true)
 
+        input(name:"enableHueInDegrees", type:"bool", title: "Enable Hue in degrees (0-360)",
+              defaultValue: false, required: true, displayDuringSetup: true)
+        
 		input(name:"refreshTime", type:"number", title: "Time to refresh (seconds)",
             description: "Interval between refreshing a device for its current value. Default: 10. Use number between 0-60", defaultValue: 10,
             required: true, displayDuringSetup: true)
+        
+        input(name:"recoverHueSaturation", type:"bool", title: "Recover Hue and Saturation?",
+              description: "Due to the nature of HSL <> RGB conversions, data can be lost when the brightness gets to 0. This option stops the Hue/Sat from changing when the brightness is below 5%.", defaultValue: true,
+              required: true, displayDuringSetup: true)
+        
+        input(name:"neutralWhite", type:"number", title: "Point where the light changes between cold and warm white hues",
+            description: "Temp in K (Default: 4000)", defaultValue: 4000,
+            required: false, displayDuringSetup: true)
+        
+        input(name:"cwHue", type:"number", title: "Hue that Cold White uses",
+			description: "Hue (0 - 100). Default 55", defaultValue: 55)
+		input(name:"cwSaturationLowPoint", type:"number", title: "Cold White Saturation closest 4000k (or the neutral white point).",
+			description: "Saturation: (0-100) Default: 0", defaultValue: 0)
+		input(name:"cwSaturationHighPoint", type:"number", title: "Cold White Saturation at ~6000k.",
+			description: "Saturation: (0-100) Default: 50", defaultValue: 50)
+
+		input(name:"wwHue", type:"number", title: "Hue that Warm White uses",
+			description: "Hue (0 - 100). Default 100 (Bulb's White LEDs)", defaultValue: 7.6)
+		input(name:"wwSaturationLowPoint", type:"number", title: "Warm White Saturation closest 4000k (or the neutral white point).",
+			description: "Saturation: (0-100) Default: 0", defaultValue: 0)
+		input(name:"wwSaturationHighPoint", type:"number", title: "Warm White Saturation at ~2700k.",
+			description: "Saturation: (0-100) Default: 80 <style>#tileContainter-presetBlueFade-4:hover{ animation: presetBlue-fade 3s infinite } @keyframes presetBlue-fade { 0% { color: blue } 50% { color: black } 100% { color: blue } } #tileContainter-presetBlueStrobe-5:hover{ animation: presetBlue-strobe 3s infinite } @keyframes presetBlue-strobe { 0% { color: blue } 49% { color: blue } 50% { color: black } 100% { color: black } } #tileContainter-presetCyanFade-6:hover{ animation: presetCyan-fade 3s infinite } @keyframes presetCyan-fade { 0% { color: cyan } 50% { color: black } 100% { color: cyan } } #tileContainter-presetCyanStrobe-7:hover{ animation: presetCyan-strobe 3s infinite } @keyframes presetCyan-strobe { 0% { color: cyan } 25% { color: cyan } 26% { color: black } 100% { color: black } } #tileContainter-presetGreenBlueDissolve-8:hover{ animation: presetGreenBlue-dissolve 3s infinite } @keyframes presetGreenBlue-dissolve { 0% { color: green } 50% { color: blue } 100% { color: green } } #tileContainter-presetGreenFade-9:hover{ animation: presetGreen-fade 3s infinite } @keyframes presetGreen-fade { 0% { color: green } 50% { color: black } 100% { color: green } } #tileContainter-presetGreenStrobe-10:hover{ animation: presetGreen-strobe 3s infinite } @keyframes presetGreen-strobe { 0% { color: green } 25% { color: green } 26% { color: black } 100% { color: black } } #tileContainter-presetPurpleFade-11:hover{ animation: presetPurple-fade 3s infinite } @keyframes presetPurple-fade { 0% { color: purple } 50% { color: black } 100% { color: purple } } #tileContainter-presetPurpleStrobe-12:hover{ animation: presetPurple-strobe 3s infinite } @keyframes presetPurple-strobe { 0% { color: purple } 25% { color: purple } 26% { color: black } 100% { color: black } } #tileContainter-presetRedBlueDissolve-13:hover{ animation: presetRedBlue-dissolve 3s infinite } @keyframes presetRedBlue-dissolve { 0% { color: red } 50% { color: blue } 100% { color: red } } #tileContainter-presetRedFade-14:hover{ animation: presetRed-fade 3s infinite } @keyframes presetRed-fade { 0% { color: red } 50% { color: black } 100% { color: red } } #tileContainter-presetRedGreenDissolve-15:hover{ animation: presetRedGreen-dissolve 3s infinite } @keyframes presetRedGreen-dissolve { 0% { color: red } 50% { color: green } 100% { color: red } } #tileContainter-presetRedStrobe-16:hover{ animation: presetRed-strobe 3s infinite } @keyframes presetRed-strobe { 0% { color: red } 25% { color: red } 26% { color: black } 100% { color: black } } #tileContainter-presetSevenColorDissolve-17:hover{ animation: presetSevenColor-dissolve 3s infinite } @keyframes presetSevenColor-dissolve { 0% { color: red } 12.5% { color: orange } 25% { color: yellow } 37.5% { color: green } 50% { color: blue } 62.5% { color: indigo } 75% { color: violet } 87.5% { color: white } 100% { color: red } } #tileContainter-presetSevenColorJump-18:hover{ animation: presetSevenColor-jump 3s infinite } @keyframes presetSevenColor-jump { 0% { color: red } 12% { color: red } 12.5% { color: orange } 24% { color: orange } 25% { color: yellow } 37% { color: yellow } 37.5% { color: green } 49% { color: green } 50% { color: blue } 62% { color: blue } 62.5% { color: indigo } 74% { color: indigo } 75% { color: violet } 87% { color: violet } 87.5% { color: white } 99% { color: white } 100% { color: red } } #tileContainter-presetSevenColorStrobe-19:hover{ animation: presetSevenColor-strobe 3s infinite } @keyframes presetSevenColor-strobe {  0% { color: black } 11% { color: black }  12% { color: red } 16% { color: red }  17% { color: black } 30% { color: black }  31% { color: orange } 38% { color: orange }  39% { color: black } 49% { color: black }  50% { color: yellow } 62% { color: yellow }  63% { color: black } 70% { color: black }  71% { color: green } 79% { color: green }  80% { color: black } 88% { color: black }  89% { color: blue } 99% { color: blue }  99% { color: black } } #tileContainter-presetWhiteFade-20:hover{ animation: presetWhite-fade 3s infinite } @keyframes presetWhite-fade { 0% { color: White } 50% { color: black } 100% { color: White } } #tileContainter-presetWhiteStrobe-21:hover{ animation: presetWhite-strobe 3s infinite } @keyframes presetWhite-strobe { 0% { color: White } 49% { color: White } 50% { color: black } 100% { color: black } } #tileContainter-presetYellowFade-22:hover{ animation: presetYellow-fade 3s infinite } @keyframes presetYellow-fade { 0% { color: Yellow } 50% { color: black } 100% { color: Yellow } } #tileContainter-presetYellowStrobe-23:hover{ animation: presetYellow-strobe 3s infinite } @keyframes presetYellow-strobe { 0% { color: Yellow } 49% { color: Yellow } 50% { color: black } 100% { color: black } } </style>", 
+			  defaultValue: 80)
     }
 }
 def on() {
     // Turn on the device
 
     sendEvent(name: "switch", value: "on")
-    logDebug "Switch set to on" 
+    logDescriptionText "Switch set to on" 
     byte[] data = [0x71, 0x23, 0x0F, 0xA3]
     sendCommand(data)
 }
@@ -155,17 +195,18 @@ def off() {
     // Turn off the device
 
     sendEvent(name: "switch", value: "off")
-    logDebug "Switch set to off" 
+    logDescriptionText "Switch set to off" 
     byte[] data = [0x71, 0x24, 0x0F, 0xA4]
     sendCommand(data)
 }
 
 def setHue(hue){
-    // Set the hue of a device ( 0-100) 
+    // Set the hue of a device ( 0-99 ) 
 
-    hue > 99 ? (hue = 99) : null
+    settings.enableHueInDegrees ? hue /= 3.6 : null
+    limit(hue)
     sendEvent(name: "hue", value: hue )
-	logDebug "Hue set to ${hue}"
+	logDescriptionText "Hue set to ${hue}"
 	    
     setColor(hue: hue, level: device.currentValue("level"), saturation: device.currentValue("saturation"))
 }
@@ -173,34 +214,58 @@ def setHue(hue){
 def setSaturation(saturation){
     // Set the saturation of a device (0-100)
 
-	saturation > 100 ? (saturation = 100) : null
+    limit(saturation)
     sendEvent(name: "saturation", value: saturation)
-    logDebug "Saturation set to ${saturation}"
+    logDescriptionText "Saturation set to ${saturation}"
     
     setColor(hue: device.currentValue("hue"), saturation: saturation, level: device.currentValue("level"))
 }
 
-def setLevel(level) {
+def setLevel(level, duration = 0) {
     // Set the brightness of a device (0-100)
-	level > 100 ? (level = 100) : null
+	limit(level)
     sendEvent(name: "level", value: level)
-    logDebug "Level set to ${level}"
+    logDescriptionText "Level set to ${level}"
     
     setColor(hue: device.currentValue("hue"), saturation: device.currentValue("saturation"), level: level)
 }
 
 def setColor( parameters ){
    
-    // Register that presets are disabled
+    logDescriptionText "Color set to ${parameters}"
+    
     sendEvent(name: "currentPreset", value: 0)
-	sendEvent(name: "hue", value: parameters.hue)
+	sendEvent(name: "hue", value: settings.enableHueInDegrees ? parameters.hue/3.6 : parameters.hue)
 	sendEvent(name: "saturation", value: parameters.saturation)
 	sendEvent(name: "level", value: parameters.level)
 	powerOnWithChanges()
-	rgbColors = hsvToRGB( parameters.hue, parameters.saturation, parameters.level )
-	byte[] data = appendChecksum(  [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0x00, 0x0f ] )
+	rgbColors = ColorUtils.hsvToRGB( [parameters.hue.toFloat(), parameters.saturation.toFloat(), parameters.level.toFloat()] )
+	byte[] data = appendChecksum(  [ 0x31, rgbColors[0], rgbColors[1], rgbColors[2], 0x00, 0x00, 0x0f ] )
 	sendCommand( data ) 
 	
+}
+
+def setColorTemperature( setTemp ){
+	// Using RGB, adjust the color temperature of a device	
+    
+	limit(setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature)
+	
+    logDescriptionText "ColorTemperature set to ${setTemp}"
+    
+    def newSaturation
+	def newHue
+	
+    if(setTemp >= neutralWhite){
+		newSaturation = calculateCTSaturation( true, setTemp - settings.neutralWhite )
+		newHue = settings.cwHue 
+	}
+	else{
+		newSaturation = calculateCTSaturation( false, settings.neutralWhite - setTemp )
+		newHue = settings.wwHue
+	}
+	
+    sendEvent(name: "colorTemperature", value: setTemp)
+	setColor([hue: settings.enableHueInDegrees ? newHue * 3.6 : newHue, saturation:newSaturation, level: device.currentValue('level')] )
 }
 
 def sendPreset(preset = 1, speed = 100){
@@ -213,8 +278,11 @@ def sendPreset(preset = 1, speed = 100){
 
 	powerOnWithChanges()
 
-	preset > 20 ? (preset = 20) : null
-	speed > 100 ? (speed = 100) : null
+
+    limit(preset, 0, 20)
+    limit(speed, 0, 99)
+    
+    logDescriptionText "Preset changed to ${preset} with speed ${speed}"
 
 	// Hex range of presets is (int) 37 - (int) 57. Add the preset number to get that range.
 	preset += 36
@@ -290,86 +358,31 @@ def presetSevenColorJump( speed = 100 ){
 
 // ------------------- Helper Functions ------------------------- //
 
-def hsvToRGB(float conversionHue = 0, float conversionSaturation = 100, float conversionValue = 100, resolution = "low"){
-    // Accepts conversionHue (0-100 or 0-360), conversionSaturation (0-100), and converstionValue (0-100), resolution ("low", "high")
-    // If resolution is low, conversionHue accepts 0-100. If resolution is high, conversionHue accepts 0-360
-    // Returns RGB map ([ red: 0-255, green: 0-255, blue: 0-255 ])
-    
-    // Check HSV limits
-    resolution == "low" ? ( hueMax = 100 ) : ( hueMax = 360 ) 
-    conversionHue > hueMax ? ( conversionHue = 1 ) : ( conversionHue < 0 ? ( conversionHue = 0 ) : ( conversionHue /= hueMax ) )
-    conversionSaturation > 100 ? ( conversionSaturation = 1 ) : ( conversionSaturation < 0 ? ( conversionSaturation = 0 ) : ( conversionSaturation /= 100 ) )
-    conversionValue > 100 ? ( conversionValue = 1 ) : ( conversionValue < 0 ? ( conversionValue = 0 ) : ( conversionValue /= 100 ) ) 
-        
-    int h = (int)(conversionHue * 6);
-    float f = conversionHue * 6 - h;
-    float p = conversionValue * (1 - conversionSaturation);
-    float q = conversionValue * (1 - f * conversionSaturation);
-    float t = conversionValue * (1 - (1 - f) * conversionSaturation);
-    
-    conversionValue *= 255
-    f *= 255
-    p *= 255
-    q *= 255
-    t *= 255
-            
-    if      (h==0) { rgbMap = [red: conversionValue, green: t, blue: p] }
-    else if (h==1) { rgbMap = [red: q, green: conversionValue, blue: p] }
-    else if (h==2) { rgbMap = [red: p, green: conversionValue, blue: t] }
-    else if (h==3) { rgbMap = [red: p, green: q, blue: conversionValue] }
-    else if (h==4) { rgbMap = [red: t, green: p, blue: conversionValue] }
-    else if (h==5) { rgbMap = [red: conversionValue, green: p,blue: q]  }
-    else           { rgbMap = [red: 0, green: 0, blue: 0] }
-
-    return rgbMap
-}
-
-def rgbToHSV( r = 255, g = 255, b = 255, resolution = "low" ) {
-    // Takes RGB (0-255) and returns HSV in 0-360, 0-100, 0-100
-    // resolution ("low", "high") will return a hue between 0-100, or 0-360, respectively.
-  
-    r /= 255
-    g /= 255
-    b /= 255
-
-    float h
-    float s
-    
-    float max =   Math.max( Math.max( r, g ), b )
-    float min = Math.min( Math.min( r, g ), b )
-    float delta = ( max - min )
-    float v = ( max * 100.0 )
-
-    max != 0.0 ? ( s = delta / max * 100.0 ) : ( s = 0 )
-
-    if (s == 0.0) {
-        h = 0.0
-    }
-    else{
-        if (r == max){
-                h = ((g - b) / delta)
-        }
-        else if(g == max) {
-                h = (2 + (b - r) / delta)
-        }
-        else if (b == max) {
-                h = (4 + (r - g) / delta)
-        }
-    }
-
-    h *= 60.0
-        h < 0 ? ( h += 360 ) : null
-  
-    resolution == "low" ? h /= 3.6 : null
-    return [ hue: h, saturation: s, value: v ]
-}
-
 def powerOnWithChanges( ){
     // If the device is off and light settings change, turn it on (if user settings apply)
 		
-		pauseExecution(300)
-        settings.enablePreStaging ? null : ( device.currentValue("status") != "on" ? on() : null )
+    settings.enablePreStaging ? null : ( device.currentValue("switch") != "on" ? on() : null )
 }
+
+def calculateCTSaturation( coldWhite = true, offset ) {
+		
+	def CURVE
+	def lowPoint
+	def highPoint
+	
+	if( coldWhite ) {
+		lowPoint = settings.cwSaturationLowPoint < settings.cwSaturationHighPoint ? settings.cwSaturationLowPoint : settings.cwSaturationHighPoint
+		highPoint = settings.cwSaturationHighPoint > settings.cwSaturationLowPoint ? settings.cwSaturationHighPoint : settings.cwSaturationLowPoint
+		CURVE = 1.8
+	}
+	else{ 
+		lowPoint = settings.wwSaturationLowPoint < settings.wwSaturationHighPoint ? settings.wwSaturationLowPoint : settings.wwSaturationHighPoint
+		highPoint = settings.wwSaturationHighPoint > settings.wwSaturationLowPoint ? settings.wwSaturationHighPoint : settings.wwSaturationLowPoint
+		CURVE = 2.16666
+	}
+	
+	return (((( 100 - lowPoint  ) / 100 ) * ( CURVE * Math.sqrt( offset ))) + lowPoint  ) * highPoint / 100
+}      
 
 def limit( value, lowerBound = 0, upperBound = 100 ){
     // Takes a value and ensures it's between two defined thresholds
@@ -437,12 +450,18 @@ def parse( response ) {
                 if(device.currentValue("switch") != "off"){
                     sendEvent(name: "switch", value: "off")
                 }
+                
             }
+        
+            hsvMap = ColorUtils.rgbToHSV([responseArray[ 6 ], responseArray[ 7 ], responseArray[ 8 ]])
+        	settings.recoverHueSaturation ? (hsvMap[0] < 5 ? null : sendEvent(name: "hue", value: hsvMap[0])) : sendEvent(name: "hue", value: hsvMap[0]) // Hue/Sat aren't recoverable if we go below this point. 
+        	settings.recoverHueSaturation ? (hsvMap[1] < 5 ? null : sendEvent(name: "saturation", value: hsvMap[1])) : sendEvent(name: "saturation", value: hsvMap[1]) // Hue/Sat aren't recoverable if we go below this point. 
+        	sendEvent(name: "level", value: hsvMap[2])
+        
             break;
         
         case null:
-            logDebug "No response received from device"
-            initialize()
+            logDebug "Null response received from device"
             break;
         
         default:
@@ -461,7 +480,7 @@ private logDebug( debugText ){
 
 private logDescriptionText( descriptionText ){
     if( settings.logDescriptionText ) { 
-        log.info "MagicHome (${settings.deviceIP}): ${debugText}"
+        log.info "MagicHome (${settings.deviceIP}): ${descriptionText}"
     }
 }
 
@@ -470,13 +489,7 @@ def sendCommand( data ) {
     
     String stringBytes = HexUtils.byteArrayToHexString(data)
     logDebug "${data} was converted. Transmitting: ${stringBytes}"
-    if(settings.useTelnet == false || settings.useTelnet == null){
-        InterfaceUtils.sendSocketMessage(device, stringBytes)
-    }
-    else{
-        def transmission = new HubAction(stringBytes, Protocol.TELNET)
-        sendHubCommand(transmission)
-    }
+    InterfaceUtils.sendSocketMessage(device, stringBytes)
 }
 
 
@@ -484,18 +497,15 @@ def refresh( ) {
 	
 	logDebug "Number of failed responses: ${state.noResponse}"
 	state.noResponse++
-    state.noResponse >= settings.reconnectPings ? ( initialize() ) : null // if a device hasn't responded after N attempts, reconnect
+    state.noResponse >= limit(settings.reconnectPings, 0, 10) ? ( initialize() ) : null // if a device hasn't responded after N attempts, reconnect
     byte[] data =  [0x81, 0x8A, 0x8B, 0x96 ]
     sendCommand(data)
 }
-def socketStatus( status ) { 
-    logDebug "socketStatus: ${status}"
-    logDebug "Attempting to reconnect after ${settings.reconnectPings-state.noResponse} failed attempts."
-    }
 
-def telnetStatus( status ) { 
-    logDebug "telnetStatus: ${status}"
-    logDebug "Attempting to reconnect after ${settings.reconnectPings-state.noResponse} failed attempts."
+def socketStatus( status ) { 
+    logDescriptionText "A connection issue occurred."
+    logDebug "socketStatus: ${status}"
+    logDebug "Attempting to reconnect after ${limit(settings.reconnectPings, 0, 10)-state.noResponse} more failed attempt(s)."
 }
 
 def poll() {
@@ -511,70 +521,64 @@ def connectDevice( data ){
     if(data.firstRun){
         logDebug "Stopping refresh loop. Starting connectDevice loop"
         unschedule() // remove the refresh loop
-        schedule("0/${settings.refreshTime} * * * * ? *", connectDevice, [data: [firstRun: false]])
-        state.refreshRunning = false
-        log.debug("${state.refreshRunning}")
+        schedule("0/${limit(settings.refreshTime, 1, 60)} * * * * ? *", connectDevice, [data: [firstRun: false]])
     }
     
     InterfaceUtils.socketClose(device)
     telnetClose()
     
-    pauseExecution(4000)
+    pauseExecution(1000)
     
-    def tryWasGood = false
-    if(settings.useTelnet == false || settings.useTelnet == null){
+    if( data.firstRun || ( now() - state.lastConnectionAttempt) > limit(settings.refreshTime, 1, 60) * 500 /* Breaks infinite loops */ ) {
+        def tryWasGood = false
         try {
             logDebug "Opening Socket Connection."
             InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
             pauseExecution(1000)
-            logDebug "Connection successfully established"
-			tryWasGood = true
-            
+            logDescriptionText "Connection successfully established"
+            tryWasGood = true
+    
         } catch(e) {
             logDebug("Error attempting to establish socket connection to device.")
             logDebug("Next initialization attempt in ${settings.refreshTime} seconds.")
-			settings.turnOffWhenDisconnected ? sendEvent(name: "switch", value: "off")  : null
-			tryWasGood = false
+            settings.turnOffWhenDisconnected ? sendEvent(name: "switch", value: "off")  : null
+            tryWasGood = false
         }
+	    
+	    if(tryWasGood){
+	    	unschedule()
+	    	logDebug "Stopping connectDevice loop. Starting refresh loop"
+	    	schedule("0/${limit(settings.refreshTime, 1, 60)} * * * * ? *", refresh)
+	    	state.noResponse = 0
+	    }
+        log.debug "Proper time has passed, or it is the device's first run."
+        log.debug "${(now() - state.lastConnectionAttempt)} >= ${limit(settings.refreshTime, 1, 60) * 500}. First run: ${data.firstRun}"
+        state.lastConnectionAttempt = now()
     }
     else{
-        try {
-            logDebug "Opening Telnet Connection."
-            telnetConnect([byteInterface: true, termChars:[129]], "${settings.deviceIP}", settings.devicePort.toInteger(), null, null)
-            pauseExecution(1000)
-            logDebug "Connection successfully established" 
-			tryWasGood = true
-        } catch(e) {
-            logDebug("Error attempting to establish telnet connection to device.")
-            logDebug("Next initialization attempt in ${settings.refreshTime} seconds.")
-			settings.turnOffWhenDisconnected ? sendEvent(name: "switch", value: "off")  : null
-			tryWasGood = false
-        }
+        log.debug "Tried to connect too soon. Skipping this round."
+        log.debug "X ${(now() - state.lastConnectionAttempt)} >= ${limit(settings.refreshTime, 1, 60) * 500}"
+        state.lastConnectionAttempt = now()
     }
-	
-	if(tryWasGood){
-		unschedule()
-		logDebug "Starting refresh cron"
-		schedule("0/${settings.refreshTime} * * * * ? *", refresh)
-        state.refreshRunning = true
-		state.noResponse = 0
-	}
 }
 
 def initialize() {
     // Establish a connection to the device
+    state.remove("initializeLoopRunning")
+    state.remove("refreshRunning")
+    state.remove("initializeLoop")
+    state.remove("oldvariablename")
     
     logDebug "Initializing device."
+    state.lastConnectionAttempt = now()
     connectDevice([firstRun: true])
 }
 
+
 def installed(){
 	sendEvent(name: "hue", value: 0)
-	sendEvent(name: "saturation", value: 100)
+	sendEvent(name: "saturation", value: 0)
 	sendEvent(name: "level", value: 99)
 	sendEvent(name: "switch", value: "off")
-	state.initializeLoopRunning = false
 	state.noResponse = 0
 }
-
-
