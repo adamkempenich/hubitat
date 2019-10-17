@@ -551,13 +551,13 @@ def connectDevice( data ){
 	    	schedule("0/${limit(settings.refreshTime, 1, 60)} * * * * ? *", refresh)
 	    	state.noResponse = 0
 	    }
-        log.debug "Proper time has passed, or it is the device's first run."
-        log.debug "${(now() - state.lastConnectionAttempt)} >= ${limit(settings.refreshTime, 1, 60) * 500}. First run: ${data.firstRun}"
+        logDebug "Proper time has passed, or it is the device's first run."
+        logDebug "${(now() - state.lastConnectionAttempt)} >= ${limit(settings.refreshTime, 1, 60) * 500}. First run: ${data.firstRun}"
         state.lastConnectionAttempt = now()
     }
     else{
-        log.debug "Tried to connect too soon. Skipping this round."
-        log.debug "X ${(now() - state.lastConnectionAttempt)} >= ${limit(settings.refreshTime, 1, 60) * 500}"
+        logDebug "Tried to connect too soon. Skipping this round."
+        logDebug "X ${(now() - state.lastConnectionAttempt)} >= ${limit(settings.refreshTime, 1, 60) * 500}"
         state.lastConnectionAttempt = now()
     }
 }
