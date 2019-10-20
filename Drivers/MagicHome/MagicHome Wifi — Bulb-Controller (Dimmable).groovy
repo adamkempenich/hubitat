@@ -8,6 +8,12 @@
 *
 *  Changelog:
 *
+*    0.89 (Aug 01, 2019)
+*        - Removed unused state value (only state.noResponse is necessary)
+*        - Removed telnet
+*        - Fixed powerOnWithChanges
+*        - Added null 2nd option to setLevel for duration
+*
 *	0.88 (June 12, 2019)
 *		- Added option for failed pings threshold 
 *		- Resolved issue with recursive loops and initializing devices
@@ -89,7 +95,6 @@ metadata {
     preferences {  
         input "deviceIP", "text", title: "Device IP", description: "Device IP (e.g. 192.168.1.X)", required: true, defaultValue: "192.168.1.X"
         input "devicePort", "number", title: "Port", description: "Device Port (Default: 5577)", required: true, defaultValue: 5577
-		input "useTelnet", "bool", title: "Use Telnet?", description: "Telnet - On, Socket - Off", required: true, defaultValue: false
 		
         input(name:"logDebug", type:"bool", title: "Log debug information?",
               description: "Logs raw data for debugging. (Default: Off)", defaultValue: false,
@@ -132,7 +137,7 @@ def off() {
     sendCommand(data)
 }
 
-def setLevel(level) {
+def setLevel(level, duration=0) {
     // Set the brightness of a device (0-100)
 	limit( level )
     sendEvent(name: "level", value: level)
@@ -149,8 +154,7 @@ def setLevel(level) {
 def powerOnWithChanges( ){
     // If the device is off and light settings change, turn it on (if user settings apply)
 		
-		pauseExecution(300)
-        settings.enablePreStaging ? null : ( device.currentValue("status") != "on" ? on() : null )
+    settings.enablePreStaging ? null : ( device.currentValue("switch") != "on" ? on() : null )
 }
 
 def limit( value, lowerBound = 0, upperBound = 100 ){
@@ -223,8 +227,7 @@ def parse( response ) {
             break;
         
         case null:
-            logDebug "No response received from device"
-            initialize()
+            logDebug "Null response received from device"
             break;
         
         default:
@@ -252,13 +255,7 @@ def sendCommand( data ) {
     
     String stringBytes = HexUtils.byteArrayToHexString(data)
     logDebug "${data} was converted. Transmitting: ${stringBytes}"
-    if(settings.useTelnet == false || settings.useTelnet == null){
-        InterfaceUtils.sendSocketMessage(device, stringBytes)
-    }
-    else{
-        def transmission = new HubAction(stringBytes, Protocol.TELNET)
-        sendHubCommand(transmission)
-    }
+    InterfaceUtils.sendSocketMessage(device, stringBytes)
 }
 
 def refresh( ) {
@@ -269,14 +266,11 @@ def refresh( ) {
     byte[] data =  [0x81, 0x8A, 0x8B, 0x96 ]
     sendCommand(data)
 }
-def socketStatus( status ) { 
-    logDebug "socketStatus: ${status}"
-    logDebug "Attempting to reconnect after ${settings.reconnectPings-state.noResponse} failed attempts."
-    }
 
-def telnetStatus( status ) { 
-    logDebug "telnetStatus: ${status}"
-    logDebug "Attempting to reconnect after ${settings.reconnectPings-state.noResponse} failed attempts."
+def socketStatus( status ) { 
+    logDescriptionText "A connection issue occurred."
+    logDebug "socketStatus: ${status}"
+    logDebug "Attempting to reconnect after ${limit(settings.reconnectPings, 0, 10)-state.noResponse} more failed attempt(s)."
 }
 
 def poll() {
@@ -292,60 +286,56 @@ def connectDevice( data ){
     if(data.firstRun){
         logDebug "Stopping refresh loop. Starting connectDevice loop"
         unschedule() // remove the refresh loop
-        schedule("0/${settings.refreshTime} * * * * ? *", connectDevice, [data: [firstRun: false]])
-        state.refreshRunning = false
-        log.debug("${state.refreshRunning}")
+        schedule("0/${limit(settings.refreshTime, 1, 60)} * * * * ? *", connectDevice, [data: [firstRun: false]])
     }
     
     InterfaceUtils.socketClose(device)
     telnetClose()
     
-    pauseExecution(4000)
+    pauseExecution(1000)
     
-    def tryWasGood = false
-    if(settings.useTelnet == false || settings.useTelnet == null){
+    if( data.firstRun || ( now() - state.lastConnectionAttempt) > limit(settings.refreshTime, 1, 60) * 500 /* Breaks infinite loops */ ) {
+        def tryWasGood = false
         try {
             logDebug "Opening Socket Connection."
             InterfaceUtils.socketConnect(device, settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
             pauseExecution(1000)
-            logDebug "Connection successfully established"
-			tryWasGood = true
-            
+            logDescriptionText "Connection successfully established"
+            tryWasGood = true
+    
         } catch(e) {
             logDebug("Error attempting to establish socket connection to device.")
             logDebug("Next initialization attempt in ${settings.refreshTime} seconds.")
-			settings.turnOffWhenDisconnected ? sendEvent(name: "switch", value: "off")  : null
-			tryWasGood = false
+            settings.turnOffWhenDisconnected ? sendEvent(name: "switch", value: "off")  : null
+            tryWasGood = false
         }
+	    
+	    if(tryWasGood){
+	    	unschedule()
+	    	logDebug "Stopping connectDevice loop. Starting refresh loop"
+	    	schedule("0/${limit(settings.refreshTime, 1, 60)} * * * * ? *", refresh)
+	    	state.noResponse = 0
+	    }
+        log.debug "Proper time has passed, or it is the device's first run."
+        log.debug "${(now() - state.lastConnectionAttempt)} >= ${limit(settings.refreshTime, 1, 60) * 500}. First run: ${data.firstRun}"
+        state.lastConnectionAttempt = now()
     }
     else{
-        try {
-            logDebug "Opening Telnet Connection."
-            telnetConnect([byteInterface: true, termChars:[129]], "${settings.deviceIP}", settings.devicePort.toInteger(), null, null)
-            pauseExecution(1000)
-            logDebug "Connection successfully established" 
-			tryWasGood = true
-        } catch(e) {
-            logDebug("Error attempting to establish telnet connection to device.")
-            logDebug("Next initialization attempt in ${settings.refreshTime} seconds.")
-			settings.turnOffWhenDisconnected ? sendEvent(name: "switch", value: "off")  : null
-			tryWasGood = false
-        }
+        log.debug "Tried to connect too soon. Skipping this round."
+        log.debug "X ${(now() - state.lastConnectionAttempt)} >= ${limit(settings.refreshTime, 1, 60) * 500}"
+        state.lastConnectionAttempt = now()
     }
-	
-	if(tryWasGood){
-		unschedule()
-		logDebug "Starting refresh cron"
-		schedule("0/${settings.refreshTime} * * * * ? *", refresh)
-        state.refreshRunning = true
-		state.noResponse = 0
-	}
 }
 
 def initialize() {
     // Establish a connection to the device
+    state.remove("initializeLoopRunning")
+    state.remove("refreshRunning")
+    state.remove("initializeLoop")
+    state.remove("oldvariablename")
     
     logDebug "Initializing device."
+    state.lastConnectionAttempt = now()
     connectDevice([firstRun: true])
 }
 
