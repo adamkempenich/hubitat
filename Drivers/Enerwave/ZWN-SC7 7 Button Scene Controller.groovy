@@ -4,7 +4,7 @@
 *    Author: 
 *    Adam Kempenich 
 *
-*    Documentation: ***TBA***
+*    Documentation: https://community.hubitat.com/t/release-enerwave-zwn-sc7-scene-controller-0-70/25661
 *
 *    Changelog:
 *        0.70 (Oct 29, 2019)
