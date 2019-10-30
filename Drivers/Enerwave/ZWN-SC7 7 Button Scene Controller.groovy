@@ -32,10 +32,12 @@
 
  metadata {
   // Automatically generated. Make future change here.
-    definition (name: "ZWN-SC7 Enerwave 7 Button Scene Controller", 
-                namespace: "enerwave", 
-                author: "Adam Kempenich",
-                importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/Enerwave/ZWN-SC7%Scene%20—%Controller.groovy") {
+    definition (
+        name: "ZWN-SC7 Enerwave 7 Button Scene Controller", 
+        namespace: "enerwave", 
+        author: "Adam Kempenich",
+        importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/Enerwave/ZWN-SC7%207%20Button%20Scene%20Controller.groovy") {
+        
         capability "Actuator"
         capability "PushableButton"
         capability "Configuration"
