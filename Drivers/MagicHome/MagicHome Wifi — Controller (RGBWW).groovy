@@ -265,7 +265,7 @@ def setColor( parameters ){
 	}
     else{
         rgbColors = ColorUtils.hsvToRGB( [parameters.hue.toFloat(), parameters.saturation.toFloat(), parameters.level.toFloat()] )
-        byte[] data1 = appendChecksum( [ 0x31, rgbColors.red, rgbColors.green, rgbColors.blue, 0x00, 0x00, 0xf0, 0x0f ] )  
+        byte[] data1 = appendChecksum( [ 0x31, rgbColors[0], rgbColors[1], rgbColors[2], 0x00, 0x00, 0xf0, 0x0f ] )  
         sendCommand( data1 ) 
 		byte[] data2 = appendChecksum( [0x31, 0x00, 0x00, 0x00, 0, 0, 0x0f, 0x0f] )
 		sendCommand( data2 ) 
