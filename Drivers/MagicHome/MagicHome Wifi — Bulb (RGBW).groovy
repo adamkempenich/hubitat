@@ -243,6 +243,8 @@ def setColor( parameters ){
         byte[] data = appendChecksum([0x31, rgbColors[0], rgbColors[1], rgbColors[2], 0, 0xf0, 0x0f])
         sendCommand( data ) 
 	}
+	
+	powerOnWithChanges()
 }
 
 def setColorTemperature( setTemp ){
