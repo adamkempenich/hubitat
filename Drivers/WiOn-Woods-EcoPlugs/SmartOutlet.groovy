@@ -29,7 +29,7 @@ metadata {
 	definition(
         name: "Wion/Woods/EcoPlugs Smart Plugs",
         namespace: "ecoplugs", 
-        author: "Adam Kempenich") 
+        author: "Adam Kempenich",
 		importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/WiOn-Woods-EcoPlugs/SmartOutlet.groovy") {
  
 		capability "Actuator"
