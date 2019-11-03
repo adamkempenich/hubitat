@@ -4,7 +4,7 @@
 *  Author: 
 *    Adam Kempenich 
 *
-*  Documentation:  ***To Be Added in Next Release***
+*  Documentation:  https://community.hubitat.com/t/release-wion-woods-aka-ecoplugs-smart-outlets-0-70/26114
 *
 *  Changelog:
 *    0.70 (Nov 03, 2019)
