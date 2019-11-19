@@ -1,13 +1,13 @@
 /**
-*  Rootin' Tootin' Self-Rebootin' Hub (0.9)
+*  Rootin' Tootin' Self-Rebootin' Hub
 *
 *  Author: 
 *    Adam Kempenich 
 *
-*  Documentation:  TBA
+*  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
 *
 *  Changelog:
-*        - Initial Release (0.9)
+*    
 *
 *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 *  in compliance with the License. You may obtain a copy of the License at:
@@ -29,6 +29,7 @@ metadata {
         author: "Adam Kempenich") {
         
 		capability "Initialize"
+        command "stopIt"
     }
     
     preferences {  
@@ -37,6 +38,11 @@ metadata {
               defaultValue: false,
               required: true, displayDuringSetup: true)
     }
+}
+
+def stopIt(){
+    log.info "Pullin' the reigns to stop self-healing loops."
+    unschedule()
 }
 
 def connectDevice( data ){
@@ -57,7 +63,7 @@ def connectDevice( data ){
         }
     } catch(e) {
         log.error "Hub is unreachable. Rebooting now."
-            httpPost([uri: "http://192.168.7.201:8080/hub/reboot"]){
+            httpPost([uri: "http://INSERT_IP_HERE:8080/hub/reboot"]){
     }
     }
 }
