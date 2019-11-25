@@ -57,7 +57,7 @@ def switchChanged( event ){
         }
     } catch( e ) {
         log.error "Hub is unreachable. Rebooting now."
-        asynchttpPost('parseResponse', [uri: "http://10.0.0.11:8080/hub/reboot"]) 
+        asynchttpPost('parseResponse', [uri: "http://YOUR_IP:8080/hub/reboot"]) 
     }
 }
 
@@ -70,7 +70,7 @@ def reboot(){
     try{
         if(state.changedInLast30Seconds == false){
             log.debug "Hub is unreachable. Rebooting now."
-            asynchttpPost('parseResponse', [uri: "http://10.0.0.11:8080/hub/reboot"]) 
+            asynchttpPost('parseResponse', [uri: "http://YOUR_IP:8080/hub/reboot"]) 
         }
         else{
             state.changedInLast30Seconds = false
@@ -78,6 +78,6 @@ def reboot(){
         }
     } catch( e ){
         log.error "An error occured. Hub is unreachable. Rebooting now."
-        asynchttpPost('parseResponse', [uri: "http://10.0.0.11:8080/hub/reboot"]) 
+        asynchttpPost('parseResponse', [uri: "http://YOUR_IP:8080/hub/reboot"]) 
     }
 }
