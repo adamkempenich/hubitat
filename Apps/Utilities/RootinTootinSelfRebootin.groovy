@@ -7,6 +7,10 @@
 *   Documentation: https://community.hubitat.com/t/release-rootin-tootin-self-rebootin-hub-0-9/27863
 *
 *  Changelog:
+*   0.92 (Dec 03 2019)
+*       - Fixed boot loop limiter
+*       - Added startup delay
+*
 *   0.91 (Nov 25 2019)
 *       - Added a boot loop limiter. Chuck Schwer's beautiful idea.
 *
@@ -55,8 +59,7 @@ def updated() {
 def initialize(){
     unsubscribe()
     unschedule()
-    subscribe(rebootTestSwitch, "switch.off", switchChanged)
-    subscribe(rebootTestSwitch, "switch.on", switchChanged)
+    pauseExecution(240000)
     if(state.loopCounter == null){ state.loopCounter = 0 }
     if(settings.restartCounter != state.lastRestartCounterSetting || state.lastRestartCounterSetting == null){
         state.loopCounter = 0
@@ -67,6 +70,8 @@ def initialize(){
         schedule("0/22 * * * * ?", reboot)
         state.changedInLast30Seconds = true
         log.info "Initializing Rootin' Tootin' Self-Rebootin'"
+        subscribe(rebootTestSwitch, "switch.off", switchChanged)
+    subscribe(rebootTestSwitch, "switch.on", switchChanged)
     } else{
         log.debug "The hub has rebooted too many times. This app will now stop."
     }
@@ -116,3 +121,4 @@ def reboot(){
         state.loopCounter++
     }
 }
+
