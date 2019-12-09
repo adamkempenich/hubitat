@@ -1,5 +1,5 @@
 /**
-*   Rootin' Tootin' Self-Rebootin' (0.91)
+*   Rootin' Tootin' Self-Rebootin' (0.93)
 *
 *   Author:
 *       Adam Kempenich
@@ -7,15 +7,18 @@
 *   Documentation: https://community.hubitat.com/t/release-rootin-tootin-self-rebootin-hub-0-9/27863
 *
 *  Changelog:
-*   0.92 (Dec 03 2019)
-*       - Fixed boot loop limiter
-*       - Added startup delay
+*    0.93 (Dec08 2019)
+*        - Fixed the initialization routine
 *
-*   0.91 (Nov 25 2019)
-*       - Added a boot loop limiter. Chuck Schwer's beautiful idea.
-*
-*   0.90 (Nov 25 2019)
-*       - Initial Release
+*    0.92 (Dec 03 2019)
+*        - Fixed boot loop limiter
+*        - Added startup delay
+* 
+*    0.91 (Nov 25 2019)
+*        - Added a boot loop limiter. Chuck Schwer's beautiful idea.
+* 
+*    0.90 (Nov 25 2019)
+*        - Initial Release
 */
 
 
@@ -59,15 +62,18 @@ def updated() {
 def initialize(){
     unsubscribe()
     unschedule()
-    pauseExecution(240000)
+    runIn(60*5, startApp())
+}
+
+def startApp(){
     if(state.loopCounter == null){ state.loopCounter = 0 }
     if(settings.restartCounter != state.lastRestartCounterSetting || state.lastRestartCounterSetting == null){
         state.loopCounter = 0
         state.lastRestartCounterSetting = settings.restartCounter
         log.info "The loop counter has restarted"
     }
-    if(state.loopCounter < 5){ //ADJUST YOUR REBOOT TOLERANCE HERE
-        schedule("0/22 * * * * ?", reboot)
+    if(state.loopCounter < 500){ //ADJUST YOUR REBOOT TOLERANCE HERE
+        schedule("0/30 * * * * ?", reboot)
         state.changedInLast30Seconds = true
         log.info "Initializing Rootin' Tootin' Self-Rebootin'"
         subscribe(rebootTestSwitch, "switch.off", switchChanged)
@@ -75,8 +81,8 @@ def initialize(){
     } else{
         log.debug "The hub has rebooted too many times. This app will now stop."
     }
-
 }
+
 def switchChanged( event ){
     def switchTest
     
@@ -121,4 +127,3 @@ def reboot(){
         state.loopCounter++
     }
 }
-
