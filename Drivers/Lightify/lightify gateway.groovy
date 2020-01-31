@@ -42,7 +42,7 @@ metadata {
         name: "Lightify Gateway", 
         namespace: "Lightify", 
         author: "Adam Kempenich",
-		importUrl: "!!!") {
+		importUrl: "https://github.com/adamkempenich/hubitat/raw/master/Drivers/Lightify/lightify%20gateway.groovy") {
         
         capability "Actuator"
         capability "Color Control"
