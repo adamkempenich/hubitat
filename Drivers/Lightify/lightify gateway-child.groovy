@@ -30,7 +30,7 @@ definition (
     name: "Lightify Gateway — Child", 
     namespace: "Lightify", 
     author: "Adam Kempenich",
-    importUrl: "!!!") {
+    importUrl: "https://github.com/adamkempenich/hubitat/raw/master/Drivers/Lightify/lightify%20gateway-child.groovy") {
     
         capability "Actuator"
         capability "Color Control"
