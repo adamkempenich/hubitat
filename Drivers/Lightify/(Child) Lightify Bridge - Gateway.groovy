@@ -116,13 +116,13 @@ private logDebug( debugText ){
     // If debugging is enabled in settings, pass text to the logs
     
     if( settings.logDebug ) { 
-        log.debug "Lightify (${settings.deviceIP}): ${debugText}"
+        log.debug "Lightify (${state.deviceIP}): ${debugText}"
     }
 }
 
 private logDescriptionText( descriptionText ){
     if( settings.logDescriptionText ) { 
-        log.info "Lightify (${settings.deviceIP}): ${descriptionText}"
+        log.info "Lightify (${state.deviceIP}): ${descriptionText}"
     }
 }
 
@@ -189,7 +189,7 @@ def connectDevice( data ){
         schedule("0/${clamp(state.refreshTime, 1, 60)} * * * * ? *", connectDevice, [data: [firstRun: false]])
     }
     
-    //InterfaceUtils.socketClose(device)
+    InterfaceUtils.socketClose(device)
     
     pauseExecution(1000)
     
