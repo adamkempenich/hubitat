@@ -38,7 +38,6 @@
 */
 
 import hubitat.helper.HexUtils
-
 import hubitat.device.Protocol
 import hubitat.helper.ColorUtils
 
@@ -63,7 +62,7 @@ preferences {
         
         input "deviceIP", "text", title: "Lightify Gateway IP Address (e.g. 192.168.1.X)", required: true, defaultValue: "192.168.1.X"
         input "devicePort", "number", title: "Device Port (Default: 4000)", required: true, defaultValue: 4000
-        input "deviceMAC", "text", title: "Gateway MAC Address e.g. E.G. OSR010203A4. <b>DO NOT CHANGE THIS VALUE AFTER YOUR INPUT IT!</b>", required: true, defaultValue: "OSR010203A4"
+        input "deviceMAC", "text", title: "Gateway MAC Address e.g. E.G. OSR010203A4. <b>DO NOT CHANGE THIS VALUE AFTER YOUR INPUT IT!</b>", required: true, defaultValue: "OSR010203A4" 
 
         input(name:"logDebug", type:"bool", title: "Log debug information?",
               description: "Logs raw data for debugging. (Default: Off)", defaultValue: false,
@@ -225,7 +224,8 @@ def parse( response ) {
         case {it > 20}:
             
             logDebug "${responseArray[9]} devices."
-            def totalDevices = responseArray[9]
+            def totalDevices = (responseArray.length - 11)/50
+        //    def totalDevices = responseArray[9]
         
             for(thisDevice = 0; thisDevice < totalDevices; thisDevice++){
                 def location = 11 + (thisDevice * 50) // Devices start at byte 11 (from zero. 0-10 are gateway data) Each device's data is 50 bytes long
@@ -267,6 +267,10 @@ def parse( response ) {
                 def deviceTemperature = [responseArray[location+20], responseArray[location+21]]
                 // Figure out how this is stored
                 
+               //def deviceRed = [responseArray[location+22]]
+               //def deviceGreen = [responseArray[location+23]]
+               //def deviceBlue = [responseArray[location+24]]
+                
                 def deviceHSV = ColorUtils.rgbToHSV([responseArray[location+22]/2.55.toDouble(), responseArray[location+23]/2.55.toDouble(), responseArray[location+24]/2.55.toDouble()])
                 
                 def deviceWhite = responseArray[location+25]
@@ -276,7 +280,6 @@ def parse( response ) {
                 for(i=26; i < 50; i++){
                     // if we read an end of line, break
                     if(responseArray[location + i] == 0 && responseArray[location + i + 1] == 0 && responseArray[location + i + 2] == 0 ){
-                        logDebug "Reached end of devicename"
                         break
                     } 
                     deviceName += responseArray[location + i]
@@ -336,8 +339,8 @@ def parse( response ) {
                         addChildDevice("Lightify", "Lightify Bulb - RGBW", "${macString}", null, [label: "${friendlyDeviceName}"])
                     }
                 }
-                
             }
+        //logDebug "Device table: ${devices}"
                
         case null:
             //logDebug "Null response received from device" // Apparently these get sent a lot
@@ -367,6 +370,7 @@ def sendCommand( data ) {
     // Sends commands to the device
     
     def childDevice = getChildDevice(settings.deviceMAC)
+    //childDevice.sendEvent(name: "switch", value: "${deviceSwitchStatus == 0 ? 'off' : 'on'}")
     childDevice.sendCommand( data )
 }
 
@@ -420,5 +424,5 @@ def initialize() {
 }
 
 def installed(){
-    // Need to initialize anything? >> Add firstpage for setup process
+    // Need to initialize anything?
 }
