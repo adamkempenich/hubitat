@@ -48,7 +48,7 @@ metadata {
         name: "Lightify Bridge - Gateway", 
         namespace: "Lightify", 
         author: "Adam Kempenich",
-		importUrl: "!!!") {
+		importUrl: "https://github.com/adamkempenich/hubitat/raw/master/Drivers/Lightify/(Child)%20Lightify%20Bridge%20-%20Gateway.groovy") {
         
         capability "Actuator"
 		capability "Initialize"
