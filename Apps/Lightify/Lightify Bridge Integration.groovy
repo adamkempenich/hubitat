@@ -50,7 +50,8 @@ definition(
     iconUrl: "",
     iconX2Url: "",
     iconX3Url: "",
-    singleInstance: true
+    importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Apps/Lightify/Lightify%20Bridge%20Integration.groovy",
+    singleInstance: false
     )
 
 
