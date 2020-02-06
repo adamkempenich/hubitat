@@ -57,7 +57,7 @@ def off(){
 }
 def setLevel(brightness, duration=0){
     sendEvent(name: "level", value: brightness)
-    parent.setLevel(device.deviceNetworkId, brightness)   
+    parent.setLevel(device.deviceNetworkId, brightness.toFloat())   
 }
 
 def initialize(){
