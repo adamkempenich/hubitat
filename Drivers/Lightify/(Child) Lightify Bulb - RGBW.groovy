@@ -34,7 +34,7 @@ definition (
     name: "Lightify Bulb - RGBW", 
     namespace: "Lightify", 
     author: "Adam Kempenich",
-    importUrl: "!!!") {
+    importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/Lightify/(Child)%20Lightify%20Bulb%20-%20RGBW.groovy") {
     
         capability "Actuator"
         capability "Color Control"
