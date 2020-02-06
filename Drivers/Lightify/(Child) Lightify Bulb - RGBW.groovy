@@ -58,19 +58,19 @@ def off(){
     parent.off(device.deviceNetworkId)
 }
 def setLevel(brightness, duration=0){
-    sendEvent(name: "level", value: brightness)
-    parent.setLevel(device.deviceNetworkId, brightness)   
+    sendEvent(name: "level", value: brightness.toFloat())
+    parent.setLevel(device.deviceNetworkId, brightness.toFloat())   
 }
 def setColor(parameters){
-    sendEvent(name: "hue", value: parameters.hue)
-    sendEvent(name: "saturation", value: parameters.saturation)
-    sendEvent(name: "level", value: parameters.level)
+    sendEvent(name: "hue", value: parameters.hue.toFloat())
+    sendEvent(name: "saturation", value: parameters.saturation.toFloat())
+    sendEvent(name: "level", value: parameters.level.toFloat())
 
     parent.setColor(device.deviceNetworkId, parameters)
 }
 def setColorTemperature(colorTemperature = device.currentValue('colorTemperature'), level = device.currentValue('level')){
-    sendEvent(name: "colorTemperature", value: colorTemperature)
-    parent.setColorTemperature(device.deviceNetworkId, colorTemperature, level)
+    sendEvent(name: "colorTemperature", value: colorTemperature.toFloat())
+    parent.setColorTemperature(device.deviceNetworkId, colorTemperature.toFloat(), level)
 }
 
 def initialize(){
