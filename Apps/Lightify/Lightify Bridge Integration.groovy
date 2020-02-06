@@ -344,7 +344,7 @@ def parse( response ) {
             }
         //logDebug "Device table: ${devices}"
     	if(state.addNewDevices < 5){
-		state.addNewDevices++ 
+		state.addNewDevices = state.addNewDevices + 1
 	}
         break;
         case null:
