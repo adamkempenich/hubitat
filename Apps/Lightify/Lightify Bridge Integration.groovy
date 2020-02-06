@@ -136,13 +136,13 @@ def setOff(childID){
 
 def setHue(childID, hue){
     def childDevice = getChildDevice(childID)
-    childDevice.sendEvent(name: "hue", value: hue)
+    childDevice.sendEvent(name: "hue", value: hue.toFloat())
 
 }
 
 def setSaturation(childID, saturation){
     def childDevice = getChildDevice(childID)
-    childDevice.sendEvent(name: "saturation", value: saturation)
+    childDevice.sendEvent(name: "saturation", value: saturation.toFloat())
 }
 
 def setLevel(childID, brightness, duration=0) {
@@ -157,7 +157,7 @@ def setLevel(childID, brightness, duration=0) {
 
 def updateChildLevel(childID, level){
     def childDevice = getChildDevice(childID)
-    childDevice.sendEvent(name: "level", value: level)
+    childDevice.sendEvent(name: "level", value: level.toFloat())
 }
 
 def setColor(childID, parameters ){
@@ -171,9 +171,9 @@ def setColor(childID, parameters ){
 }
 def updateChildColor(childID, parameters){
     def childDevice = getChildDevice(childID)
-    if(parameters.hue){ childDevice.sendEvent(name: "hue", value: parameters.hue) }
-    if(parameters.saturation){ childDevice.sendEvent(name: "saturation", value: parameters.saturation) }
-    if(parameters.level){ childDevice.sendEvent(name: "level", value: parameters.level) }
+    if(parameters.hue){ childDevice.sendEvent(name: "hue", value: parameters.hue.toFloat()) }
+    if(parameters.saturation){ childDevice.sendEvent(name: "saturation", value: parameters.saturation.toFloat()) }
+    if(parameters.level){ childDevice.sendEvent(name: "level", value: parameters.level.toFloat()) }
 }
 
 def setColorTemperature(childID, setTemp, deviceLevel ){
@@ -300,9 +300,9 @@ def parse( response ) {
                         else{
                             childDevice.sendEvent(name: "switch", value: "on")
                         }
-                        childDevice.sendEvent(name: "hue", value: deviceHSV[0])
-                        childDevice.sendEvent(name: "saturation", value: deviceHSV[1])
-                        childDevice.sendEvent(name: "level", value: deviceLevel/2.55)
+                        childDevice.sendEvent(name: "hue", value: deviceHSV[0].toFloat())
+                        childDevice.sendEvent(name: "saturation", value: deviceHSV[1].toFloat())
+                        childDevice.sendEvent(name: "level", value: (deviceLevel/2.55).toFloat())
                     } catch(e){ // Device does not exist
                         // addChildDevice(String namespace, String typeName, String deviceNetworkId, Map properties = [:]) 
                         
@@ -318,7 +318,7 @@ def parse( response ) {
                         else{
                             childDevice.sendEvent(name: "switch", value: "on")
                         }
-                        childDevice.sendEvent(name: "level", value: deviceLevel/2.55)
+                        childDevice.sendEvent(name: "level", value: (deviceLevel/2.55).toFloat())
                     } catch(e){ // Device does not exist
                         // addChildDevice(String namespace, String typeName, String deviceNetworkId, Map properties = [:]) 
                         state.addNewDevices < 5 ? addChildDevice("Lightify", "Lightify Bulb - Dimmable", "${macString}", null, [label: "${friendlyDeviceName}"]) : null
@@ -333,9 +333,9 @@ def parse( response ) {
                         else{
                             childDevice.sendEvent(name: "switch", value: "on")
                         }
-                        childDevice.sendEvent(name: "hue", value: deviceHSV[0])
-                        childDevice.sendEvent(name: "saturation", value: deviceHSV[1])
-                        childDevice.sendEvent(name: "level", value: deviceLevel/2.55)
+                        childDevice.sendEvent(name: "hue", value: deviceHSV[0].toFloat())
+                        childDevice.sendEvent(name: "saturation", value: deviceHSV[1].toFloat())
+                        childDevice.sendEvent(name: "level", value: (deviceLevel/2.55).toFloat())
                     } catch(e){ // Device does not exist
                         // addChildDevice(String namespace, String typeName, String deviceNetworkId, Map properties = [:]) 
                        state.addNewDevices < 5 ? addChildDevice("Lightify", "Lightify Bulb - RGBW", "${macString}", null, [label: "${friendlyDeviceName}"]) : null
