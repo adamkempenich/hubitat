@@ -221,13 +221,15 @@ def parse( response ) {
     switch(responseArray.length) {
         case 20:
         logDebug "Response Length: 20. Data: ${responseArray.length}"
+        logDebug "Data is: ${responseArray}"
             break;
         case {it > 20}:
-            
+            logDebug "Response Length: 20. Data: ${responseArray.length}"
+
             logDebug "${responseArray[9]} devices."
             def totalDevices = (responseArray.length - 11)/50
         //    def totalDevices = responseArray[9]
-        
+        if(responseArray[9] != 1){
             for(thisDevice = 0; thisDevice < totalDevices; thisDevice++){
                 def location = 11 + (thisDevice * 50) // Devices start at byte 11 (from zero. 0-10 are gateway data) Each device's data is 50 bytes long
                 // Create a locator 
@@ -342,10 +344,12 @@ def parse( response ) {
                     }
                 }
             }
+        }
+        
         //logDebug "Device table: ${devices}"
     	if(state.addNewDevices < 5){
-		state.addNewDevices = state.addNewDevices + 1
-	}
+		    state.addNewDevices = state.addNewDevices + 1
+	    }
         break;
         case null:
             //logDebug "Null response received from device" // Apparently these get sent a lot
