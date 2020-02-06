@@ -306,7 +306,7 @@ def parse( response ) {
                     } catch(e){ // Device does not exist
                         // addChildDevice(String namespace, String typeName, String deviceNetworkId, Map properties = [:]) 
                         
-                        state.addNewDevices ? addChildDevice("Lightify", "Lightify Bulb - RGBW", "${macString}", null, [label: "${friendlyDeviceName}"]) : null
+                        state.addNewDevices < 5 ? addChildDevice("Lightify", "Lightify Bulb - RGBW", "${macString}", null, [label: "${friendlyDeviceName}"]) : null
                     }
                 }
                 else if(deviceType == 4){ //Dimmable = 4
@@ -321,7 +321,7 @@ def parse( response ) {
                         childDevice.sendEvent(name: "level", value: deviceLevel/2.55)
                     } catch(e){ // Device does not exist
                         // addChildDevice(String namespace, String typeName, String deviceNetworkId, Map properties = [:]) 
-                        state.addNewDevices ? addChildDevice("Lightify", "Lightify Bulb - Dimmable", "${macString}", null, [label: "${friendlyDeviceName}"]) : null
+                        state.addNewDevices < 5 ? addChildDevice("Lightify", "Lightify Bulb - Dimmable", "${macString}", null, [label: "${friendlyDeviceName}"]) : null
                     }
                 } 
                 else{
@@ -338,12 +338,14 @@ def parse( response ) {
                         childDevice.sendEvent(name: "level", value: deviceLevel/2.55)
                     } catch(e){ // Device does not exist
                         // addChildDevice(String namespace, String typeName, String deviceNetworkId, Map properties = [:]) 
-                       state.addNewDevices ? addChildDevice("Lightify", "Lightify Bulb - RGBW", "${macString}", null, [label: "${friendlyDeviceName}"]) : null
+                       state.addNewDevices < 5 ? addChildDevice("Lightify", "Lightify Bulb - RGBW", "${macString}", null, [label: "${friendlyDeviceName}"]) : null
                     }
                 }
             }
         //logDebug "Device table: ${devices}"
-        state.addNewDevices = false 
+    	if(state.addNewDevices < 5){
+		state.addNewDevices++ 
+	}
         break;
         case null:
             //logDebug "Null response received from device" // Apparently these get sent a lot
@@ -401,7 +403,7 @@ private removeChildDevices(delete) {
 def initialize() {
     // Establish a connection to the device
     
-    state.addNewDevices = true
+    state.addNewDevices = 0
     
     if(settings.deviceMAC != null && settings.deviceMAC != "" && settings.deviceMAC != "OSR010203A4"){
         try{
