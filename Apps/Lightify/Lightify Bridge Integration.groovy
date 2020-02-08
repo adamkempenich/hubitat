@@ -311,6 +311,23 @@ def parse( response ) {
                         state.addNewDevices < 5 ? addChildDevice("Lightify", "Lightify Bulb - RGBW", "${macString}", null, [label: "${friendlyDeviceName}"]) : null
                     }
                 }
+                else if(deviceType == 2){ // CCT = 2
+                    try{
+                        def childDevice = getChildDevice(macString)
+                        if(deviceSwitchStatus == 0 || deviceOnline  == 0){
+                            childDevice.sendEvent(name: "switch", value: "off")
+                        }
+                        else{
+                            childDevice.sendEvent(name: "switch", value: "on")
+                        }
+                       
+                        childDevice.sendEvent(name: "level", value: (deviceLevel/2.55).toFloat())
+                    } catch(e){ // Device does not exist
+                        // addChildDevice(String namespace, String typeName, String deviceNetworkId, Map properties = [:]) 
+                        
+                        state.addNewDevices < 5 ? addChildDevice("Lightify", "Lightify Bulb - CCT", "${macString}", null, [label: "${friendlyDeviceName}"]) : null
+                    }
+                }
                 else if(deviceType == 4){ //Dimmable = 4
                     try{
                         def childDevice = getChildDevice(macString)
