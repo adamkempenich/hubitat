@@ -1,5 +1,5 @@
 /**
-* Lightify Bridge - Local Control (Child) (0.1) 
+* Lightify Bulb - Dimmable (0.2)
 *
 *  Author: 
 *    Adam Kempenich
@@ -7,6 +7,10 @@
 *  Documentation:  [Does not exist, yet]
 *
 *  Changelog:
+*
+*    0.21 (Feb 10, 2020)
+*        - Fixed number formatting
+*
 *    0.20 (Feb 04, 2020)
 *        - Added parent/child structure
 *        - Actually holds data now
@@ -57,7 +61,7 @@ def off(){
 }
 def setLevel(brightness, duration=0){
     sendEvent(name: "level", value: brightness)
-    parent.setLevel(device.deviceNetworkId, brightness.toFloat())   
+    parent.setLevel(device.deviceNetworkId, brightness.toInteger())   
 }
 
 def initialize(){
