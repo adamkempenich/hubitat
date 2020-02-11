@@ -368,6 +368,25 @@ def parse( response ) {
                         }
                     }
                 } 
+                else if(deviceType == 8){ // RGB = 8
+                    try{
+                        def childDevice = getChildDevice(macString)
+                        if(deviceSwitchStatus == 0 || deviceOnline  == 0){
+                            childDevice.sendEvent(name: "switch", value: "off")
+                        }
+                        else{
+                            childDevice.sendEvent(name: "switch", value: "on")
+                        }
+                        childDevice.sendEvent(name: "hue", value: deviceHSV[0].toFloat())
+                        childDevice.sendEvent(name: "saturation", value: deviceHSV[1].toFloat())
+                        childDevice.sendEvent(name: "level", value: deviceLevel)
+                    } catch(e){ // Device does not exist
+                        // addChildDevice(String namespace, String typeName, String deviceNetworkId, Map properties = [:]) 
+                        log.debug "${e}"
+                        addChildDevice("Lightify", "Lightify Bulb - RGB", "${macString}", null, [label: "${friendlyDeviceName}"])
+
+                    }
+                }
                 else{
                     try{
                         def childDevice = getChildDevice(macString)
