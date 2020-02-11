@@ -1,5 +1,5 @@
 /**
-* Lightify Bulb - RGBW (0.2)
+* Lightify Bulb - RGBW (0.21)
 *
 *  Author: 
 *    Adam Kempenich
@@ -7,6 +7,11 @@
 *  Documentation:  [Does not exist, yet]
 *
 *  Changelog:
+*
+*    0.21 (Feb 10, 2020)
+*        - Fixed number formatting
+*        - Added H/S individualized methods
+*
 *    0.20 (Feb 04, 2020)
 *        - Added parent/child structure
 *        - Actually holds data now
@@ -58,19 +63,35 @@ def off(){
     parent.off(device.deviceNetworkId)
 }
 def setLevel(brightness, duration=0){
-    sendEvent(name: "level", value: brightness.toFloat())
-    parent.setLevel(device.deviceNetworkId, brightness.toFloat())   
+    sendEvent(name: "level", value: brightness.toInteger())
+    parent.setLevel(device.deviceNetworkId, brightness.toInteger())   
 }
+
+def setHue(hueValue){
+    sendEvent(name: "saturation", value: hueValue.toFloat())
+    def parameters = [hue: device.currentValue('hue'), saturation: hueValue, level: device.currentValue('level')]
+    parent.setColor(device.deviceNetworkId, parameters)
+}
+
+def setSaturation(saturationValue){
+    sendEvent(name: "saturation", value: saturationValue.toFloat())
+    def parameters = [hue: device.currentValue('hue'), saturation: saturationValue, level: device.currentValue('level')]
+    parent.setColor(device.deviceNetworkId, parameters)
+
+
+    
+}
+
 def setColor(parameters){
     sendEvent(name: "hue", value: parameters.hue.toFloat())
     sendEvent(name: "saturation", value: parameters.saturation.toFloat())
-    sendEvent(name: "level", value: parameters.level.toFloat())
+    sendEvent(name: "level", value: parameters.level.toInteger())
 
     parent.setColor(device.deviceNetworkId, parameters)
 }
 def setColorTemperature(colorTemperature = device.currentValue('colorTemperature'), level = device.currentValue('level')){
-    sendEvent(name: "colorTemperature", value: colorTemperature.toFloat())
-    parent.setColorTemperature(device.deviceNetworkId, colorTemperature.toFloat(), level)
+    sendEvent(name: "colorTemperature", value: colorTemperature.toInteger())
+    parent.setColorTemperature(device.deviceNetworkId, colorTemperature.toInteger(), level)
 }
 
 def initialize(){
@@ -80,3 +101,4 @@ def initialize(){
 def updated(){
     // Do nothing
 }
+
