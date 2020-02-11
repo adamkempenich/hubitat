@@ -1,5 +1,5 @@
 /**
-* Lightify Bridge Integration — Parent App (0.2) 
+* Lightify Bridge Integration — Parent App (0.21) 
 *
 *  Author: 
 *    Adam Kempenich 
@@ -7,6 +7,13 @@
 *  Documentation:  [Does not exist, yet]
 *
 *  Changelog:
+*    0.21 (Feb 10, 2020)
+*        - Added switch device
+*        - Added CCT device
+*        - Figured out how CCT is parsed
+*        - Fixed an integer conversion issue with level
+*        - Fixed device adding --- verifies packets are the correct length before parsing
+*        
 *    0.20 (Feb 04, 2020)
 *        - Added parent/child structure
 *        - Actually holds data now
@@ -19,12 +26,12 @@
 *        X create structure for parent/children
 *        X send command to individual devices
 *        - send command to groups 
-*        / add separate device types
+*        X add separate device types
 *        X add power
 *        X add brightness
 *        X add color
 *        / add hsl
-*        / add color temperature - reverse engineer > Transmits only
+*        X add color temperature
 *
 *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 *  in compliance with the License. You may obtain a copy of the License at:
@@ -226,58 +233,46 @@ def parse( response ) {
         case {it > 20}:
             logDebug "Response Length: 20. Data: ${responseArray.length}"
 
-            logDebug "${responseArray[9]} devices."
+        
             def totalDevices = (responseArray.length - 11)/50
-        //    def totalDevices = responseArray[9]
-        if(responseArray[9] != 1){
+           // logDebug "${responseArray[9]} devices compared to ${totalDevices}. Byte comparison: ${(responseArray[9] * 50) + 11} - ${responseArray.length}."
+
+            // def totalDevices = responseArray[9]
+        if((responseArray[9] * 50) + 11 == responseArray.length){
             for(thisDevice = 0; thisDevice < totalDevices; thisDevice++){
                 def location = 11 + (thisDevice * 50) // Devices start at byte 11 (from zero. 0-10 are gateway data) Each device's data is 50 bytes long
                 // Create a locator 
 
-                def deviceID = [responseArray[location], responseArray[location+1]]
-                // Not sure if we need this
-                //log.debug "deviceID: ${HexUtils.intArrayToHexString(*deviceID)}"
+                def deviceID = [responseArray[location], responseArray[location+1]] // Not sure if we need this
+                //log.debug "deviceID: ${HexUtils.intArrayToHexString(*deviceID)}" // is this little endian, too?
                
                 def deviceMAC = []
                 for( i=2; i < 10; i++ ){
                     deviceMAC += responseArray[location + i]
                 }
-                def macString = HexUtils.intArrayToHexString(*deviceMAC)
-                //log.trace "MAC: ${macString}"
-                // Store as child device's DNI
+                def macString = HexUtils.intArrayToHexString(*deviceMAC) // Store as child device's DNI
                 
-                def deviceType = responseArray[location+10]
-                // Create different child device depending on this
+                def deviceType = responseArray[location+10] // Create different child device depending on this
                 
                 def deviceFirmware = []
                 for( i=11; i < 15; i++ ){
                     deviceFirmware += responseArray[location + i]
-                }
-                // Not super important but maybe worth storing in child device
+                } // Not super important but maybe worth storing in child device
                 
-                def deviceOnline = responseArray[location+15]
-                // Not sure what to do with this --- check Mike's drivers then ask Mike/Chuck
+                def deviceOnline = responseArray[location+15] // Not sure what to do with this --- check Mike's drivers then ask Mike/Chuck
                 
-                def deviceGroupID = [responseArray[location+16], responseArray[location+17]]
-                // Not quite sure what to do with this
+                def deviceGroupID = [responseArray[location+16], responseArray[location+17]] // Not quite sure what to do with this
                 
-                def deviceSwitchStatus = responseArray[location+18] // 0 is off, 1 is on
-                // Add to child device status 
+                def deviceSwitchStatus = responseArray[location+18] // 0 is off, 1 is on // Add to child device status 
                 
-                def deviceLevel = responseArray[location+19]
-                // Add to child device level
+                def deviceLevel = responseArray[location+19] // Add to child device level
                 
-                def deviceTemperature = [responseArray[location+20], responseArray[location+21]]
-                // Figure out how this is stored
-                
-               //def deviceRed = [responseArray[location+22]]
-               //def deviceGreen = [responseArray[location+23]]
-               //def deviceBlue = [responseArray[location+24]]
+                def byte[] temperatureArray = [responseArray[location+21], responseArray[location+20]]
+                def deviceTemperature = Integer.parseInt(HexUtils.byteArrayToHexString(temperatureArray), 16)
                 
                 def deviceHSV = ColorUtils.rgbToHSV([responseArray[location+22]/2.55.toDouble(), responseArray[location+23]/2.55.toDouble(), responseArray[location+24]/2.55.toDouble()])
                 
-                def deviceWhite = responseArray[location+25]
-                // Learn what this is
+                def deviceWhite = responseArray[location+25] // Learn what this is
                 
                 def deviceName = []
                 for(i=26; i < 50; i++){
@@ -292,7 +287,7 @@ def parse( response ) {
                 def deviceNameToBytes = HexUtils.intArrayToHexString(*deviceName)
                 def String friendlyDeviceName = new String(HexUtils.hexStringToByteArray(deviceNameToBytes), "UTF-8")
                 
-                //log.debug "Device name: ${friendlyDeviceName} has type ${deviceType}, its switch status is ${deviceSwitchStatus} and its online status ${deviceOnline}"
+                log.debug "Device name: ${friendlyDeviceName} has type ${deviceType}, its switch status is ${deviceSwitchStatus} and its online status ${deviceOnline}"
                 if(deviceType == 10){ // RGBW = 10
                     try{
                         def childDevice = getChildDevice(macString)
@@ -304,11 +299,13 @@ def parse( response ) {
                         }
                         childDevice.sendEvent(name: "hue", value: deviceHSV[0].toFloat())
                         childDevice.sendEvent(name: "saturation", value: deviceHSV[1].toFloat())
-                        childDevice.sendEvent(name: "level", value: (deviceLevel/2.55).toFloat())
+                        childDevice.sendEvent(name: "level", value: deviceLevel)
+                        childDevice.sendEvent(name: "colorTemperature", value: deviceTemperature.toInteger())
                     } catch(e){ // Device does not exist
                         // addChildDevice(String namespace, String typeName, String deviceNetworkId, Map properties = [:]) 
-                        
-                        state.addNewDevices < 5 ? addChildDevice("Lightify", "Lightify Bulb - RGBW", "${macString}", null, [label: "${friendlyDeviceName}"]) : null
+                        log.debug "${e}"
+                        addChildDevice("Lightify", "Lightify Bulb - RGBW", "${macString}", null, [label: "${friendlyDeviceName}"])
+
                     }
                 }
                 else if(deviceType == 2){ // CCT = 2
@@ -320,12 +317,35 @@ def parse( response ) {
                         else{
                             childDevice.sendEvent(name: "switch", value: "on")
                         }
-                       
-                        childDevice.sendEvent(name: "level", value: (deviceLevel/2.55).toFloat())
+                        childDevice.sendEvent(name: "level", value: deviceLevel)
+                        childDevice.sendEvent(name: "colorTemperature", value: deviceTemperature.toInteger())
+                        
                     } catch(e){ // Device does not exist
                         // addChildDevice(String namespace, String typeName, String deviceNetworkId, Map properties = [:]) 
                         
-                        state.addNewDevices < 5 ? addChildDevice("Lightify", "Lightify Bulb - CCT", "${macString}", null, [label: "${friendlyDeviceName}"]) : null
+                        log.debug "${e}"
+                        addChildDevice("Lightify", "Lightify Bulb - CCT", "${macString}", null, [label: "${friendlyDeviceName}"])
+
+                    }
+                }
+                else if(deviceType == 1){ // Switch/Plug = 2
+                    try{
+                        def childDevice = getChildDevice(macString)
+                        if(deviceSwitchStatus == 0 || deviceOnline  == 0){
+                            childDevice.sendEvent(name: "switch", value: "off")
+                        }
+                        else{
+                            childDevice.sendEvent(name: "switch", value: "on")
+                        }
+                        childDevice.sendEvent(name: "level", value: deviceLevel)
+                        childDevice.sendEvent(name: "colorTemperature", value: deviceTemperature.toInteger())
+                        
+                    } catch(e){ // Device does not exist
+                        // addChildDevice(String namespace, String typeName, String deviceNetworkId, Map properties = [:]) 
+                        
+                        log.debug "${e}"
+                        addChildDevice("Lightify", "Lightify Bulb - Switch", "${macString}", null, [label: "${friendlyDeviceName}"])
+
                     }
                 }
                 else if(deviceType == 4){ //Dimmable = 4
@@ -337,10 +357,15 @@ def parse( response ) {
                         else{
                             childDevice.sendEvent(name: "switch", value: "on")
                         }
-                        childDevice.sendEvent(name: "level", value: (deviceLevel/2.55).toFloat())
+                        childDevice.sendEvent(name: "level", value: deviceLevel)
                     } catch(e){ // Device does not exist
                         // addChildDevice(String namespace, String typeName, String deviceNetworkId, Map properties = [:]) 
-                        state.addNewDevices < 5 ? addChildDevice("Lightify", "Lightify Bulb - Dimmable", "${macString}", null, [label: "${friendlyDeviceName}"]) : null
+                        log.debug "${e}"
+                        try{
+                        addChildDevice("Lightify", "Lightify Bulb - Dimmable", "${macString}", null, [label: "${friendlyDeviceName}"])
+                        } catch(creationError){
+                            "That device already exists"
+                        }
                     }
                 } 
                 else{
@@ -354,19 +379,22 @@ def parse( response ) {
                         }
                         childDevice.sendEvent(name: "hue", value: deviceHSV[0].toFloat())
                         childDevice.sendEvent(name: "saturation", value: deviceHSV[1].toFloat())
-                        childDevice.sendEvent(name: "level", value: (deviceLevel/2.55).toFloat())
+                        childDevice.sendEvent(name: "level", value: deviceLevel)
+                        childDevice.sendEvent(name: "colorTemperature", value: deviceTemperature.toInteger())
                     } catch(e){ // Device does not exist
                         // addChildDevice(String namespace, String typeName, String deviceNetworkId, Map properties = [:]) 
-                       state.addNewDevices < 5 ? addChildDevice("Lightify", "Lightify Bulb - RGBW", "${macString}", null, [label: "${friendlyDeviceName}"]) : null
+                       log.debug "${e}"
+                        try{
+                            addChildDevice("Lightify", "Lightify Bulb - RGBW", "${macString}", null, [label: "${friendlyDeviceName}"])
+                        } catch(creationError){
+                            "That device already exists"
+                        }
                     }
                 }
             }
         }
         
         //logDebug "Device table: ${devices}"
-    	if(state.addNewDevices < 5){
-		    state.addNewDevices = state.addNewDevices + 1
-	    }
         break;
         case null:
             //logDebug "Null response received from device" // Apparently these get sent a lot
@@ -424,8 +452,6 @@ private removeChildDevices(delete) {
 def initialize() {
     // Establish a connection to the device
     
-    state.addNewDevices = 0
-    
     if(settings.deviceMAC != null && settings.deviceMAC != "" && settings.deviceMAC != "OSR010203A4"){
         try{
             def childDevice = getChildDevice(settings.deviceMAC)
@@ -455,3 +481,4 @@ def initialize() {
 def installed(){
     // Need to initialize anything?
 }
+
