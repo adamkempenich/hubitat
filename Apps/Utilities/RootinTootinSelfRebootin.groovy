@@ -236,3 +236,4 @@ def logDebug(msg) {
 
 def logTrace(msg) {
   if (logLevel?.toInteger() >= 5) { log.trace msg }
+}
