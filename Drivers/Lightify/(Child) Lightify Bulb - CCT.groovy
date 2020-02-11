@@ -1,5 +1,5 @@
 /**
-* Lightify Bulb - CCT (0.2)
+* Lightify Bulb - CCT (0.21)
 *
 *  Author: 
 *    Adam Kempenich
@@ -7,6 +7,9 @@
 *  Documentation:  [Does not exist, yet]
 *
 *  Changelog:
+*    0.21 (Feb 10, 2020)
+*        - Fixed number formatting
+*
 *    0.20 (Feb 04, 2020)
 *        - Added parent/child structure
 *        - Actually holds data now
@@ -56,12 +59,12 @@ def off(){
     parent.off(device.deviceNetworkId)
 }
 def setLevel(brightness, duration=0){
-    sendEvent(name: "level", value: brightness.toFloat())
-    parent.setLevel(device.deviceNetworkId, brightness.toFloat())   
+    sendEvent(name: "level", value: brightness.toInteger())
+    parent.setLevel(device.deviceNetworkId, brightness.toInteger())   
 }
 
 def setColorTemperature(colorTemperature = device.currentValue('colorTemperature'), level = device.currentValue('level')){
-    sendEvent(name: "colorTemperature", value: colorTemperature.toFloat())
+    sendEvent(name: "colorTemperature", value: colorTemperature.toInteger())
     parent.setColorTemperature(device.deviceNetworkId, colorTemperature.toInteger(), level)
 }
 
@@ -72,5 +75,6 @@ def initialize(){
 def updated(){
     // Do nothing
 }
+
 
 
