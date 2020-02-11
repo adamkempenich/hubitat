@@ -270,7 +270,7 @@ def parse( response ) {
                 def byte[] temperatureArray = [responseArray[location+21], responseArray[location+20]]
                 def deviceTemperature = Integer.parseInt(HexUtils.byteArrayToHexString(temperatureArray), 16)
                 
-                def deviceHSV = ColorUtils.rgbToHSV([responseArray[location+22]/2.55.toDouble(), responseArray[location+23]/2.55.toDouble(), responseArray[location+24]/2.55.toDouble()])
+                def deviceHSV = ColorUtils.rgbToHSV([responseArray[location+22].toDouble(), responseArray[location+23].toDouble(), responseArray[location+24].toDouble()])
                 
                 def deviceWhite = responseArray[location+25] // Learn what this is
                 
