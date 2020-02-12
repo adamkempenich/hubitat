@@ -283,8 +283,8 @@ def parse( response ) {
         case {it > 20}:
             // 91 is entire status packet
             
-            responselength > 861 ? logDebug("<h2>Response Length: >20. Data: ${responseArray.length}. array[0] is ${responseArray[0]}</h2>") : null
-             
+            //responselength > 861 ? logDebug("<h2>Response Length: >20. Data: ${responseArray.length}. array[0] is ${responseArray[0]}</h2>") : null
+
             def totalDevices = (responseArray.length - 11)/50
            // logDebug "${responseArray[9]} devices compared to ${totalDevices}. Byte comparison: ${(responseArray[9] * 50) + 11} - ${responseArray.length}."
 
