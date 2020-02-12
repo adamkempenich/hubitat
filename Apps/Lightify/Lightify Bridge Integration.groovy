@@ -339,7 +339,7 @@ def parse( response ) {
                 def deviceNameToBytes = HexUtils.intArrayToHexString(*deviceName)
                 def String friendlyDeviceName = new String(HexUtils.hexStringToByteArray(deviceNameToBytes), "UTF-8")
                 
-                log.debug "Device name: ${friendlyDeviceName} has type ${deviceType}, its switch status is ${deviceSwitchStatus} and its online status ${deviceOnline}"
+                //log.debug "Device name: ${friendlyDeviceName} has type ${deviceType}, its switch status is ${deviceSwitchStatus} and its online status ${deviceOnline}"
                 if(deviceType == 10){ // RGBW = 10
                     try{
                         def childDevice = getChildDevice(macString)
