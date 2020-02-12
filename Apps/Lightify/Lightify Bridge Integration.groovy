@@ -7,6 +7,9 @@
 *  Documentation:  [Does not exist, yet]
 *
 *  Changelog:
+*    0.22 (Feb 12, 2020)
+*        - Adding Groups
+*
 *    0.21 (Feb 10, 2020)
 *        - Added switch device
 *        - Added CCT device
@@ -30,7 +33,7 @@
 *        X add power
 *        X add brightness
 *        X add color
-*        / add hsl
+*        X add hsl
 *        X add color temperature
 *
 *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -63,6 +66,8 @@ definition(
 
 
 preferences {
+    page(name: "main", title: "Lightify Details", install: true){
+        
 	section("Lightify Details") {
         
         // Refresh bulbs
@@ -87,7 +92,8 @@ preferences {
         input(name:"reconnectPings", type:"number", title: "Reconnect after ...",
             description: "Number of failed pings before reconnecting Lightify gateway.", defaultValue: 3,
             required: true, displayDuringSetup: true)
-	}
+	    }
+    }
 
 }
 
@@ -128,6 +134,14 @@ def allOff() {
     childDevice.sendEvent(name: "switch", value: "off")
     
     byte[] data = [0x0f, 0x00, 0x00, 0x32, 0x01, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00] // all off
+    sendCommand(data)
+}
+
+def getGroups(){
+    
+    logDebug "TestData Called"
+    byte[] data = [0x0f, 0x00, 0x00, 0x1e, 0x01, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00] // all off
+
     sendCommand(data)
 }
 
@@ -226,14 +240,51 @@ def parse( response ) {
     def devices = [:]
     
     switch(responseArray.length) {
-        case 20:
-        logDebug "Response Length: 20. Data: ${responseArray.length}"
-        logDebug "Data is: ${responseArray}"
-            break;
-        case {it > 20}:
-            logDebug "Response Length: 20. Data: ${responseArray.length}"
-
+        case {responseArray[0] == 18}:
+            logDebug "Response Length: 20. Data: ${responseArray.length} : ${response}"
+            logDebug "Data is: ${responseArray}. array[0] is ${responseArray[0]}"
+        break;
         
+        
+        case {responseArray[0] == 0x51}:
+            logDebug "Parsing groups from response ${response}"
+            
+            def totalGroups = responseArray[9]
+            logDebug "${totalGroups} Groups"
+        
+            for(thisGroup = 0; thisGroup < totalGroups; thisGroup++){
+                def location = 11 + (thisGroup * 18) // Groups start at byte 11 (from zero. 0-10 are gateway data) Byte 0 of each group is its id, 1-16 are name, 17 is termination
+                
+                def groupID = responseArray[location]
+                logDebug "${groupID}"
+                
+                def groupName = []
+                for(i=2; i < 18; i++){
+                   //// if we read an end of line, break
+                   //if(responseArray[location + i] == 0 && responseArray[location + i + 1] == 0 && responseArray[location + i + 2] == 0 ){
+                   //    break
+                   //} 
+                    groupName += responseArray[location + i]
+                    
+                }
+                
+                def groupNameToBytes = HexUtils.intArrayToHexString(*groupName)
+                def String friendlyGroupName = new String(HexUtils.hexStringToByteArray(groupNameToBytes), "UTF-8")
+                
+                logDebug "${friendlyGroupName}"
+                
+                // check if device ${settings.deviceMAC}-${groupID}${friendlyGroupName}
+            }
+        
+            break;
+        
+        
+        
+        case {it > 20}:
+            // 91 is entire status packet
+            
+            responselength > 861 ? logDebug("<h2>Response Length: >20. Data: ${responseArray.length}. array[0] is ${responseArray[0]}</h2>") : null
+             
             def totalDevices = (responseArray.length - 11)/50
            // logDebug "${responseArray[9]} devices compared to ${totalDevices}. Byte comparison: ${(responseArray[9] * 50) + 11} - ${responseArray.length}."
 
@@ -288,7 +339,7 @@ def parse( response ) {
                 def deviceNameToBytes = HexUtils.intArrayToHexString(*deviceName)
                 def String friendlyDeviceName = new String(HexUtils.hexStringToByteArray(deviceNameToBytes), "UTF-8")
                 
-               // log.debug "Device name: ${friendlyDeviceName} has type ${deviceType}, its switch status is ${deviceSwitchStatus} and its online status ${deviceOnline}"
+                log.debug "Device name: ${friendlyDeviceName} has type ${deviceType}, its switch status is ${deviceSwitchStatus} and its online status ${deviceOnline}"
                 if(deviceType == 10){ // RGBW = 10
                     try{
                         def childDevice = getChildDevice(macString)
@@ -472,6 +523,8 @@ private removeChildDevices(delete) {
 def initialize() {
     // Establish a connection to the device
     
+    logDebug "Initializing with MAC ${settings.deviceMAC}, IP ${settings.deviceIP}, Port ${settings.devicePort}, refreshTime ${settings.refreshTime}, and reconnect pings${settings.reconnectPings}"
+    
     if(settings.deviceMAC != null && settings.deviceMAC != "" && settings.deviceMAC != "OSR010203A4"){
         try{
             def childDevice = getChildDevice(settings.deviceMAC)
@@ -481,15 +534,28 @@ def initialize() {
             childDevice.setRefreshTimeState(settings.refreshTime)
             childDevice.setReconnectPingsState(settings.reconnectPings)
 
-            //childDevice.state.deviceIP = settings.deviceIP
-            //childDevice.state.devicePort = settings.devicePort
-            //childDevice.state.deviceMAC = settings.deviceMAC
-            //childDevice.state.refreshTime = settings.refreshTime
-            //childDevice.state.reconnectPings = settings.reconnectPings
             childDevice.connectDevice([firstRun: true])
         } catch(e){ // Device does not exist
             //addChildDevice(String namespace, String typeName, String deviceNetworkId, Map properties = [:])
+            log.debug "Child device doesn't exist. Error: ${e}"
             addChildDevice("Lightify", "Lightify Bridge - Gateway", "${settings.deviceMAC}")
+            
+            pauseExecution(1000)
+            
+            try{
+                def childDevice = getChildDevice(settings.deviceMAC)
+                childDevice.setIPState(settings.deviceIP)
+                childDevice.setPortState(settings.devicePort)
+                childDevice.setMACState(settings.deviceMAC)
+                childDevice.setRefreshTimeState(settings.refreshTime)
+                childDevice.setReconnectPingsState(settings.reconnectPings)
+    
+                childDevice.connectDevice([firstRun: true])
+            }
+            catch(creationError){
+                logDebug "A new device was created successfully, but there was an issue attributing settings to it"
+            }    
+            
         }
     }
     else{ // do nothing 
@@ -501,4 +567,7 @@ def initialize() {
 def installed(){
     // Need to initialize anything?
 }
+
+
+
 
