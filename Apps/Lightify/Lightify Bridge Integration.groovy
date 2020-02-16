@@ -408,8 +408,12 @@ def parse( response ) {
     def responseArray = HexUtils.hexStringToIntArray(response)  
     
     def devices = [:]
+    def groupTotals = []
+    for(i = 1; i++; i < 16){ 
+        groupTotals += (11 + (18 * i))
+    }
     //log.trace "${response}"
-    
+    logDebug "responseArray[0] is ${responseArray[0]}"
     switch(responseArray.length) {
         //case {responseArray[0] == 18}:
         case 20:
@@ -417,7 +421,7 @@ def parse( response ) {
             logDebug "Data is: ${responseArray}. array[0] is ${responseArray[0]}"
         break;
         
-        case {responseArray[0] == 0x51}:
+        case {groupTotals.contains(responseArray.length)}: //0x51 packet for my groups
             logDebug "Parsing groups from response ${response}"
             
             def totalGroups = responseArray[9]
