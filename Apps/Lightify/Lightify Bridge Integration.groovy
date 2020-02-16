@@ -408,9 +408,9 @@ def parse( response ) {
     def responseArray = HexUtils.hexStringToIntArray(response)  
     
     def devices = [:]
-    def groupTotals = []
+    def isGroup = false
     for(i = 1; i++; i < 16){ 
-        groupTotals += (11 + (18 * i))
+        if(11 + (18 * i) == responseArray.length){ isGroup = true }
     }
     //log.trace "${response}"
     logDebug "responseArray[0] is ${responseArray[0]}"
@@ -421,7 +421,7 @@ def parse( response ) {
             logDebug "Data is: ${responseArray}. array[0] is ${responseArray[0]}"
         break;
         
-        case {groupTotals.contains(responseArray.length)}: //0x51 packet for my groups
+        case {isGroup == true}: //0x51 packet for my groups
             logDebug "Parsing groups from response ${response}"
             
             def totalGroups = responseArray[9]
