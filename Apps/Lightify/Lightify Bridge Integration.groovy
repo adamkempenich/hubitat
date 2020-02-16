@@ -25,7 +25,7 @@
 *        - Updated settings pages a lot
 *        - Beefed up initialization routine/error checking
 *        - Added color prestaging and child description text
-*
+* 
 *    0.21 (Feb 10, 2020)
 *        - Added switch device
 *        - Added CCT device
