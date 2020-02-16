@@ -1,5 +1,5 @@
 /**
-* Lightify Bridge - Gateway (0.2) 
+* Lightify Bridge - Gateway (0.22) 
 *
 *  Author: 
 *    Adam Kempenich 
@@ -7,6 +7,11 @@
 *  Documentation:  [Does not exist, yet]
 *
 *  Changelog:
+*    0.22 (Feb 15, 2020)
+*        - Updated initialize method
+*
+*    0.21 - No Changes
+*
 *    0.20 (Feb 04, 2020)
 *        - Added parent/child structure
 *        - Actually holds data now
@@ -57,7 +62,6 @@ metadata {
 		capability "Sensor"
 		capability "Switch"
     }
-    
     preferences {  
         
         //state.deviceIP
@@ -76,9 +80,6 @@ metadata {
 
     }
 }
-
-
-
 
 def on(childID){
     parent.allOn()
@@ -134,7 +135,7 @@ def sendCommand( data ) {
     InterfaceUtils.sendSocketMessage(device, stringBytes)
 }
 
-def refresh( ) {
+def refresh( addDevices = false ) {
 	
 	logDebug "Number of failed responses: ${state.noResponse}"
 	state.noResponse++
@@ -236,5 +237,5 @@ def initialize() {
 
 def installed(){
     state.noResponse = 0
-    state.lastConnectionAttempt = now()
+    initialize()
 }
