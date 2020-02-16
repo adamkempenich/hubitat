@@ -27,7 +27,7 @@ definition (
     name: "Lightify Child - Group", 
     namespace: "Lightify", 
     author: "Adam Kempenich",
-    importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/Lightify/(Child) Lightify Group - Bulb.groovy") {
+    importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/Lightify/(Child) Lightify Child - Group.groovy") {
     
         capability "Actuator"
         capability "Color Control"
