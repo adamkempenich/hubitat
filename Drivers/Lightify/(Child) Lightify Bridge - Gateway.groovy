@@ -61,7 +61,7 @@ metadata {
         capability "Refresh"
 		capability "Sensor"
 		capability "Switch"
-	    capability "Get Groups"
+	    command "getGroups"
     }
     preferences {  
         
