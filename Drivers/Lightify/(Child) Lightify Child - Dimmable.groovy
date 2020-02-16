@@ -1,5 +1,5 @@
 /**
-* Lightify Bridge - Local Control (Child) (0.1) 
+* Lightify Child - Dimmable (0.22) 
 *
 *  Author: 
 *    Adam Kempenich
@@ -7,7 +7,7 @@
 *  Documentation:  [Does not exist, yet]
 *
 *  Changelog:
-*    0.22 (Feb 25, 2020)
+*    0.22 (Feb 15, 2020)
 *	- Updated naming schema
 *
 *    0.21 - No changes
@@ -40,7 +40,7 @@ definition (
     name: "Lightify Child - Dimmable", 
     namespace: "Lightify", 
     author: "Adam Kempenich",
-    importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/Lightify/(Child)%20Lightify%20Bulb%20-%20Dimmable.groovy") {
+    importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/Lightify/(Child)%20Lightify%20Child%20-%20Dimmable.groovy") {
     
         capability "Actuator"
 		capability "Initialize"
