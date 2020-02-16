@@ -1,5 +1,5 @@
 /**
-* Lightify Bulb - Dimmable (0.2)
+* Lightify Bridge - Local Control (Child) (0.1) 
 *
 *  Author: 
 *    Adam Kempenich
@@ -7,9 +7,10 @@
 *  Documentation:  [Does not exist, yet]
 *
 *  Changelog:
+*    0.22 (Feb 25, 2020)
+*	- Updated naming schema
 *
-*    0.21 (Feb 10, 2020)
-*        - Fixed number formatting
+*    0.21 - No changes
 *
 *    0.20 (Feb 04, 2020)
 *        - Added parent/child structure
@@ -36,7 +37,7 @@
 
 metadata {
 definition (
-    name: "Lightify Bulb - Dimmable", 
+    name: "Lightify Child - Dimmable", 
     namespace: "Lightify", 
     author: "Adam Kempenich",
     importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/Lightify/(Child)%20Lightify%20Bulb%20-%20Dimmable.groovy") {
@@ -49,25 +50,76 @@ definition (
 		capability "Switch"
 		capability "Switch Level"
 	}
+    preferences {  
+         input(name:"logDescriptionText", type:"bool", title: "Log descriptionText?",
+              description: "Logs when things happen. (Default: On)", defaultValue: true,
+              required: true, displayDuringSetup: true)
+  
+        input(name:"enablePreStaging", type:"bool", title: "Enable Color Pre-Staging?",
+              defaultValue: false, required: true, displayDuringSetup: true)
+    }
 }
 
 def on(){
+    // Turn the device on
+    
     sendEvent(name: "switch", value: "on")
     parent.on(device.deviceNetworkId)
 }
 def off(){
+    // Turn the device off
+    
     sendEvent(name: "switch", value: "on")
     parent.off(device.deviceNetworkId)
 }
-def setLevel(brightness, duration=0){
-    sendEvent(name: "level", value: brightness)
-    parent.setLevel(device.deviceNetworkId, brightness.toInteger())   
+def setLevel(levelValue, duration=0){
+    // Update the brightness of  adevice 
+    
+    sendEvent(name: "level", value: levelValue.toInteger())
+    parent.setLevel(device.deviceNetworkId, levelValue.toInteger())   
 }
 
 def initialize(){
     // Do nothing
+    
 }
 
 def updated(){
     // Do nothing
+    
+}
+
+def refresh(){
+    // Request an info packet from the gateway
+    
+    parent.refresh()
+}
+
+def preStage(){
+    // Turn on a light when values change if this setting is false
+    
+    settings.enableColorPrestaging ? null : ( device.currentValue("switch") == "off" ? on() : null )
+}
+
+def logDescriptionText(text){
+    // Log device changes if set to
+    
+    settings.logDescriptionText == true ? log.info("${device.deviceNetworkId}: ${text}") : null   
+}
+
+def clamp( value, lowerBound = 0, upperBound = 100 ){
+    // Takes a value and ensures it's between two defined thresholds
+
+    value == null ? value = upperBound : null
+
+    if(lowerBound < upperBound){
+        if(value < lowerBound ){ value = lowerBound }
+        if(value > upperBound){ value = upperBound }
+    }
+    else if(upperBound < lowerBound){
+        if(value < upperBound){ value = upperBound }
+        if(value > lowerBound ){ value = lowerBound }
+    }
+
+    return value
 }
