@@ -1,5 +1,5 @@
 /**
-* Lightify Bulb - CCT (0.21)
+* Lightify Bulb - CCT (0.22)
 *
 *  Author: 
 *    Adam Kempenich
@@ -7,8 +7,10 @@
 *  Documentation:  [Does not exist, yet]
 *
 *  Changelog:
-*    0.21 (Feb 10, 2020)
-*        - Fixed number formatting
+*    0.22 (Feb 25, 2020)
+*	- Updated naming schema
+*
+*    0.21 - No changes
 *
 *    0.20 (Feb 04, 2020)
 *        - Added parent/child structure
@@ -34,7 +36,7 @@
 
 metadata {
 definition (
-    name: "Lightify Bulb - CCT", 
+    name: "Lightify Child - CCT", 
     namespace: "Lightify", 
     author: "Adam Kempenich",
     importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/Lightify/(Child)%20Lightify%20Bulb%20-%20CCT.groovy") {
@@ -59,12 +61,12 @@ def off(){
     parent.off(device.deviceNetworkId)
 }
 def setLevel(brightness, duration=0){
-    sendEvent(name: "level", value: brightness.toInteger())
-    parent.setLevel(device.deviceNetworkId, brightness.toInteger())   
+    sendEvent(name: "level", value: brightness.toFloat())
+    parent.setLevel(device.deviceNetworkId, brightness.toFloat())   
 }
 
 def setColorTemperature(colorTemperature = device.currentValue('colorTemperature'), level = device.currentValue('level')){
-    sendEvent(name: "colorTemperature", value: colorTemperature.toInteger())
+    sendEvent(name: "colorTemperature", value: colorTemperature.toFloat())
     parent.setColorTemperature(device.deviceNetworkId, colorTemperature.toInteger(), level)
 }
 
@@ -75,6 +77,3 @@ def initialize(){
 def updated(){
     // Do nothing
 }
-
-
-
