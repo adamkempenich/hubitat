@@ -61,6 +61,7 @@ metadata {
         capability "Refresh"
 		capability "Sensor"
 		capability "Switch"
+	    capability "Get Groups"
     }
     preferences {  
         
@@ -79,6 +80,11 @@ metadata {
               required: true, displayDuringSetup: true)
 
     }
+}
+
+def getGroups(){
+    // Manually get a list of groups from the parent
+    parent.getGroups()
 }
 
 def on(childID){
