@@ -1,5 +1,5 @@
 /**
-* Lightify Bulb - CCT (0.22)
+* Lightify Child - CCT (0.22)
 *
 *  Author: 
 *    Adam Kempenich
@@ -39,7 +39,7 @@ definition (
     name: "Lightify Child - CCT", 
     namespace: "Lightify", 
     author: "Adam Kempenich",
-    importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/Lightify/(Child)%20Lightify%20Bulb%20-%20CCT.groovy") {
+    importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/Lightify/(Child)%20Lightify%20Child%20-%20CCT.groovy") {
     
         capability "Actuator"
         capability "Color Temperature"
