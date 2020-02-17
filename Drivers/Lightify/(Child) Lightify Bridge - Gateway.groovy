@@ -72,7 +72,7 @@ metadata {
         //state.reconnectPings
         
         input(name:"logDebug", type:"bool", title: "Log debug information?",
-              description: "Logs raw data for debugging. (Default: Off)", defaultValue: false,
+              description: "Logs raw data for debugging. (Default: Off)", defaultValue: true,
               required: true, displayDuringSetup: true)
         
          input(name:"logDescriptionText", type:"bool", title: "Log descriptionText?",
@@ -115,6 +115,7 @@ def setReconnectPingsState( value ){
 
 def parse( response ) {
     // Parse data received back from this device
+    logDebug "Parsing..."
     state.noResponse = 0
     parent.parse( response )
 }
@@ -141,14 +142,14 @@ def sendCommand( data ) {
     InterfaceUtils.sendSocketMessage(device, stringBytes)
 }
 
-def refresh( addDevices = false ) {
+def refresh( ) {
 	
 	logDebug "Number of failed responses: ${state.noResponse}"
 	state.noResponse++
     state.noResponse >= state.reconnectPings ? ( initialize() ) : null // if a device hasn't responded after N attempts, reconnect
     byte[] data =  [0x0B, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]
     sendCommand(data)
-}	
+}		
 
 def socketStatus( status ) { 
     logDescriptionText "A connection issue occurred."
@@ -199,8 +200,8 @@ def connectDevice( data ){
     InterfaceUtils.socketClose(device)
     
     pauseExecution(1000)
-    
-    if( data.firstRun || ( now() - state.lastConnectionAttempt) > clamp(state.refreshTime, 1, 60) * 500 /* Breaks infinite loops */ ) {
+    //    if it's the first run
+    if( data.firstRun || ( now() - state.lastConnectionAttempt) > clamp(state.refreshTime, 1, 60) * 500 /* Stops the app from initializing too fast */ ) {
         def tryWasGood = false
         try {
             logDebug "Opening Socket Connection."
@@ -222,13 +223,13 @@ def connectDevice( data ){
 	    	schedule("0/${clamp(state.refreshTime, 1, 60)} * * * * ? *", refresh)
 	    	state.noResponse = 0
 	    }
-        log.debug "Proper time has passed, or it is the device's first run."
-        log.debug "${(now() - state.lastConnectionAttempt)} >= ${clamp(state.refreshTime, 1, 60) * 500}. First run: ${data.firstRun}"
+        logDebug "Proper time has passed, or it is the device's first run."
+        logDebug "${(now() - state.lastConnectionAttempt)} >= ${clamp(state.refreshTime, 1, 60) * 500}. First run: ${data.firstRun}"
         state.lastConnectionAttempt = now()
     }
     else{
-        log.debug "Tried to connect too soon. Skipping this round."
-        log.debug "X ${(now() - state.lastConnectionAttempt)} >= ${clamp(state.refreshTime, 1, 60) * 500}"
+        logDebug "Tried to connect too soon. Skipping this round."
+        logDebug "Too little time has passed: ${(now() - state.lastConnectionAttempt)} >= ${clamp(state.refreshTime, 1, 60) * 500}"
         state.lastConnectionAttempt = now()
     }
 }
