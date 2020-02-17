@@ -57,12 +57,6 @@ def off(){
     sendEvent(name: "switch", value: "on")
     parent.off(device.deviceNetworkId)
 }
-def setLevel(levelValue, duration=0){
-    // Update the brightness of  adevice 
-    
-    sendEvent(name: "level", value: levelValue.toInteger())
-    parent.setLevel(device.deviceNetworkId, levelValue.toInteger())   
-}
 
 def initialize(){
     // Do nothing
