@@ -121,11 +121,11 @@ def mainPage(){
                   required: true, displayDuringSetup: true)
     
             input(name:"refreshTime", type:"number", title: "Time to refresh (seconds)",
-                description: "Interval between refreshing a device for its current value. Default: 10. Use number between 0-60", defaultValue: 10,
+                description: "Interval between refreshing a device for its current value. Default: 30. Use number between 5-60", defaultValue: 30,
                 required: true, displayDuringSetup: true)
 	    
             input(name:"reconnectPings", type:"number", title: "Reconnect after ...",
-                description: "Number of failed pings before reconnecting Lightify gateway.", defaultValue: 3,
+                description: "Number of failed pings before reconnecting Lightify gateway.", defaultValue: 4,
                 required: true, displayDuringSetup: true)
         }
         if(state.initialSetupComplete){ // Don't allow editing groups if the setup isn't completed.
@@ -409,7 +409,7 @@ def parse( response ) {
     
     def devices = [:]
     def isGroup = false
-    for(i = 1; i++; i < 16){ 
+    for(i = 1; i < 16; i++){ 
         if(11 + (18 * i) == responseArray.length){ isGroup = true }
     }
     //log.trace "${response}"
