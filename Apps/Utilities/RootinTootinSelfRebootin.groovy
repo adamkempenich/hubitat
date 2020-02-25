@@ -122,7 +122,7 @@ def sendReboot() {
 
   if (!hubRequiresPassword) {
     // NO-COOKIE METHOD
-    asynchttpPost('rebootResponse', [uri: "http://192.168.7.201:8080/hub/reboot"])
+    asynchttpPost('rebootResponse', [uri: "http://${hubIP}:8080/hub/reboot"])
   } 
   else {
     // COOKIE METHOD
