@@ -5,7 +5,7 @@
 *        Adam Kempenich
 *
 *    Documentation:  
-*        https://community.hubitat.com/t/release-app-circadian-daylight-port/ *  ****************  Percent to CT - Child  ****************
+*        [TBA]
 *
 *    Changelog:
 *        0.70 (Feb 24, 2020)
@@ -25,6 +25,7 @@ definition(
     iconUrl: "",
     iconX2Url: "",
     iconX3Url: "",
+    importURL: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Apps/Utilities/PercentToColorTemperature/Percent%20To%20Color%20Temperature%20(Child).groovy"
 )
 
 preferences {
