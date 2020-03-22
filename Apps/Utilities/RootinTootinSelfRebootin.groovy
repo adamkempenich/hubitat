@@ -1,5 +1,5 @@
 /**
- *   Rootin' Tootin' Self-Rebootin' (0.96)
+ *   Rootin' Tootin' Self-Rebootin' (0.97)
  *
  *   Author:
  *       Adam Kempenich
