@@ -61,7 +61,7 @@ def off(){
     // Turn the device off
     def nomenclature = device.deviceNetworkId.split(" - ") // "${settings.deviceMAC} - ${group}" format
     
-    sendEvent(name: "switch", value: "on")
+    sendEvent(name: "switch", value: "off")
     parent.groupOff(nomenclature[1])
 }
 def setLevel(levelValue, duration=0){
