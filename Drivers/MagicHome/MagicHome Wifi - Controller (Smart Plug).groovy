@@ -232,7 +232,7 @@ def connectDevice( data ){
     if(data.firstRun){
         logDebug "Stopping refresh loop. Starting connectDevice loop"
         unschedule() // remove the refresh loop
-        schedule("0/${clamp(settings.refreshTime, 1, 60)} * * * * ? *", connectDevice, [data: [firstRun: false]])
+        schedule("0/${clamp(settings.refreshTime, 1, 59)} * * * * ? *", connectDevice, [data: [firstRun: false]])
     }
     
     try{
@@ -262,7 +262,7 @@ def connectDevice( data ){
 	    if(tryWasGood){
 	    	unschedule()
 	    	logDebug "Stopping connectDevice loop. Starting refresh loop"
-	    	schedule("0/${clamp(settings.refreshTime, 1, 60)} * * * * ? *", refresh)
+	    	schedule("0/${clamp(settings.refreshTime, 1, 59)} * * * * ? *", refresh)
 	    	state.noResponse = 0
 	    }
         log.debug "Proper time has passed, or it is the device's first run."
