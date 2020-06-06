@@ -462,7 +462,7 @@ def parse( response ) {
             //responselength > 861 ? logDebug("<h2>Response Length: >20. Data: ${responseArray.length}. array[0] is ${responseArray[0]}</h2>") : null
 
             def totalDevices = (responseArray.length - 11)/50
-            def deviceTypes = [1: "Switch", 2: "CCT", 4: "Dimmable", 8: "RGB", 10: "RGBW"]
+            def deviceTypes = [1: "Switch", 16: "Switch", 2: "CCT", 4: "Dimmable", 8: "RGB", 10: "RGBW"]
            // logDebug "${responseArray[9]} devices compared to ${totalDevices}. Byte comparison: ${(responseArray[9] * 50) + 11} - ${responseArray.length}."
 
             // def totalDevices = responseArray[9]
@@ -534,7 +534,7 @@ def parse( response ) {
                 //logDebug "Device name: ${friendlyDeviceName} has type ${deviceType}, its switch status is ${deviceSwitchStatus} and its online status ${deviceOnline}"
 
                 /* --------------------------- Switch/Plug Devices --------------------------- */
-                if(deviceType == 1){
+                if(deviceType == 1 || deviceType == 16){
                     try{
                         def childDevice = getChildDevice(macString)
                         if(deviceSwitchStatus == 0 || deviceOnline  == 0){
