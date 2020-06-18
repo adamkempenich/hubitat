@@ -20,14 +20,12 @@ metadata {
         name: "Slack Notifier", 
         namespace: "slacknotifier", 
         author: "Adam Kempenich",
-	importUrl: "https://github.com/adamkempenich/hubitat/raw/master/Drivers/Slack/slackNotifier.groovy") {
-        
-		capability "Notification"
-    }
+        importUrl: "https://github.com/adamkempenich/hubitat/raw/master/Drivers/Slack/slackNotifier.groovy") { capability "Notification" }
     
-    preferences {  
-		 input "apiURL", "text", title: "URL to Slack Hook", description: "URL to Slack Hook", defaultValue: "https://...", required: true, displayDuringSetup: true
-    }
+        preferences {
+		    input "apiURL", "text", title: "URL to Slack Hook", defaultValue: "https://...", required: true, displayDuringSetup: true
+		    input(name: "logLevel", title: "IDE logging level", multiple: false, required: true, type: "enum", options: getLogLevels(), submitOnChange : false, defaultValue : "1")
+        }
 }
 
 
@@ -53,11 +51,35 @@ def deviceNotification(text){
 	try {
 		httpPostJson(params) { resp ->
 			resp.headers.each {
-				log.debug "${it.name} : ${it.value}"
+				debuglog("${it.name} : ${it.value}")
 			}
-			log.debug "response contentType: ${resp.contentType}"
+			debuglog("response contentType: ${resp.contentType}")
 		}
 	} catch (e) {
-		log.debug "something went wrong: $e"
+		debuglog("something went wrong: $e")
 	}
+}
+
+def debuglog(statement)
+{
+	def logL = 0
+    if (logLevel) logL = logLevel.toInteger()
+    if (logL == 0) {return}//bail
+    else if (logL >= 2)
+	{
+		log.debug(statement)
+	}
+}
+def infolog(statement)
+{
+	def logL = 0
+    if (logLevel) logL = logLevel.toInteger()
+    if (logL == 0) {return}//bail
+    else if (logL >= 1)
+	{
+		log.info(statement)
+	}
+}
+def getLogLevels(){
+    return [["0":"None"],["1":"Running"],["2":"NeedHelp"]]
 }
