@@ -108,8 +108,8 @@ def setColor(parameters){
 
     setParameters = [:]
     
-    if(parameters.hue){setParameters.hue = clamp(parameters.hue)
-    } else{ setParameters.hue = device.currentValue("hue")}
+    if (parameters.hue.toString().isInteger()){ setParameters.hue = clamp(parameters.hue)
+    } else {setParameters.hue = device.currentValue("hue")}
     
     if(parameters.saturation){setParameters.saturation = clamp(parameters.saturation)
     } else{ setParameters.saturation = device.currentValue("saturation") }
