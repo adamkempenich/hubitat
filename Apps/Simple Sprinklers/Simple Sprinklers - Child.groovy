@@ -195,7 +195,7 @@ def initialize(){
 def beginSprinklerProcess(){
     // Starts the sprinkler process from the beginning
     
-    if (cancelSwitch != null && cancelSwitch.currentValue("switch") == "off") {
+    if (cancelSwitch == null || cancelSwitch.currentValue("switch") == "off") {
         logDebug "Beginning scheduled sprinklers"
         
         allOff()
