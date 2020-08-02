@@ -303,14 +303,14 @@ private logDebug( text ){
 def setSprinkler(idx, switchStatus = "off") {
     if (settings?."sprinkler${idx}" != null) {
         if (switchStatus == "off")
-            settings?."sprinkler${idx}"*.off()
+            this.getProperty("sprinkler${idx}")*.off()
         else
-            settings?."sprinkler${idx}"*.on()
+            this.getProperty("sprinkler${idx}")*.on()
     }
     if (settings?."sprinkler${idx}valve" != null) {
         if (switchStatus == "off")
-            settings?."sprinkler${idx}"*.close()
+            this.getProperty("sprinkler${idx}")*.close()
         else
-            settings?."sprinkler${idx}"*.open()
+            this.getProperty("sprinkler${idx}")*.open()
     }
 }
