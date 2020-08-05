@@ -309,8 +309,8 @@ def setSprinkler(idx, switchStatus = "off") {
     }
     if (settings?."sprinkler${idx}valve" != null) {
         if (switchStatus == "off")
-            this.getProperty("sprinkler${idx}")*.close()
+            this.getProperty("sprinkler${idx}valve")*.close()
         else
-            this.getProperty("sprinkler${idx}")*.open()
+            this.getProperty("sprinkler${idx}valve")*.open()
     }
 }
