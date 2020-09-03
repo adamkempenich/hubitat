@@ -35,6 +35,8 @@ preferences {
 def childSetup() {
     dynamicPage(name: "pageConfig", title: "Percent to Color Temperature - Child", nextPage: null, install: true, uninstall: true, refreshInterval:0) {
 		section("Settings") {
+		        label title: "<h2>Enter a name for this setup (optional)</h2>", required: false
+			
 			paragraph "When this dimmer changes..."
             input "dimmingDevice", "capability.switchLevel", title: "Which dimmable device?", multiple:false, required: true
 			paragraph "Proportionally change the Color Temperature of this device..."
