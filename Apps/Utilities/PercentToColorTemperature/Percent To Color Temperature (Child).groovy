@@ -39,8 +39,8 @@ def childSetup() {
 			
 			paragraph "When this dimmer changes..."
             input "dimmingDevice", "capability.switchLevel", title: "Which dimmable device?", multiple:false, required: true
-			paragraph "Proportionally change the Color Temperature of this device..."
-            input "colorTemperatureDevice", "capability.colorTemperature", title: "Which Color Temperature device?", multiple:false, required: true
+			paragraph "Proportionally change the Color Temperature of these devices..."
+            input "colorTemperatureDevices", "capability.colorTemperature", title: "Which Color Temperature device?", multiple:true, required: true
 
 			paragraph "When the dimmer is at 0%, the color temperature will be set to ..."
             input "warmWhiteValue", "number", title: "Warm White Temperature", required: true, defaultValue: 2700
@@ -71,6 +71,8 @@ def updated() {
 
 def modeHandler(evt){
     // Converts the level of the dimmer to the range of CT
-    
-    colorTemperatureDevice.setColorTemperature( warmWhiteValue + ( (( coldWhiteValue - warmWhiteValue ) / 100 ) * dimmingDevice.currentValue("level").toInteger()))
+    def colorTemp = (warmWhiteValue + ( (( coldWhiteValue - warmWhiteValue ) / 100 ) * dimmingDevice.currentValue("level").toInteger())).toInteger()
+	for(device in colorTemperatureDevices){
+		device.setColorTemperature( colorTemp )
+	}
 }
