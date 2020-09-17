@@ -176,7 +176,7 @@ def off() {
 def setHue(hue){
     // Set the hue of a device ( 0-100) 
 
-    hue > 99 ? (hue = 99) : null
+    hue > 100 ? (hue = 100) : null
     sendEvent(name: "hue", value: hue )
 	logDebug "Hue set to ${hue}"
 	    
@@ -206,31 +206,31 @@ def setWhiteLevel(whiteLevel){
     // Set the warm white level of a device (0-100)
 
 	whiteLevel > 100 ? (whiteLevel = 100) : null
-	sendEvent(name: "warmWhiteLevel", value: whiteLevel)
-	logDebug "Warm White Level set to ${whiteLevel}"
+	sendEvent(name: "whiteLevel", value: whiteLevel)
+	logDebug "White Level set to ${whiteLevel}"
     
-    setColor(hue:100, saturation: device.currentValue("saturation"), level: device.currentValue("level"))
+    setColor(hue: device.currentValue("hue"), saturation: device.currentValue("saturation"), level: device.currentValue("level"))
 }
 
 
-def setColor( parameters ){
+def setColor( value ){
+    
+    if (value.hue == null || value.hue == "NaN" || value.saturation == null || value.saturation == "NaN") {
+        logDebug("Exiting setColor because no hue and/or saturation set")
+        return
+    }
    
     // Register that presets are disabled
     sendEvent(name: "currentPreset", value: 0)
-	sendEvent(name: "hue", value: parameters.hue)
-	sendEvent(name: "saturation", value: parameters.saturation)
-	sendEvent(name: "level", value: parameters.level)
+	sendEvent(name: "hue", value: value.hue)
+	sendEvent(name: "saturation", value: value.saturation)
+    if (value.level) sendEvent(name: "level", value: value.level)
 	powerOnWithChanges()
 
-    if( parameters.hue == 100 ) {
-        byte[] data = appendChecksum(  [ 0x31, 0, 0, 0, parameters.level * 2.55, 0x00, 0x0f ] )
-        sendCommand( data ) 
-	}
-    else{
-	    rgbColors = ColorUtils.hsvToRGB( [parameters.hue.toFloat(), parameters.saturation.toFloat(), parameters.level.toFloat()] )
-        byte[] data = appendChecksum(  [ 0x31, rgbColors[0], rgbColors[1], rgbColors[2], 0, 0x00, 0x0f ] )
-        sendCommand( data ) 
-	}
+    rgbColors = ColorUtils.hsvToRGB( [value.hue.toFloat(), value.saturation.toFloat(), (value.level?:device.currentValue("level")).toFloat()] )
+    byte[] data = appendChecksum(  [ 0x31, rgbColors[0], rgbColors[1], rgbColors[2], device.currentValue("whiteLevel") * 2.55, 0x00, 0x0f ] )
+    sendCommand( data ) 
+	
 	powerOnWithChanges()
 }
 
@@ -518,7 +518,3 @@ def installed(){
 	state.initializeLoopRunning = false
 	state.noResponse = 0
 }
-
-
-
-
