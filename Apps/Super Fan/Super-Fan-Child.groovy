@@ -19,7 +19,7 @@ definition(
     iconUrl: "",
     iconX2Url: "",
     iconX3Url: "",
-    importURL: ""
+    importURL: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Apps/Super%20Fan/Super-Fan-Child.groovy"
 )
 
 preferences {
