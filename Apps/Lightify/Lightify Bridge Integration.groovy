@@ -462,7 +462,7 @@ def parse( response ) {
 
     case {it > 20}:
         state.buffer.addAll(responseArray) //HexUtils.hexStringToIntArray(response)   //GDK//
-        def deviceTypes = [1: "Switch", 2: "CCT", 4: "Dimmable", 8: "RGB", 10: "RGBW"]
+        def deviceTypes = [1: "Switch", 16: "Switch", 2: "CCT", 4: "Dimmable", 8: "RGB", 10: "RGBW"]
 
         def totalDevices = state.buffer[9] // GDK
 
