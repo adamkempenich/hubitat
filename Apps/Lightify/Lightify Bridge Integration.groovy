@@ -412,6 +412,8 @@ def parse( response ) {
     for(i = 1; i < 16; i++){ 
         if(11 + (18 * i) == responseArray.length){ isGroup = true }
     }
+    if (!state.buffer) state.buffer = [];
+
     //log.trace "${response}"
     switch(responseArray.length) {
     case 20:
