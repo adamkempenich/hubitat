@@ -72,6 +72,7 @@ preferences {
       input "startupDelayTime", "enum", title: "Delay this app upon boot for this many minutes:", options: [1, 2, 3, 4, 5, 7, 10], required: true
       input "bootLoopLimiter", "enum", title: "Number of times a hub can unsuccessfully reboot in a row before this app stops rebooting:", options: [1, 2, 3, 4, 5, 7, 10], required: true
       input "checkEveryNSeconds", "enum", title: "Run a test every N seconds:", options: [20, 30, 60], required: true
+      input "rebootOnSevereLoad", "bool", title: "Reboot if hub 'severeLoad' event occurs?", default: false
       input "rebootDuringMaintenance", "bool", title: "Allow Reboot During Maintenance?", Description: "Allow RTSR to reboot the hub during the nightly maintenance window?", default: false
       input "logLevel", "enum", title: "Logging Level", options: [1: "Error", 2: "Warn", 3: "Info", 4: "Debug", 5: "Trace"], required: false
     }
@@ -171,7 +172,15 @@ def startApp() {
     logInfo "Scheduling Rootin' Tootin' check-ins and readability tests"
     schedule("0/${settings.checkEveryNSeconds.toInteger() / 2} * * * * ?", checkIn)
     schedule("0${settings.checkEveryNSeconds == "60" ? "" : "/${settings.checkEveryNSeconds}"} * * * * ?", rebootTest)
+    if (rebootOnSevereLoad) {
+        subscribe(location, 'severeLoad', highCpuLoad)
+    }
   }
+}
+
+def highCpuLoad(evt) {
+    logInfo "Hub severeLoad event received."
+    getCookie(true)
 }
 
 def parseResponse(response, data) {
