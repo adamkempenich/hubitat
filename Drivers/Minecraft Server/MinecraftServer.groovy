@@ -9,6 +9,7 @@ metadata {
         capability "Initialize"
         capability "Refresh"
         
+        command "testParse", ["string"]
 
         attribute "currentPlayers", "number"
         attribute "maxPlayers", "number"
@@ -46,6 +47,13 @@ metadata {
 
 }
 
+def testParse(data){
+ 
+    log.trace "Testing ${data}"
+    //parse(HexUtils.hexStringToByteArray(data))
+    parse(data)
+}
+
 void parse( data ){
         log.debug "Parse: ${data}"
 
@@ -61,7 +69,7 @@ void parse( data ){
         def currentPlayers
         def maxPlayers
 
-        def firstNameByte
+        def firstNameByte = 2
         def firstCurrentPlayersByte
         def firstMaxPlayersByte
 
@@ -78,10 +86,10 @@ void parse( data ){
         log.trace cleanOutput
 
         for(i = 0; i < cleanOutput.size; i++){
-            if(cleanOutput[i] == 40 /*0x66*/ && firstNameByte == null){ // beginning of name location
-                firstNameByte = i + 1
-                log.trace "firstNameByte - ${i}"
-            }
+            //if(cleanOutput[i] == 40 /*0x66*/ && firstNameByte == null){ // beginning of name location
+            //    firstNameByte = i + 1
+            //    log.trace "firstNameByte - ${i}"
+            //}
             if(cleanOutput[i] == -89 /*0xA7*/ && firstCurrentPlayersByte == null){ // beginning of currentTotalPlayers
                 firstCurrentPlayersByte = i + 1
                 log.trace "firstCurrentPlayersByte - ${i}"
@@ -96,7 +104,11 @@ void parse( data ){
         def deviceName = []
         for(i=firstNameByte; i < firstCurrentPlayersByte - 1; i++){
             // if we read an end of line, break 
+            try{
             deviceName << cleanOutput[i]
+            } catch(e){
+                log.trace "Made it to ${i}. firstNameByte: ${firstNameByte}. firstCurrentPlayersByte: ${firstCurrentPlayersByte}"
+            }
         }
         def deviceNameToBytes = HexUtils.intArrayToHexString(*deviceName)
         serverName = new String(HexUtils.hexStringToByteArray(deviceNameToBytes), "UTF-8")
@@ -198,6 +210,8 @@ def socketStatus( status ) {
     logDebug "socketStatus: ${status}"
 }
 
+
+
 def connectDevice( data ){
 
     if(data.firstRun){
@@ -264,3 +278,37 @@ def installed(){
     state.noResponse = 0
     state.lastConnectionAttempt = now()
 }
+// function mc_status($host,$port='25565') {
+//     $timeInit = microtime();
+//     // TODO: implement a way to store data (memcached or MySQL?) - please don't overload target server
+//     $fp = fsockopen($host,$port,$errno,$errstr,$timeout=10);
+//     if(!$fp) die($errstr.$errno);
+//     else {
+//         fputs($fp, "\xFE"); // xFE - get information about server
+//         $response = '';
+// 
+//         while(!feof($fp)) $response .= fgets($fp);
+//         fclose($fp);
+//         $timeEnd = microtime();
+// 
+//         $response = str_replace("\x00", "", $response); // remove NULL
+// 
+//         //$response = explode("\xFF", $response); // xFF - data start (old version, prior to 1.0?)
+//         $response = explode("\xFF\x16", $response); // data start
+// 
+//         $response = $response[1]; // chop off all before xFF (could be done with regex actually)
+// 
+//         //echo(dechex(ord($response[0])));
+//         $response = explode("\xA7", $response); // xA7 - delimiter
+// 
+//         $timeDiff = $timeEnd-$timeInit;
+//         $response[] = $timeDiff < 0 ? 0 : $timeDiff;
+//     }
+//     return $response;
+// }
+// 
+// $data = mc_status('mc.exs.lv','25592'); // even better - don't use hostname but provide IP instead (DNS lookup is a waste)
+// 
+// print_r($data); // [0] - motd, [1] - online, [2] - slots, [3] - time of request (in microseconds - use this to present latency information)
+// 
+
