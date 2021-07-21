@@ -564,7 +564,7 @@ def getCTBright() {
 	}
 
 	
-    if( ( currentTime > sunriseTime.time && currentTime < sunsetTime.time ) || ( brightenStart != null && dimEnd != null && ( currentTime > brightenStart && currentTime < dimEnd ) ) ) { // time is between sunrise and sunset
+    if( ( currentTime > sunriseTime.time && currentTime < sunsetTime.time ) || ( brightenStart != null && dimEnd != null && ( currentTime > brightenStart.time && currentTime < dimEnd.time ) ) ) { // time is between sunrise and sunset
 
         if(currentTime < midDay) {
             colorTemp = warmCT + ((currentTime - sunriseTime.time) / (midDay - sunriseTime.time) * midCT)
