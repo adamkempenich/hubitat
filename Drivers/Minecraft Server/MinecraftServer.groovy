@@ -25,7 +25,8 @@ metadata {
         capability "PresenceSensor"
         capability "Initialize"
         capability "Refresh"
-
+        capability "Switch"
+        
         command "testParse", ["string"]
         command "getChallengeToken"
 
