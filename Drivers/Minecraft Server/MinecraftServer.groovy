@@ -1,3 +1,20 @@
+/**
+*  _   _           _       _   _             _                 __  __   _                                         __   _   
+* | | | |  _   _  | |__   (_) | |_    __ _  | |_       _      |  \/  | (_)  _ __     ___    ___   _ __    __ _   / _| | |_ 
+* | |_| | | | | | | '_ \  | | | __|  / _` | | __|    _| |_    | |\/| | | | | '_ \   / _ \  / __| | '__|  / _` | | |_  | __|
+* |  _  | | |_| | | |_) | | | | |_  | (_| | | |_    |_   _|   | |  | | | | | | | | |  __/ | (__  | |    | (_| | |  _| | |_ 
+* |_| |_|  \__,_| |_.__/  |_|  \__|  \__,_|  \__|     |_|     |_|  |_| |_| |_| |_|  \___|  \___| |_|     \__,_| |_|    \__|
+*
+*                                                                                                                          
+* ---------- The integration you and your kids can both enjoy -----------
+* 
+* ___  _   _    ____ ___  ____ _  _    _  _ ____ _  _ ___  ____ _  _ _ ____ _  _ 
+* |__]  \_/     |__| |  \ |__| |\/|    |_/  |___ |\/| |__] |___ |\ | | |    |__| 
+* |__]   |      |  | |__/ |  | |  |    | \_ |___ |  | |    |___ | \| | |___ |  | 
+*                                                                                
+* 
+**/
+
 import hubitat.helper.HexUtils
 import hubitat.device.HubAction
 import hubitat.device.Protocol
@@ -8,8 +25,9 @@ metadata {
         capability "PresenceSensor"
         capability "Initialize"
         capability "Refresh"
-        
+
         command "testParse", ["string"]
+        command "getChallengeToken"
 
         attribute "currentPlayers", "number"
         attribute "maxPlayers", "number"
@@ -29,38 +47,34 @@ metadata {
               description: "Logs when things happen. (Default: On)", defaultValue: true,
               required: true, displayDuringSetup: true)
 
-        input(name:"turnOffWhenDisconnected", type:"bool", title: "Turn off when disconnected?",
-              description: "When a device is unreachable, turn its state off. in Hubitat", defaultValue: true,
-              required: true, displayDuringSetup: true)
 
-        input(name:"reconnectPings", type:"number", title: "Reconnect after ...",
-              description: "Number of failed pings before reconnecting device.", defaultValue: 3,
-              required: true, displayDuringSetup: true)		
         input(name:"refreshTime", type:"number", title: "Time to refresh (seconds)",
-              description: "Interval between refreshing a device for its current value. Default: 10. Use number between 0-60", defaultValue: 10,
+              description: "Interval between refreshing a device for its current value. Default: 10. Use number between 10-60", defaultValue: 10,
               required: true, displayDuringSetup: true)
-        // State After Power Restored
-        input(name: "stateAfterPowerRestored", type: "enum", title: "Plug state after power is restored", options: [1: "Power on", 2: "Power off", 3: "Restore prior state"], defaultValue: 3, required: true)
-
     }
 
 
 }
 
 def testParse(data){
- 
+
     log.trace "Testing ${data}"
     //parse(HexUtils.hexStringToByteArray(data))
     parse(data)
 }
 
 void parse( data ){
-        log.debug "Parse: ${data}"
+    
 
     if(data != ""){
-
+        
+        log.debug "Parse: ${data}"
+        
+        sendEvent(name: "switch", value: "on")
         def dataBytes = HexUtils.hexStringToByteArray(data)
 
+
+        log.trace dataBytes
         // Remove All 00 pairs
         // FF 28   4F6666696369616C2052616D2052616E6368204D696E65637261667420536572766572 A7 30    A7 32 30
         // Header  Name                                                                   Current  Max
@@ -79,7 +93,7 @@ void parse( data ){
         for(i=0; i < dataBytes.length; i++){
             if(dataBytes[i] != 0x00){
                 cleanOutput << dataBytes[i]
-               // log.trace "databytes[i] ${dataBytes[i]}"
+                // log.trace "databytes[i] ${dataBytes[i]}"
             }
         }
 
@@ -105,7 +119,7 @@ void parse( data ){
         for(i=firstNameByte; i < firstCurrentPlayersByte - 1; i++){
             // if we read an end of line, break 
             try{
-            deviceName << cleanOutput[i]
+                deviceName << cleanOutput[i]
             } catch(e){
                 log.trace "Made it to ${i}. firstNameByte: ${firstNameByte}. firstCurrentPlayersByte: ${firstCurrentPlayersByte}"
             }
@@ -114,9 +128,9 @@ void parse( data ){
         serverName = new String(HexUtils.hexStringToByteArray(deviceNameToBytes), "UTF-8")
         log.trace "Name - ${serverName}"
 
-        
-        
-        
+
+
+
         // Current Players Buffer
         def currentPlayersData = []
         for(i = firstCurrentPlayersByte; i < firstMaxPlayersByte - 1; i++){
@@ -127,9 +141,9 @@ void parse( data ){
         currentPlayers = new String(HexUtils.hexStringToByteArray(currentPlayersDataToBytes), "UTF-8").toInteger()
         log.trace "current Players - ${currentPlayers}"
 
-        
-        
-        
+
+
+
         // Max Players Buffer
         def maxPlayersData = []
         for(i = firstMaxPlayersByte; i <= cleanOutput.size; i++){
@@ -140,32 +154,36 @@ void parse( data ){
         maxPlayers = new String(HexUtils.hexStringToByteArray(maxPlayersDataToBytes), "UTF-8").toInteger()
 
         log.trace "max players ${maxPlayers}"
-        
+
         if(currentPlayers > 0){
             sendEvent(name: "presence", value: "present")   
         } else {
             sendEvent(name: "presence", value: "not present")
         }
-        
+
         sendEvent(name: "currentPlayers", value: currentPlayers)
         sendEvent(name: "maxPlayers", value: maxPlayers)
         sendEvent(name: "serverName", value: serverName)
-        
+
         if(currentPlayers > mostPlayersOnlineAtOnce || mostPlayersOnlineAtOnce == null){
             mostPlayersOnlineAtOnce == currentPlayers
         }
+    } else{
+        log.trace "Null data received"
     }
 }
 
 
 def refresh( ) {
 
-    logDebug "Number of failed responses: ${state.noResponse}"
-    state.noResponse++
-        state.noResponse >= settings.reconnectPings ? ( initialize() ) : null // if a device hasn't responded after N attempts, reconnect
-    //byte[] data =  [0x81, 0x8A, 0x8B, 0x96 ]
     byte[] data = [0xFE]
-    sendCommand(data)
+    try{
+        sendCommand(data)
+    } catch(refreshError){
+        logDebug "Can't connect to server"
+        sendEvent(name: "switch", value: "off")
+
+    }
 }
 
 private logDebug( text ){
@@ -180,6 +198,11 @@ private logDescriptionText( text ){
     if( settings.logDescriptionText ) { 
         log.info "${device.name} (${settings.deviceIP}): ${text}"
     }
+}
+
+def getChallengeToken(){
+    byte[] data = [0xFE, 0xFD, 0x09]
+    sendCommand(data)
 }
 
 def calculateChecksum( data ){
@@ -198,53 +221,25 @@ def appendChecksum( data ){
     return data 
 }
 
+byte[] asByteArray(List buffer) {
+    (buffer.each { it as byte }) as byte[]
+}
+
 def sendCommand( data ) {
     // Sends commands to the device
 
+
     String stringBytes = HexUtils.byteArrayToHexString(data)
-    logDebug "${data} was converted. Transmitting: ${stringBytes}"
+    log.debug "${data} was converted. Transmitting: ${stringBytes}"
+
+    interfaces.rawSocket.connect([byteInterface: true], settings.deviceIP.toString(), devicePort.toInteger())
     interfaces.rawSocket.sendMessage(stringBytes)
+
+
 }
 
 def socketStatus( status ) { 
     logDebug "socketStatus: ${status}"
-}
-
-
-
-def connectDevice( data ){
-
-    if(data.firstRun){
-        logDebug "Stopping refresh loop. Starting connectDevice loop"
-        unschedule() // remove the refresh loop
-        schedule("0/${clamp(settings.refreshTime, 1, 59)} * * * * ? *", connectDevice, [data: [firstRun: false]])
-    }
-
-    interfaces.rawSocket.close()
-
-    pauseExecution(1000)
-
-    def tryWasGood = false
-    try {
-        logDebug "Opening Socket Connection."
-        interfaces.rawSocket.connect(settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
-        pauseExecution(1000)
-        logDescriptionText "Connection successfully established"
-        tryWasGood = true
-
-    } catch(e) {
-        logDebug("Error attempting to establish socket connection to device.")
-        logDebug("Next initialization attempt in ${settings.refreshTime} seconds.")
-        settings.turnOffWhenDisconnected ? sendEvent(name: "switch", value: "off")  : null
-        tryWasGood = false
-    }
-
-    if(tryWasGood){
-        unschedule()
-        logDebug "Stopping connectDevice loop. Starting refresh loop"
-        schedule("0/${clamp(settings.refreshTime, 1, 59)} * * * * ? *", refresh)
-        state.noResponse = 0
-    }
 
 }
 
@@ -270,45 +265,16 @@ def initialize() {
     device.currentValue("switch") == null ? sendEvent(name: "switch", value: "off") : null
 
     logDebug "Initializing device."
-    state.lastConnectionAttempt = now()
-    connectDevice([firstRun: true])
+
+    refresh()
+
+    unschedule()
+    logDebug "Creating refresh loop"
+    schedule("0/${clamp(settings.refreshTime, 1, 59)} * * * * ? *", refresh)
+
 }
 
 def installed(){
     state.noResponse = 0
     state.lastConnectionAttempt = now()
 }
-// function mc_status($host,$port='25565') {
-//     $timeInit = microtime();
-//     // TODO: implement a way to store data (memcached or MySQL?) - please don't overload target server
-//     $fp = fsockopen($host,$port,$errno,$errstr,$timeout=10);
-//     if(!$fp) die($errstr.$errno);
-//     else {
-//         fputs($fp, "\xFE"); // xFE - get information about server
-//         $response = '';
-// 
-//         while(!feof($fp)) $response .= fgets($fp);
-//         fclose($fp);
-//         $timeEnd = microtime();
-// 
-//         $response = str_replace("\x00", "", $response); // remove NULL
-// 
-//         //$response = explode("\xFF", $response); // xFF - data start (old version, prior to 1.0?)
-//         $response = explode("\xFF\x16", $response); // data start
-// 
-//         $response = $response[1]; // chop off all before xFF (could be done with regex actually)
-// 
-//         //echo(dechex(ord($response[0])));
-//         $response = explode("\xA7", $response); // xA7 - delimiter
-// 
-//         $timeDiff = $timeEnd-$timeInit;
-//         $response[] = $timeDiff < 0 ? 0 : $timeDiff;
-//     }
-//     return $response;
-// }
-// 
-// $data = mc_status('mc.exs.lv','25592'); // even better - don't use hostname but provide IP instead (DNS lookup is a waste)
-// 
-// print_r($data); // [0] - motd, [1] - online, [2] - slots, [3] - time of request (in microseconds - use this to present latency information)
-// 
-
