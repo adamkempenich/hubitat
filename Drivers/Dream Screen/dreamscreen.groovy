@@ -2,7 +2,7 @@
 * DreamScreen - 
 * 
 *	Change History:
-*		0.1 (Jan 29, 2021):
+*		0.7 (Sep 10, 2021):
 *			- Added Clamp methods
 *			- Restructured methods
 *			- Added color capability
@@ -10,9 +10,8 @@
 *			- Added colormode capability
 *			- Added lightEffects capability
 *			- Added switch capability
-*			- Added swithcLevel capability
-
-
+*			- Added switchLevel capability
+*           - added inputSource
 **/
 
 
@@ -136,6 +135,7 @@ metadata {
         capability "Light"
         capability "Initialize"
         capability "Refresh"
+        capability "MediaInputSource"
 
         capability "ColorMode"
         capability "LightEffects"
@@ -147,13 +147,6 @@ metadata {
         command "setGroupName", ["string"]
         command "setGroupNumber", ["number"]
         command "setHDMIName", ["number", "string"]
-
-
-        // command "setMode", [[
-        // 							name: "setMode",
-        // 							title: "Mode Desired",
-        // 							constraints: ["Video", "Ambient", "Music", "Sleep"],
-        // 							type: "ENUM"]]
 
         command "setSource", [[
             name: "setSource",
@@ -228,6 +221,38 @@ metadata {
     }
 }
 
+def setSource(value){
+     setInputSource(value)
+}
+def setInputSource(inputName){
+    logDebug "setInputSource: ${source}"
+
+    byte[] data
+    switch (inputName) {
+        case "HDMI1" || 1:
+        data = appendCRC(prefixPacketLength([settings.groupAddress.toInteger(), 0x11, 0x03, 0x20, 0x00], 1))
+        sendEvent(name: "mediaInputSource", value: "HDMI1")
+        break
+
+        case "HDMI2" || 2:
+        data = appendCRC(prefixPacketLength([settings.groupAddress.toInteger(), 0x11, 0x03, 0x20, 0x01], 1))
+
+        sendEvent(name: "mediaInputSource", value: "HDMI2")
+        break
+        case "HDMI3" || 3:
+        data = appendCRC(prefixPacketLength([settings.groupAddress.toInteger(), 0x11, 0x03, 0x20, 0x02], 1))
+
+        sendEvent(name: "mediaInputSource", value: "HDMI3")
+        break
+        
+        default:
+        sendEvent(name: "mediaInputSource", value: "HDMI1")
+            data = appendCRC(prefixPacketLength([settings.groupAddress.toInteger(), 0x11, 0x03, 0x20, 0x00], 1))
+
+    }
+
+    sendCommand(data)
+}
 
 
 def on(){
@@ -502,7 +527,7 @@ def refresh(value) {
     //state.noResponse++
     //state.noResponse >= settings.reconnectPings ? ( initialize() ) : null // if a device hasn't responded after N attempts, reconnect
     byte[] data =  [0xFC, 0x05, 0xFF, 0x30, 0x01, 0x0A, 0x2A]
-//                    FC:   05:   FF: 30:   01:   0A:   2A
+    //                    FC:   05:   FF: 30:   01:   0A:   2A
 
     sendCommand(data)
 }
@@ -570,7 +595,7 @@ def calculateCRC(byte[] data){ // Adam's version
         crc = crcTable[(byte) (crc ^ (data[cntr])) & 0xFF]
         byte[] crcString = crc
         cntr++
-    }
+            }
     return crc
 }
 
@@ -586,39 +611,11 @@ def sendCommand( data ) {
                                                     destinationAddress: "${settings.deviceIP}:${settings.devicePort}",
                                                     destinationPort: 8888,
                                                     encoding: hubitat.device.HubAction.Encoding.HEX_STRING,
-                                                   callback: "parse",
-                                                   parseWarning: true])
+                                                    callback: "parse",
+                                                    parseWarning: true])
     sendHubCommand(myHubAction)
 
 }
-
-def setSource(source) {
-    // Restructure to use map from enum
-
-    logDebug "setSource: ${source}"
-
-    byte[] data
-    switch (setSource) {
-        case "HDMI1":
-        data = prefixPacketLength([settings.groupAddress, 0x11, 0x03, 0x20, 0x00, 0xb6 ])
-        sendEvent(name: "Source", value: "HDMI1")
-        break
-
-        case "HDMI2":
-        data = [0xfc, 0x06, settings.groupAddress, 0x11, 0x03, 0x20, 0x01, 0xb1 ]
-        sendEvent(name: "Source", value: "HDMI2")
-        break
-        case "HDMI3":
-        data = [0xfc, 0x06, settings.groupAddress, 0x11, 0x03, 0x20, 0x02, 0xb8 ]
-        sendEvent(name: "Source", value: "HDMI3")
-        break
-        default:
-            data = [0xfc, 0x06, settings.groupAddress, 0x11, 0x03, 0x20, 0x00, 0xb6 ]
-    }
-
-    sendCommand(data)
-}
-
 
 def initialize() {
     // Set hue of device, then fire setColor
@@ -628,12 +625,12 @@ def initialize() {
     device.currentValue("level") == null ? sendEvent(name: "level", value: 100) : null
     device.currentValue("switch") == null ? sendEvent(name: "switch", value: "off") : null
     device.currentValue("colorMode") == null ? sendEvent(name: "colorMode", value: "FX") : null
-    
+    device.mediaInputSource.value = ["HDMI1", "HDMI2", "HDMI3"]
     logDebug "Initializing device."
 
-    
+
     // Initialize Settings
-    
+
     byte[] hdrData
     if(settings.enableHDR){
         hdrData = prefixPacketLength([settings.groupAddress.toInteger(), 0x41, 0x03, 0x60, 0x01, 0x16])
@@ -645,9 +642,11 @@ def initialize() {
     //byte[] subscribeRequest = appendCRC(prefixPacketLength([settings.groupAddress.toInteger(), 0x11, 0x03, 0x02, value.toInteger()], 1))
     byte[] subscribeRequest = prefixPacketLength([settings.groupAddress.toInteger(), 0x11, 0x01, 0x0C, 0x01])
     sendCommand(subscribeRequest)
-    
+
 
     unschedule()
+    //connectDevice([firstRun: true])
+
 }
 
 def prefixPacketLength(data, addCRCLength = 0){
@@ -667,3 +666,44 @@ def prefixPacketLength(data, addCRCLength = 0){
     byte[] prefixAttachedByteArray = arrayBuilder 
     return prefixAttachedByteArray
 }
+
+def connectDevice(data) {
+    // Set hue of device, then fire setColor
+
+    if(data.firstRun){
+        logDebug "Stopping refresh loop. Starting connectDevice loop"
+        unschedule() // remove the refresh loop
+        schedule("0/${clamp(settings.refreshTime, 1, 59)} * * * * ? *", connectDevice, [data: [firstRun: false]])
+    }
+
+    interfaces.rawSocket.close()
+
+    pauseExecution(1000)
+
+    //if( data.firstRun || ( now() - state.lastConnectionAttempt) > clamp(settings.refreshTime, 1, 60) * 500 /* Breaks infinite loops */ ) {
+    def tryWasGood = false
+    try {
+        logDebug "Opening Socket Connection."
+        interfaces.rawSocket.connect(settings.deviceIP, settings.devicePort.toInteger(), byteInterface: true)
+        pauseExecution(1000)
+        logDescriptionText "Connection successfully established"
+        tryWasGood = true
+
+    } catch(e) {
+        logDebug("Error attempting to establish socket connection to device.")
+        logDebug("Next initialization attempt in ${settings.refreshTime} seconds.")
+        settings.turnOffWhenDisconnected ? sendEvent(name: "switch", value: "off")  : null
+        tryWasGood = false
+    }
+
+    if(tryWasGood){
+        unschedule()
+        logDebug "Stopping connectDevice loop. Starting refresh loop"
+        schedule("0/${clamp(settings.refreshTime, 1, 59)} * * * * ? *", refresh)
+        state.noResponse = 0
+    }
+}
+
+
+
+
