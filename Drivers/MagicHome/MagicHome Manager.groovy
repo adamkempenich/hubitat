@@ -1,5 +1,5 @@
 /**
-*	Super Fan
+*	MagicHome Manager
 *
 *    Author:
 *        Adam Kempenich
