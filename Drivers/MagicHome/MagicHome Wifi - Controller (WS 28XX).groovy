@@ -601,7 +601,7 @@ def customEffectAdd(effectName, function){
     
     state.customEffects == null ? (state.customEffects = [:]) : null
     
-    if(function.length() != 582){
+    if(function.length() != 580){
         log.warn "It looks like your function wasn't copied in properly. Either there are extra characters in it, or it's been truncated prematurely. It's ${function.length()}/582 characters."
     } else {
         if(!state.customEffects.containsKey("${name}")){
