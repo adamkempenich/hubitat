@@ -30,7 +30,7 @@ metadata {
         name: "MagicHome Wifi — Controller (Pixel Controller) - Dev", 
         namespace: "MagicHome", 
         author: "Adam Kempenich",
-        importUrl: "") {
+        importUrl: "https://raw.githubusercontent.com/adamkempenich/hubitat/master/Drivers/MagicHome/MagicHome%20Wifi%20-%20Controller%20(WS%2028XX).groovy") {
 
         capability "Actuator"
         capability "Color Control"
