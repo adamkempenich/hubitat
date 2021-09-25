@@ -229,17 +229,21 @@ def setInputSource(inputName){
 
     byte[] data
     switch (inputName) {
-        case "HDMI1" || 1:
+        case 1:
+        case "HDMI1":
         data = appendCRC(prefixPacketLength([settings.groupAddress.toInteger(), 0x11, 0x03, 0x20, 0x00], 1))
         sendEvent(name: "mediaInputSource", value: "HDMI1")
         break
 
-        case "HDMI2" || 2:
+        case 2:
+        case "HDMI2":
         data = appendCRC(prefixPacketLength([settings.groupAddress.toInteger(), 0x11, 0x03, 0x20, 0x01], 1))
 
         sendEvent(name: "mediaInputSource", value: "HDMI2")
         break
-        case "HDMI3" || 3:
+        
+        case 3:
+        case "HDMI3":
         data = appendCRC(prefixPacketLength([settings.groupAddress.toInteger(), 0x11, 0x03, 0x20, 0x02], 1))
 
         sendEvent(name: "mediaInputSource", value: "HDMI3")
