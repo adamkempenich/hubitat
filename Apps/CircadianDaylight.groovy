@@ -118,7 +118,7 @@ def mainPage(){
             href(name: "toColorTemperatureOverrides",
                     title: "<b>Color Temperature Options</b>",
                     page: "colorTemperatureOverrides",
-                    description: "Set Advanced Sunset/Sunrise Options"
+                    description: "Set Advanced Color Temperature Options"
             )
         }
 
