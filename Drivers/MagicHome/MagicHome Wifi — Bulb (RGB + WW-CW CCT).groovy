@@ -13,7 +13,6 @@
 *   	0.89 (June 21, 2019)
 *       	 - Removed Telnet, as Socket is now reliable
 *        	 - Added null 2nd option to setLevel for duration
-
 *
 *	0.88 (June 12, 2019)
 *		- Added option for failed pings threshold 
