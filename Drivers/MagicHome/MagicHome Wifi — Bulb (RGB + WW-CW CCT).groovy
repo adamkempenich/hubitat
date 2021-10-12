@@ -1,5 +1,5 @@
 /**
-*  MagicHome Wifi - Bulb (RGB + WW/CW CCT) 0.89
+*  MagicHome Wifi - Bulb (RGB + WW/CW CCT) 0.90
 *
 *  Author: 
 *    Adam Kempenich 
@@ -7,9 +7,12 @@
 *  Documentation:  https://community.hubitat.com/t/release-beta-0-7-magic-home-wifi-devices-initial-public-release/5197
 *
 *  Changelog:
-*   0.89 (June 21, 2019)
-*        - Removed Telnet, as Socket is now reliable
-*        - Added null 2nd option to setLevel for duration
+*  0.90 (Oct. 12, 2021)
+*	- Changed log.debug to logdebug on lines 583,584,588,589 so Log message follows Debug switch state 
+*
+*   	0.89 (June 21, 2019)
+*       	 - Removed Telnet, as Socket is now reliable
+*        	 - Added null 2nd option to setLevel for duration
 
 *
 *	0.88 (June 12, 2019)
@@ -577,13 +580,13 @@ def connectDevice( data ){
 	    	schedule("0/${limit(settings.refreshTime, 1, 59)} * * * * ? *", refresh)
 	    	state.noResponse = 0
 	    }
-        log.debug "Proper time has passed, or it is the device's first run."
-        log.debug "${(now() - state.lastConnectionAttempt)} >= ${limit(settings.refreshTime, 1, 60) * 500}. First run: ${data.firstRun}"
+        logdebug "Proper time has passed, or it is the device's first run." //JAS changed log.debug to logdebug 10/12/21
+        logdebug "${(now() - state.lastConnectionAttempt)} >= ${limit(settings.refreshTime, 1, 60) * 500}. First run: ${data.firstRun}" //JAS changed log.debug to logdebug 10/12/21
         state.lastConnectionAttempt = now()
     }
     else{
-        log.debug "Tried to connect too soon. Skipping this round."
-        log.debug "X ${(now() - state.lastConnectionAttempt)} >= ${limit(settings.refreshTime, 1, 60) * 500}"
+        logdebug "Tried to connect too soon. Skipping this round." //JAS changed log.debug to logdebug 10/12/21
+        logdebug "X ${(now() - state.lastConnectionAttempt)} >= ${limit(settings.refreshTime, 1, 60) * 500}" //JAS changed log.debug to logdebug 10/12/21
         state.lastConnectionAttempt = now()
     }
 }
