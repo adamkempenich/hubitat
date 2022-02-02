@@ -31,46 +31,55 @@ def childSetup() {
 
         section() {   
             paragraph """<style>.mdl-switch__track, .mdl-switch__thumb, .mdl-switch__ripple-container{display:none;}
-                .left-selected{
-                    background:#3498db; 
-                    border-top-left-radius:25px; 
-                    border-bottom-left-radius:25px; 
-                    padding: 1em; color:#ecf0f1
-                }
-                .left{
-                    background:#ecf0f1; 
-                    border-top-left-radius:25px; 
-                    border-bottom-left-radius:25px; 
-                    padding: 1em; 
-                    color: #95a5a6;
-                }
-                .right-selected{
-                    background:#3498db; 
-                    border-top-right-radius:25px; 
-                    border-bottom-right-radius:25px; 
-                    padding: 1em; color:#ecf0f1;
-                }
-                .right{
-                    background:#ecf0f1; 
-                    border-top-right-radius:25px; 
-                    border-bottom-right-radius:25px; 
-                    padding: 1em;
-                    color: #95a5a6;
-                }
-                .enclosure{
-                    margin: 1.5em -44px !important;
-                }
-                .ignoreRequired + span{
-                    display:none;
-                }
-                </style>"""
+.left-selected{
+background:#3498db; 
+border-top-left-radius:25px; 
+border-bottom-left-radius:25px; 
+padding: 1em; color:#ecf0f1
+}
+.left{
+background:#ecf0f1; 
+border-top-left-radius:25px; 
+border-bottom-left-radius:25px; 
+padding: 1em; 
+color: #95a5a6;
+}
+.right-selected{
+background:#3498db; 
+border-top-right-radius:25px; 
+border-bottom-right-radius:25px; 
+padding: 1em; color:#ecf0f1;
+}
+.right{
+background:#ecf0f1; 
+border-top-right-radius:25px; 
+border-bottom-right-radius:25px; 
+padding: 1em;
+color: #95a5a6;
+}
+.enclosure{
+margin: 1.5em -44px !important;
+}
+.ignoreRequired + span{
+display:none;
+}
+</style>"""
             label title: "<h2>Enter a name for this app (optional)</h2>", required: false, submitOnChange: true
         }
 
         section("<h2>Basic Settings</h2>", hideable: true){
-            input "baseHumidity", "capability.relativeHumidityMeasurement", title: "This device represents the normal humidity in my house: <b>Currently: ${baseHumidity.currentValue('humidity') == null ? '(Select a device)' : baseHumidity.currentValue('humidity')}</b>", multiple:false, required: true, submitOnChange: true
-            input "checkHumidity", "capability.relativeHumidityMeasurement", title: "This device represents the monitored room's humidity: <b>Currently: ${checkHumidity.currentValue('humidity') == null ? '(Select a device)' : checkHumidity.currentValue('humidity')}</b>", multiple:false, required: true, submitOnChange: true
 
+            try{
+                input "baseHumidity", "capability.relativeHumidityMeasurement", title: "This device represents the normal humidity in my house: <b>Currently: ${baseHumidity.currentValue('humidity') == null ? '(Select a device)' : baseHumidity.currentValue('humidity')}</b>", multiple:false, required: true, submitOnChange: true
+            } catch(baseWarning){
+                input "baseHumidity", "capability.relativeHumidityMeasurement", title: "This device represents the normal humidity in my house:  <b>(Select a device)</b>", multiple:false, required: true, submitOnChange: true
+            }
+
+            try{
+                input "checkHumidity", "capability.relativeHumidityMeasurement", title: "This device represents the monitored room's humidity: <b>Currently: ${checkHumidity.currentValue('humidity') == null ? '(Select a device)' : checkHumidity.currentValue('humidity')}</b>", multiple:false, required: true, submitOnChange: true
+            } catch(checkWarning){
+                input "checkHumidity", "capability.relativeHumidityMeasurement", title: "This device represents the monitored room's humidity: <b>(Select a device)</b>", multiple:false, required: true, submitOnChange: true
+            }
             paragraph "My bathroom fan's device type is a..."
 
             def fanOrDimmerTrue = "<div class='ignoreRequired enclosure'><span class='left'>Fan</span><span class='right-selected'><b>Dimmer</b></span></div>"
@@ -83,7 +92,12 @@ def childSetup() {
                 input "fan", "capability.switchLevel", title: "This is my bathroom fan dimmer controller", multiple: false, required: true, submitOnChange: true
             }
 
+            try{
+            input "humidityMaximumValue", "number", title: "When the difference in humidity is this high or greater, my fan should run at full: <b>(Select devices)</b>", defaultValue: 50, required: true
+            } catch(maxWarning){
             input "humidityMaximumValue", "number", title: "When the difference in humidity is this high or greater, my fan should run at full: <b>Current Difference: ${baseHumidity.currentValue('humidity') == null || checkHumidity.currentValue('humidity') == null ? '(Select devices)' : checkHumidity.currentValue('humidity')-baseHumidity.currentValue('humidity')}</b>", defaultValue: 50, required: true
+            }
+            
             input "humidityMinimumValue", "number", title: "When the difference in humidity is this low or less, my fan should be off", defaultValue: 10, required: true
 
             input "fanFull", "number", title: "My fan's full speed should run at:", defaultValue: 100, required: true
