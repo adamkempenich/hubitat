@@ -202,7 +202,8 @@ def off() {
 
 def setHue(hue){
     // Set the hue of a device ( 0-99 ) 
-
+    hue = hue.toInteger()
+	
     settings.enableHueInDegrees ? hue /= 3.6 : null
     limit(hue)
     sendEvent(name: "hue", value: hue )
@@ -214,6 +215,8 @@ def setHue(hue){
 def setSaturation(saturation){
     // Set the saturation of a device (0-100)
 
+    saturation = saturation.toInteger()
+	
     limit(saturation)
     sendEvent(name: "saturation", value: saturation)
     logDescriptionText "Saturation set to ${saturation}"
@@ -222,6 +225,8 @@ def setSaturation(saturation){
 }
 
 def setLevel(level, duration = 0) {
+	level = level.toInteger()
+	
     // Set the brightness of a device (0-100)
 	limit(level)
     sendEvent(name: "level", value: level)
@@ -245,9 +250,11 @@ def setColor( parameters ){
 	powerOnWithChanges()
 }
 
-def setColorTemperature( setTemp ){
+def setColorTemperature( setTemp, level = device.currentValue('level'), duration = 0 ){
 	// Using RGB, adjust the color temperature of a device	
     
+	setTemp = setTemp.toInteger()
+	
 	limit(setTemp, settings.deviceWWTemperature, settings.deviceCWTemperature)
 	
     logDescriptionText "ColorTemperature set to ${setTemp}"
