@@ -333,7 +333,9 @@ def initialize() {
     state.remove("refreshRunning")
     state.remove("initializeLoop")
     state.remove("oldvariablename")
-    
+     
+    state.noResponse = 0
+	
     logDebug "Initializing device."
     state.lastConnectionAttempt = now()
     connectDevice([firstRun: true])
