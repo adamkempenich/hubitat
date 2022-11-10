@@ -281,7 +281,7 @@ def off(){
     // set mode off
 
     logDebug "Sending off command" 
-    sendEvent(name: "switch", value: "on")
+    sendEvent(name: "switch", value: "off")
     byte[] data = [0xfc, 0x06, settings.groupAddress.toInteger(), 0x11, 0x03, 0x01, 0x00, 0x0d]
     sendCommand(data)
 }
