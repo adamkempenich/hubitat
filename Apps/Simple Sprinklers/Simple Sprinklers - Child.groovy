@@ -39,12 +39,17 @@ def childSetup() {
         section("Start sprinklers when this switch turns on", hideable: true, hidden: true) {
                 input "startSwitch", "capability.switch", title: "Which switch?", multiple:false, required: false
         }
-            
+
+        section("Skip watering if this switch is on", hideable: true, hidden: true) {
+                input "cancelSwitch", "capability.switch", title: "Which switch?", multiple:false, required: false
+        }
         
         section() {   
             paragraph "<hr><h2>Select Sprinklers</h2>"
             input "sprinkler1", "capability.switch", title: "Turn on these switches...", multiple:true, required: false
             input "sprinkler1valve", "capability.valve", title: "Open these valves...", multiple:true, required: false
+            input "sprinkler1humidity", "capability.relativeHumidityMeasurement", title: "Disable when ALL moisture sensors are above threshold", multiple: true
+            input "sprinkler1moisureLevel", "number", title: "Maximum moisture"
             
             paragraph "<h2>For this many minutes...</h2>"
             input "sprinklerDuration", "number", title: "Duration (minutes)", required: true, defaultValue: 30
@@ -56,62 +61,92 @@ def childSetup() {
             paragraph "<h2>After waiting, repeat for these sprinkler(s)</h2>"
             input "sprinkler2", "capability.switch", title: "Turn on these switches...", multiple:true, required: false, submitOnChange: true
             input "sprinkler2valve", "capability.valve", title: "Open these valves...", multiple:true, required: false, submitOnChange: true
+            input "sprinkler2humidity", "capability.relativeHumidityMeasurement", title: "Disable when ALL moisture sensors are above threshold", multiple: true
+            input "sprinkler2moisureLevel", "number", title: "Maximum moisture"
             
             if(settings.sprinkler2 || settings.sprinkler2valve){
                 input "sprinkler3", "capability.switch", title: "Turn on these switches...", multiple:true, required: false, submitOnChange: true
                 input "sprinkler3valve", "capability.valve", title: "Open these valves...", multiple:true, required: false, submitOnChange: true
+                input "sprinkler3humidity", "capability.relativeHumidityMeasurement", title: "Disable when ALL moisture sensors are above threshold", multiple: true
+                input "sprinkler3moisureLevel", "number", title: "Maximum moisture"
             }
              if(settings.sprinkler3 || settings.sprinkler3valve){
                 input "sprinkler4", "capability.switch", title: "Turn on these switches...", multiple:true, required: false, submitOnChange: true
                 input "sprinkler4valve", "capability.valve", title: "Open these valves...", multiple:true, required: false, submitOnChange: true
+                input "sprinkler4humidity", "capability.relativeHumidityMeasurement", title: "Disable when ALL moisture sensors are above threshold", multiple: true
+                input "sprinkler4moisureLevel", "number", title: "Maximum moisture"
             }
              if(settings.sprinkler4 || settings.sprinkler4valve){
                 input "sprinkler5", "capability.switch", title: "Turn on these switches...", multiple:true, required: false, submitOnChange: true
                 input "sprinkler5valve", "capability.valve", title: "Open these valves...", multiple:true, required: false, submitOnChange: true
+                input "sprinkler5humidity", "capability.relativeHumidityMeasurement", title: "Disable when ALL moisture sensors are above threshold", multiple: true
+                input "sprinkler5moisureLevel", "number", title: "Maximum moisture"
             }
              if(settings.sprinkler5 || settings.sprinkler5valve){
                 input "sprinkler6", "capability.switch", title: "Turn on these switches...", multiple:true, required: false, submitOnChange: true
                 input "sprinkler6valve", "capability.valve", title: "Open these valves...", multiple:true, required: false, submitOnChange: true
+                input "sprinkler6humidity", "capability.relativeHumidityMeasurement", title: "Disable when ALL moisture sensors are above threshold", multiple: true
+                input "sprinkler6moisureLevel", "number", title: "Maximum moisture"                
             }
              if(settings.sprinkler6 || settings.sprinkler6valve){
                 input "sprinkler7", "capability.switch", title: "Turn on these switches...", multiple:true, required: false, submitOnChange: true
                 input "sprinkler7valve", "capability.valve", title: "Open these valves...", multiple:true, required: false, submitOnChange: true
+                input "sprinkler7humidity", "capability.relativeHumidityMeasurement", title: "Disable when ALL moisture sensors are above threshold", multiple: true
+                input "sprinkler7moisureLevel", "number", title: "Maximum moisture"                
             }
              if(settings.sprinkler7 || settings.sprinkler7valve){
                 input "sprinkler8", "capability.switch", title: "Turn on these switches...", multiple:true, required: false, submitOnChange: true
                 input "sprinkler8valve", "capability.valve", title: "Open these valves...", multiple:true, required: false, submitOnChange: true
+                input "sprinkler8humidity", "capability.relativeHumidityMeasurement", title: "Disable when ALL moisture sensors are above threshold", multiple: true
+                input "sprinkler8moisureLevel", "number", title: "Maximum moisture"                
             }
              if(settings.sprinkler8 || settings.sprinkler8valve){
                 input "sprinkler9", "capability.switch", title: "Turn on these switches...", multiple:true, required: false, submitOnChange: true
                 input "sprinkler9valve", "capability.valve", title: "Open these valves...", multiple:true, required: false, submitOnChange: true
+                input "sprinkler9humidity", "capability.relativeHumidityMeasurement", title: "Disable when ALL moisture sensors are above threshold", multiple: true
+                input "sprinkler9moisureLevel", "number", title: "Maximum moisture"                
             }
              if(settings.sprinkler9 || settings.sprinkler9valve){
                 input "sprinkler10", "capability.switch", title: "Turn on these switches...", multiple:true, required: false, submitOnChange: true
                 input "sprinkler10valve", "capability.valve", title: "Open these valves...", multiple:true, required: false, submitOnChange: true
+                input "sprinkler10humidity", "capability.relativeHumidityMeasurement", title: "Disable when ALL moisture sensors are above threshold", multiple: true
+                input "sprinkler10moisureLevel", "number", title: "Maximum moisture"                
             }
              if(settings.sprinkler10 || settings.sprinkler10valve){
                 input "sprinkler11", "capability.switch", title: "Turn on these switches...", multiple:true, required: false, submitOnChange: true
                 input "sprinkler11valve", "capability.valve", title: "Open these valves...", multiple:true, required: false, submitOnChange: true
+                input "sprinkler11humidity", "capability.relativeHumidityMeasurement", title: "Disable when ALL moisture sensors are above threshold", multiple: true
+                input "sprinkler11moisureLevel", "number", title: "Maximum moisture"                
             }
              if(settings.sprinkler11 || settings.sprinkler11valve){
                 input "sprinkler12", "capability.switch", title: "Turn on these switches...", multiple:true, required: false, submitOnChange: true
                 input "sprinkler12valve", "capability.valve", title: "Open these valves...", multiple:true, required: false, submitOnChange: true
+                input "sprinkler12humidity", "capability.relativeHumidityMeasurement", title: "Disable when ALL moisture sensors are above threshold", multiple: true
+                input "sprinkler12moisureLevel", "number", title: "Maximum moisture"                
             }
              if(settings.sprinkler12 || settings.sprinkler12valve){
                 input "sprinkler13", "capability.switch", title: "Turn on these switches...", multiple:true, required: false, submitOnChange: true
                 input "sprinkler13valve", "capability.valve", title: "Open these valves...", multiple:true, required: false, submitOnChange: true
+                input "sprinkler13humidity", "capability.relativeHumidityMeasurement", title: "Disable when ALL moisture sensors are above threshold", multiple: true
+                input "sprinkler13moisureLevel", "number", title: "Maximum moisture"                
             }
              if(settings.sprinkler13 || settings.sprinkler13valve){
                 input "sprinkler14", "capability.switch", title: "Turn on these switches...", multiple:true, required: false, submitOnChange: true
                 input "sprinkler14valve", "capability.valve", title: "Open these valves...", multiple:true, required: false, submitOnChange: true
+                input "sprinkler14humidity", "capability.relativeHumidityMeasurement", title: "Disable when ALL moisture sensors are above threshold", multiple: true
+                input "sprinkler14moisureLevel", "number", title: "Maximum moisture"                
             }
              if(settings.sprinkler14 || settings.sprinkler14valve){
                 input "sprinkler15", "capability.switch", title: "Turn on these switches...", multiple:true, required: false, submitOnChange: true
                 input "sprinkler15valve", "capability.valve", title: "Open these valves...", multiple:true, required: false, submitOnChange: true
+                input "sprinkler15humidity", "capability.relativeHumidityMeasurement", title: "Disable when ALL moisture sensors are above threshold", multiple: true
+                input "sprinkler15moisureLevel", "number", title: "Maximum moisture"                
             }
              if(settings.sprinkler15 || settings.sprinkler15valve){
                 input "sprinkler16", "capability.switch", title: "Turn on these switches...", multiple:true, required: false, submitOnChange: true
                 input "sprinkler16valve", "capability.valve", title: "Open these valves...", multiple:true, required: false, submitOnChange: true
+                input "sprinkler16humidity", "capability.relativeHumidityMeasurement", title: "Disable when ALL moisture sensors are above threshold", multiple: true
+                input "sprinkler16moisureLevel", "number", title: "Maximum moisture"                
             }
             
             
@@ -160,12 +195,16 @@ def initialize(){
 def beginSprinklerProcess(){
     // Starts the sprinkler process from the beginning
     
-    logDebug "Beginning scheduled sprinklers"
-    
-    allOff()
-    state.currentSprinkler = 1
-    state.finishedRunning = false
-    startSprinkler()
+    if (cancelSwitch == null || cancelSwitch.currentValue("switch") == "off") {
+        logDebug "Beginning scheduled sprinklers"
+        
+        allOff()
+        state.currentSprinkler = 1
+        state.finishedRunning = false
+        startSprinkler()
+    }
+    else
+        logDebug "Skipping watering because override switch is on"
 }
 
 def installed() {
@@ -183,41 +222,46 @@ def updated() {
 
 def startHandler(evt){
     // The switch to turn on the sprinklers was enabled
-    
-    evt.value == "on" ? beginSprinklerProcess() : null
-
+    if (evt.value == "on")
+        beginSprinklerProcess()
 }
 
 def stopHandler(evt){
-    
     if(evt.value == "on"){
         state.finishedRunning = true
         endSprinkler()
     }
-
-
 }
 
 def allOff(){
     // Turns off all sprinklers
-    
     logDebug "Turning off all sprinklers."
     
     for(int i = 1; i<=16; i++){
-        if(this."getSprinkler${i}"().toString() != '[null, null]'){
-            this."setSprinkler${i}"('off')
+        if (settings."sprinkler${i}" != null || settings."sprinkler${i}valve" != null) {
+            this.setSprinkler(i, 'off')
         } else { break }
     }
-    
-
 }
 
 def startSprinkler(){
     // Start sprinkler
-    
+    def moistureSensors = this.getProperty("sprinkler${state.currentSprinkler}humidity")
+    if (moistureSensors != null) {
+        def moistureLevel = this.getProperty("sprinkler${state.currentSprinkler}moisureLevel")
+        if (!moistureSensors.find { it.currentValue("humidity") <= moistureLevel }) {
+            logDebug "Skipping watering because of moisture level above ${moistureLevel}"
+            checkIfDone( state.currentSprinkler + 1 )
+            if( state.currentSprinkler <= 16 && state.finishedRunning == false){
+                state.currentSprinkler++
+                startSprinkler()
+            }
+            return
+        }
+    }
     logDebug "Starting sprinkler set ${state.currentSprinkler} for ${sprinklerDuration} minutes."
     
-    this."setSprinkler${state.currentSprinkler}"('on')
+    this.setSprinkler(state.currentSprinkler, 'on')
     runIn(60 * sprinklerDuration, endSprinkler)
 }
 
@@ -226,7 +270,7 @@ def endSprinkler(){
     
     logDebug "Ending sprinkler set ${state.currentSprinkler}. Finished running? ${state.finishedRunning}"
     
-    this."setSprinkler${state.currentSprinkler}"("off")
+    this.setSprinkler(state.currentSprinkler, 'off')
     checkIfDone( state.currentSprinkler + 1 )
     
     if( state.currentSprinkler <= 16 && state.finishedRunning == false){
@@ -243,9 +287,9 @@ def checkIfDone( sprinklerSet ){
     // Checks if the sprinklerSet has any devices attached to it
 
     logDebug "Checking if next sprinkler set has any devices set to run..."
-    
-    log.trace "checking if done"
-    this."getSprinkler${sprinklerSet}"().toString() == 'null' ? state.finishedRunning = true : null
+
+    if (settings."sprinkler${sprinklerSet}" == null && settings."sprinkler${sprinklerSet}valve" == null)
+        state.finishedRunning = true
 }
 
 private logDebug( text ){
@@ -256,275 +300,17 @@ private logDebug( text ){
     }
 }
 
-// Dynamic methods to set/get state of devices //
-
-def setSprinkler1( switchStatus = "off" ){
- 
-    for(sprinkler in settings.sprinkler1){    
-        switchStatus == "off" ? sprinkler.off() : sprinkler.on()
+def setSprinkler(idx, switchStatus = "off") {
+    if (settings?."sprinkler${idx}" != null) {
+        if (switchStatus == "off")
+            this.getProperty("sprinkler${idx}")*.off()
+        else
+            this.getProperty("sprinkler${idx}")*.on()
     }
-    for(sprinkler in settings.sprinkler1valve){    
-        switchStatus == "off" ? sprinkler.close() : sprinkler.open()
+    if (settings?."sprinkler${idx}valve" != null) {
+        if (switchStatus == "off")
+            this.getProperty("sprinkler${idx}valve")*.close()
+        else
+            this.getProperty("sprinkler${idx}valve")*.open()
     }
-}
-def getSprinkler1(){
-    // Returns list of sprinklers in sprinkler1
-    
-    def devices = [settings.sprinkler1] + [settings.sprinkler1valve]
-    
-    return devices
-}
-
-def setSprinkler2( switchStatus = "off" ){
- 
-    for(sprinkler in settings.sprinkler2){    
-        switchStatus == "off" ? sprinkler.off() : sprinkler.on()
-    }
-    for(sprinkler in settings.sprinkler2valve){    
-        switchStatus == "off" ? sprinkler.close() : sprinkler.open()
-    }
-}
-def getSprinkler2(){
-    // Returns list of sprinklers in sprinkler2
-
-    def devices = [settings.sprinkler2] + [settings.sprinkler2valve]
-    
-    return devices
-}
-
-def setSprinkler3( switchStatus = "off" ){
- 
-    for(sprinkler in settings.sprinkler3){    
-        switchStatus == "off" ? sprinkler.off() : sprinkler.on()
-    }
-    for(sprinkler in settings.sprinkler3valve){    
-        switchStatus == "off" ? sprinkler.close() : sprinkler.open()
-    }
-}
-def getSprinkler3(){
-    // Returns list of sprinklers in sprinkler3
-
-    def devices = [settings.sprinkler3] + [settings.sprinkler3valve]
-    
-    return devices}
-
-def setSprinkler4( switchStatus = "off" ){
- 
-    for(sprinkler in settings.sprinkler4){    
-        switchStatus == "off" ? sprinkler.off() : sprinkler.on()
-    }
-    for(sprinkler in settings.sprinkler4valve){    
-        switchStatus == "off" ? sprinkler.close() : sprinkler.open()
-    }
-}
-def getSprinkler4(){
-    // Returns list of sprinklers in sprinkler4
-
-    def devices = [settings.sprinkler4] + [settings.sprinkler4valve]
-    
-    return devices
-}
-
-def setSprinkler5( switchStatus = "off" ){
- 
-    for(sprinkler in settings.sprinkler5){    
-        switchStatus == "off" ? sprinkler.off() : sprinkler.on()
-    }
-    for(sprinkler in settings.sprinkler5valve){    
-        switchStatus == "off" ? sprinkler.close() : sprinkler.open()
-    }
-}
-def getSprinkler5(){
-    // Returns list of sprinklers in sprinkler5
-    
-    def devices = [settings.sprinkler5] + [settings.sprinkler5valve]
-    
-    return devices
-}
-
-def setSprinkler6( switchStatus = "off" ){
- 
-    for(sprinkler in settings.sprinkler6){    
-        switchStatus == "off" ? sprinkler.off() : sprinkler.on()
-    }
-    for(sprinkler in settings.sprinkler6valve){    
-        switchStatus == "off" ? sprinkler.close() : sprinkler.open()
-    }
-}
-def getSprinkler6(){
-    // Returns list of sprinklers in sprinkler1
-
-    def devices = [settings.sprinkler6] + [settings.sprinkler6valve]
-    
-    return devices
-}
-
-def setSprinkler7( switchStatus = "off" ){
- 
-    for(sprinkler in settings.sprinkler7){    
-        switchStatus == "off" ? sprinkler.off() : sprinkler.on()
-    }
-    for(sprinkler in settings.sprinkler7valve){    
-        switchStatus == "off" ? sprinkler.close() : sprinkler.open()
-    }
-}
-def getSprinkler7(){
-    // Returns list of sprinklers in sprinkler1
-    
-    def devices = [settings.sprinkler7] + [settings.sprinkler7valve]
-    
-    return devices
-}
-
-def setSprinkler8( switchStatus = "off" ){
- 
-    for(sprinkler in settings.sprinkler8){    
-        switchStatus == "off" ? sprinkler.off() : sprinkler.on()
-    }
-    for(sprinkler in settings.sprinkler8valve){    
-        switchStatus == "off" ? sprinkler.close() : sprinkler.open()
-    }
-}
-def getSprinkler8(){
-    // Returns list of sprinklers in sprinkler1
-    
-    def devices = [settings.sprinkler8] + [settings.sprinkler8valve]
-    
-    return devices
-}
-
-def setSprinkler9( switchStatus = "off" ){
- 
-    for(sprinkler in settings.sprinkler9){    
-        switchStatus == "off" ? sprinkler.off() : sprinkler.on()
-    }
-    for(sprinkler in settings.sprinkler9valve){    
-        switchStatus == "off" ? sprinkler.close() : sprinkler.open()
-    }
-}
-def getSprinkler9(){
-    // Returns list of sprinklers in sprinkler9
-    
-    def devices = [settings.sprinkler9] + [settings.sprinkler9valve]
-    
-    return devices
-}
-
-def setSprinkler10( switchStatus = "off" ){
- 
-    for(sprinkler in settings.sprinkler10){    
-        switchStatus == "off" ? sprinkler.off() : sprinkler.on()
-    }
-    for(sprinkler in settings.sprinkler10valve){    
-        switchStatus == "off" ? sprinkler.close() : sprinkler.open()
-    }
-}
-def getSprinkler10(){
-    // Returns list of sprinklers in sprinkler10
-    
-    def devices = [settings.sprinkler10] + [settings.sprinkler10valve]
-    
-    return devices
-}
-
-def setSprinkler11( switchStatus = "off" ){
- 
-    for(sprinkler in settings.sprinkler11){    
-        switchStatus == "off" ? sprinkler.off() : sprinkler.on()
-    }
-    for(sprinkler in settings.sprinkler11valve){    
-        switchStatus == "off" ? sprinkler.close() : sprinkler.open()
-    }
-}
-def getSprinkler11(){
-    // Returns list of sprinklers in sprinkler setting
-
-    def devices = [settings.sprinkler11] + [settings.sprinkler11valve]
-    
-    return devices
-}
-
-def setSprinkler12( switchStatus = "off" ){
- 
-    for(sprinkler in settings.sprinkler12){    
-        switchStatus == "off" ? sprinkler.off() : sprinkler.on()
-    }
-    for(sprinkler in settings.sprinkler12valve){    
-        switchStatus == "off" ? sprinkler.close() : sprinkler.open()
-    }
-}
-def getSprinkler12(){
-    // Returns list of sprinklers in sprinkler1
-    
-    def devices = [settings.sprinkler12] + [settings.sprinkler12valve]
-    
-    return devices
-}
-
-def setSprinkler13( switchStatus = "off" ){
- 
-    for(sprinkler in settings.sprinkler13){    
-        switchStatus == "off" ? sprinkler.off() : sprinkler.on()
-    }
-    for(sprinkler in settings.sprinkler13valve){    
-        switchStatus == "off" ? sprinkler.close() : sprinkler.open()
-    }
-}
-def getSprinkler13(){
-    // Returns list of sprinklers in sprinkler1
-    
-    def devices = [settings.sprinkler13] + [settings.sprinkler13valve]
-    
-    return devices
-}
-
-def setSprinkler14( switchStatus = "off" ){
- 
-    for(sprinkler in settings.sprinkler14){    
-        switchStatus == "off" ? sprinkler.off() : sprinkler.on()
-    }
-    for(sprinkler in settings.sprinkler14valve){    
-        switchStatus == "off" ? sprinkler.close() : sprinkler.open()
-    }
-}
-def getSprinkler14(){
-    // Returns list of sprinklers in sprinkler1
-    
-    def devices = [settings.sprinkler14] + [settings.sprinkler14valve]
-    
-    return devices
-}
-
-def setSprinkler15( switchStatus = "off" ){
- 
-    for(sprinkler in settings.sprinkler15){    
-        switchStatus == "off" ? sprinkler.off() : sprinkler.on()
-    }
-    for(sprinkler in settings.sprinkler15valve){    
-        switchStatus == "off" ? sprinkler.close() : sprinkler.open()
-    }
-}
-def getSprinkler15(){
-    // Returns list of sprinklers in sprinkler1
-    
-    def devices = [settings.sprinkler15] + [settings.sprinkler15valve]
-    
-    return devices
-}
-
-def setSprinkler16( switchStatus = "off" ){
- 
-    for(sprinkler in settings.sprinkler16){    
-        switchStatus == "off" ? sprinkler.off() : sprinkler.on()
-    }
-    for(sprinkler in settings.sprinkler16valve){    
-        switchStatus == "off" ? sprinkler.close() : sprinkler.open()
-    }
-}
-def getSprinkler16(){
-    // Returns list of sprinklers in sprinkler16
-
-    def devices = [settings.sprinkler16] + [settings.sprinkler16valve]
-    
-    return devices
 }
