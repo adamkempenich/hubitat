@@ -28,7 +28,6 @@ metadata {
         importUrl: "") {
 
         capability "Smoke Detector"
-        capability "Switch Level"
 
         command "clear"
         command "detected"
@@ -76,15 +75,13 @@ def sendSmokeAlarmEvent( value, isDigital=false ) {    // attributes: smoke ("de
     map.value = value==0 ? "detected" : value==1 ? "clear" : value==2 ? "tested" : null
 
     if(value == 0) {
-        sendEvent(name: "SmokeLevel", value: "smoke detected")
-        sendEvent(name: "SmokeLevelPPM", value:  100000)
-        sendEvent(name: "level", value:  100000)
+        sendEvent(name: "smokeLevel", value: "smoke detected")
+        sendEvent(name: "smokeLevelPPM", value:  100000)
 
     }
     if(value == 1) {
-        sendEvent(name: "SmokeLevel", value: "no smoke detected")
-        sendEvent(name: "SmokeLevelPPM", value:  0)
-        sendEvent(name: "level", value: 0)
+        sendEvent(name: "smokeLevel", value: "no smoke detected")
+        sendEvent(name: "smokeLevelPPM", value:  0)
 
     }
     
