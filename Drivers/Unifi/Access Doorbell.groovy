@@ -152,11 +152,13 @@ def doorbellPressed(){
 def webSocketStatus(status = "closed"){
     log.trace "webSocketStatus(${status})"
 
-    if(status == "open"){
+    if(status == "open" || status == "status: open"){
         // connection alive and open
+        log.trace "connection is open. Cancelling scheduled event"
         unschedule(webSocketStatus)
+
     }
-    else if(status == "closed"){
+    else if(status == "closed" || status == "status: closed" ){
         // re-open connection
         sendEvent(name: "healthStatus", value: "offline")
 
@@ -164,6 +166,7 @@ def webSocketStatus(status = "closed"){
         runIn(90, webSocketStatus)
     }
 }
+
 
 def presence(presenceValue){
 
