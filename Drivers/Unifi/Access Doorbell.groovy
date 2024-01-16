@@ -114,7 +114,6 @@ def parse(response){
 
 
     if(response.size() == 8){
-      unschedule(webSocketStatus)
         // connection alive and open
         // I'm not sure why checking this against its literal string doesn't work and I don't have energy to see what characters are really being sent
         // ""Hello" " << This is the string. Notice the trailing space 
@@ -155,6 +154,7 @@ def webSocketStatus(status = "closed"){
 
     if(status == "open"){
         // connection alive and open
+        unschedule(webSocketStatus)
     }
     else if(status == "closed"){
         // re-open connection
