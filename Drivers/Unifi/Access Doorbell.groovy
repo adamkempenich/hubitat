@@ -1,5 +1,5 @@
 /**
-*  Unifi Access Lock driver for Hubitat
+*  Unifi Access Doorbell driver for Hubitat
 *
 *  Copyright © 2024 Adam Kempenich
 *
