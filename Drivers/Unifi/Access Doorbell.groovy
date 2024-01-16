@@ -158,7 +158,7 @@ def webSocketStatus(status = "closed"){
         unschedule(webSocketStatus)
 
     }
-    else if(status == "closed" || status == "status: closed" ){
+    else if(status == "closed" || status == "status: closed" || status == "status: closing" ){
         // re-open connection
         sendEvent(name: "healthStatus", value: "offline")
 
